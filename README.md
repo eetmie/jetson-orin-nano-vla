@@ -18,9 +18,9 @@ of them.
 | **`ort-mono`** | the *monolithic* ONNX on ORT — the split-vs-monolith A/B |
 | **`tether`** | optional: [FastCrest Tether](https://github.com/FastCrest/tether) `serve` + `/act`, an off-the-shelf deployment CLI |
 
-Everything is public and Apache 2.0, so the comparison is reproducible by anyone with
-the same board. A locally fine-tuned checkpoint drops in by pointing `--checkpoint` and
-`--bundle` at it.
+Both checkpoints are public and Apache 2.0, so the comparison is reproducible by anyone
+with the same board. A locally fine-tuned checkpoint drops in by pointing
+`--checkpoint` and `--bundle` at it.
 
 ## Scope
 
@@ -141,6 +141,21 @@ results/           one JSON per run — the evidence behind RESULTS.md
 
 [`docs/RESULTS.md`](docs/RESULTS.md) — generated, with the prior claims it is meant to
 replace listed until it is.
+
+## License
+
+**This repository is MIT** (see `LICENSE`) — the harness, the backends, the scripts and
+the docs.
+
+The models are not. `lerobot/smolvla_base` and `lerobot/xvla-base` are **Apache 2.0**
+and stay under their own licence; nothing here relicenses them. That is also why
+`hf/xvla-base-onnx-README.md` declares `license: apache-2.0`: it is the model card for
+an ONNX re-serialization of Apache-2.0 weights, and a derivative inherits the original's
+terms rather than this repo's. It is not an inconsistency to fix.
+
+`bench/vendor/` contains two runtimes copied from the author's own projects and is
+included here under this repository's MIT licence; each file carries its source and
+commit in its header.
 
 ## Provenance
 
