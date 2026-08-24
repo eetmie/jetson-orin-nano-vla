@@ -112,12 +112,17 @@ up element by element and cosine means what it looks like it means.
 
 | verdict | when |
 |---|---|
-| `PASS` | cosine ≥ 0.999, max abs diff ≤ 1% of full stick, all finite |
+| `PASS` | cosine ≥ 0.999, max abs diff ≤ 1% of the reference's action range, all finite |
 | `FAIL` | anything else, with identical noise |
 | `PLAUSIBLE` / `SUSPECT` | distribution-only comparison — see below |
 
-Actions are joystick rates in [-1, 1], so `max_abs_diff` reads directly as a fraction
-of full stick travel. Cosine alone hides a scale error; both are reported.
+Cosine hides a scale error, so an absolute difference is reported too — and an absolute
+difference means nothing without knowing the action range. Different policies use
+different action spaces (joystick rates in [-1, 1], normalized joint targets, a 20-dim
+ee6d pose), so the difference is normalized against the **reference run's own observed
+action range** rather than an assumed [-1, 1]. `max_abs_diff_pct_of_range` therefore
+means the same thing across models: 1% is one percent of the span the reference policy
+actually commands.
 
 **The tether backend cannot be certified this way.** An HTTP server draws its own
 noise, so its chunks integrate a different ODE and only a distribution comparison is

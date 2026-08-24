@@ -1,8 +1,8 @@
 """Backend: the split 9-graph ONNX export on ONNX Runtime + TensorRT EP (FP16).
 
-This is the incumbent — the path already validated on this board and already driving
-the excavator (`kaivuriprokkis/lerobot_vla/smolvla_split.py`, vendored under
-`bench/vendor/`). It exists because the *monolithic* SmolVLA ONNX cannot TRT-build in
+This is the incumbent — the path already validated on this board and already driving a
+real machine (`kaivuriprokkis/lerobot_vla/smolvla_split.py`, vendored under
+`bench/vendor/` so the measured code is pinned beside its numbers). It exists because the *monolithic* SmolVLA ONNX cannot TRT-build in
 8 GB: TensorRT imports all 450M weights as FP32 working copies at once, a ~6 GB floor
 that is independent of node count. Splitting the model means each engine carries only
 its own weight slice.
