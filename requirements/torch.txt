@@ -1,9 +1,10 @@
 # Backend: stock PyTorch (LeRobot SmolVLAPolicy).
 #
 # ORDER MATTERS on a Jetson. `pip install lerobot` resolves torch from PyPI, whose
-# aarch64 wheel is CPU-only — installing it after the JetPack-matched wheel silently
-# turns the "GPU baseline" into a CPU run. Install lerobot first, then force the
-# CUDA-13 aarch64 torch back on top, then verify torch.cuda.is_available().
+# resolver will happily replace the JetPack-matched wheel, and a torch that cannot
+# reach the iGPU falls back to CPU silently — turning the "GPU baseline" into a CPU run
+# with no error. Install lerobot first, force the JetPack-matched torch back on top,
+# then verify torch.cuda.is_available().
 #
 #   pip install -r requirements/torch.txt
 #   pip install --force-reinstall --no-deps torch torchvision \

@@ -28,8 +28,8 @@ argued about after the fact.
 
 ## Swap: 16 GB, on the NVMe
 
-The 8 GB is **unified** — CPU and GPU share it. TensorRT's first engine build is the
-memory peak of this whole exercise, and it peaks well above what is free. Without
+The 8 GB is **unified** — CPU and GPU share it. TensorRT's first engine build is where
+the monolithic export ran out of room. Without
 swap the monolithic build was an OOM kill; 16 GB is what the split builds were done
 with. Whether the split path strictly needs it has not been tested — the swap is
 insurance, not a measured requirement.

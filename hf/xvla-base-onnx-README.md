@@ -169,5 +169,8 @@ Parity against the PyTorch reference on identical seeded observations and an ide
 
 That is machine precision — the split is a re-serialization, not an approximation.
 
-Measured on an Orin Nano 8 GB (JetPack 7.2, FP16 TRT, one camera, 10 denoising steps):
-390 ms per 30-action chunk, 2.56 Hz replan, 5.71 GB peak RSS.
+For scale: an earlier export of this checkpoint, produced by the same tool and run on an
+Orin Nano 8 GB (JetPack 7.2, FP16 TRT, one camera, 10 denoising steps), measured 390 ms
+per 30-action chunk, 2.56 Hz replan, 5.71 GB peak RSS. **These exact graphs have not been
+benchmarked on that board yet** — treat those figures as the ballpark they came from, not
+as a spec for this upload.

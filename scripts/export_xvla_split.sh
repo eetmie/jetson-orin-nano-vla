@@ -22,17 +22,25 @@ DOMAIN_ID="${DOMAIN_ID:-0}"
 BUDGET_GB="${BUDGET_GB:-0.40}"
 PY="${PY:-python3}"
 
-# lerobot version matters here, and not in the usual way. The exporter reaches into
-# lerobot's VENDORED Florence2 (`lerobot/policies/xvla/modeling_florence2.py`), whose
-# module layout has changed between releases: some revisions expose
-# `vlm.multi_modal_projector` and DaViT conv/block modules taking a bare tensor; others
-# fold the projector into `image_projection` + `image_proj_norm` and pass
-# `(x, input_size)` pairs. A mismatch fails at export with an AttributeError or a
-# tracing error, not with anything that names the real cause. Export with the same
-# lerobot the exporter was written against — 0.6.1 — in its own venv.
-$PY -c "import lerobot, sys; v=lerobot.__version__; print('lerobot', v);
-sys.exit(0 if v.startswith('0.6') else 1)" || {
-    echo "!! this interpreter's lerobot is not 0.6.x."
+# Which Florence2 lerobot uses is what matters, and the version string does not tell you.
+# The exporter needs the layout where X-VLA sits on **transformers'** Florence2 (flat
+# `vision_tower` / `multi_modal_projector` / `language_model`, DaViT modules taking a bare
+# tensor). Other installs vendor their own `lerobot/policies/xvla/modeling_florence2.py`
+# with no `multi_modal_projector` and `(x, input_size)` pairs through the tower; against
+# those the export dies with an AttributeError or a tracing error naming neither cause nor
+# fix. An install reporting 0.5.1 on this machine carries the vendored one — so check the
+# module, not the number.
+$PY - <<'PYCHK' || {
+import importlib.util, sys
+import lerobot
+print("lerobot", lerobot.__version__)
+if importlib.util.find_spec("lerobot.policies.xvla.modeling_florence2") is not None:
+    print("  -> this install VENDORS its own Florence2; the exporter needs transformers'")
+    sys.exit(1)
+from transformers.models.florence2 import modeling_florence2  # noqa: F401
+print("  -> uses transformers' Florence2: layout ok")
+PYCHK
+    echo "!! this interpreter's lerobot has the wrong X-VLA/Florence2 layout."
     echo "   python3 -m venv .venv-xvla-export"
     echo "   .venv-xvla-export/bin/pip install 'lerobot[xvla]==0.6.1' onnx"
     echo "   PY=.venv-xvla-export/bin/python scripts/export_xvla_split.sh"
