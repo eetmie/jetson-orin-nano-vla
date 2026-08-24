@@ -184,17 +184,29 @@ documents a `curl --speed-limit/--speed-time -C -` fallback for that case.
 ### Exporting a split ONNX where none exists
 
 X-VLA has no published ONNX. The exporter that produced the twelve-graph layout is
-`spark-projects/orin-nano/xvla-runtime/tools/export_split_onnx.py`:
+`spark-projects/orin-nano/xvla-runtime/tools/export_split_onnx.py`, wrapped here:
 
 ```bash
-python tools/export_split_onnx.py --checkpoint models/xvla-base --domain-id 0 --valid-views 1
+CHECKPOINT=~/models/xvla-base OUT=~/bundles/xvla-base-split scripts/export_xvla_split.sh
 ```
 
-Export on a machine with room (the Spark), rsync the graphs over, build the engines
-here. A TensorRT engine is hardware- and version-specific and is **never** copied; the
-ONNX is the portable artefact.
+**Run it off the board.** Loading the policy costs ~3.5 GB on CPU and the exporter holds
+that alongside an export trace; that fits on a workstation and swaps on 8 GB. Export
+elsewhere, rsync the graphs over, build the engines on the target — a TensorRT engine is
+hardware- and version-specific and is never copied. The ONNX is the portable artefact.
+
+**The lerobot version matters, in an unobvious way.** The exporter reaches into
+lerobot's *vendored* Florence2 (`lerobot/policies/xvla/modeling_florence2.py`), and that
+module's layout has changed between releases: some revisions expose
+`vlm.multi_modal_projector` and DaViT conv/block modules taking a bare tensor, others
+fold the projector into `image_projection` + `image_proj_norm` and pass `(x, input_size)`
+pairs through the tower. A mismatch fails with an `AttributeError` or a tracing error
+that names neither the real cause nor the fix. Export in a venv pinned to the version
+the exporter was written against (0.6.1); `scripts/export_xvla_split.sh` checks this
+before it starts.
 
 Both base checkpoints are Apache 2.0, so a derived ONNX export is redistributable with
 attribution. Publishing the X-VLA split export to the Hub would make this comparison
 reproducible by anyone with the same board — right now the SmolVLA half is (thanks to
-`ainekko/smolvla_base_onnx`) and the X-VLA half is not.
+`ainekko/smolvla_base_onnx`) and the X-VLA half is not. `hf/xvla-base-onnx-README.md` is
+a model card written to go with such an upload.
