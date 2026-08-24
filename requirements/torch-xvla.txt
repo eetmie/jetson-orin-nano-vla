@@ -1,0 +1,22 @@
+# Backend: stock PyTorch for X-VLA (LeRobot XVLAPolicy).
+#
+# SEPARATE from requirements/torch.txt on purpose. `lerobot 0.5.1` has no xvla policy
+# at all, and the SmolVLA side is pinned to 0.5.1 because that is what the Spark
+# trained and exported with. Two lerobot versions cannot share one venv, so X-VLA gets
+# its own.
+#
+#   pip install -r requirements/torch-xvla.txt
+#   pip install --force-reinstall --no-deps torch torchvision \
+#       --extra-index-url https://pypi.jetson-ai-lab.io/sbsa/cu130
+#   pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"     # NOT optional
+#
+# scripts/13_env_torch_xvla.sh does this in the right order.
+#
+# The last line is not optional with --system-site-packages: the JetPack `scipy` is
+# built against numpy 1.x, shadows through into the venv, and makes `import lerobot`
+# fail on "cannot import name 'Inf' from 'numpy'". pip then "resolves" it by
+# downgrading numpy, which breaks lerobot's own numpy>=2 pin. Installing both INTO the
+# venv settles it.
+
+lerobot[xvla]==0.6.1
+-r bench.txt

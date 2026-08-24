@@ -21,9 +21,13 @@ numerical parity. That limitation is stated in the output rather than papered ov
 
 Scale
 -----
-Excavator actions are joystick rate commands in [-1, 1], so `max_abs_diff` is read
-directly as a fraction of full stick deflection: 0.02 is 1% of full travel, 0.2 is a
-different move. Cosine alone hides that, which is why both are reported.
+Cosine hides a scale error, so an absolute difference is reported too — and an absolute
+difference means nothing without knowing the action range. Different policies use
+different action spaces (joystick rates in [-1, 1], normalized joint targets, a 20-dim
+ee6d pose), so the difference is normalized against the **reference run's own observed
+action range** rather than an assumed [-1, 1]. `max_abs_diff_pct_of_range` is therefore
+comparable across models: 1% means one percent of the span the reference policy
+actually commands.
 """
 
 from __future__ import annotations
@@ -33,7 +37,6 @@ from pathlib import Path
 
 import numpy as np
 
-FULL_SCALE = 2.0        # actions live in [-1, 1]
 
 
 def _chunks(result: dict) -> np.ndarray | None:
@@ -70,19 +73,23 @@ def compare(ref: dict, cand: dict) -> dict:
     if both_seeded:
         cos = [cosine(a[i], b[i]) for i in range(n)]
         diff = np.abs(a - b)
+        # The reference's own span, so the percentage means the same thing whatever
+        # action space the policy uses. Guarded against a degenerate constant output.
+        ref_range = float(np.ptp(a)) or 1.0
         out.update({
             "mode": "elementwise (identical seeded noise)",
             "cosine_min": round(float(np.min(cos)), 7),
             "cosine_mean": round(float(np.mean(cos)), 7),
             "max_abs_diff": float(f"{diff.max():.3e}"),
             "mean_abs_diff": float(f"{diff.mean():.3e}"),
-            "max_abs_diff_pct_full_scale": round(float(diff.max()) / FULL_SCALE * 100, 3),
+            "reference_action_range": round(ref_range, 4),
+            "max_abs_diff_pct_of_range": round(float(diff.max()) / ref_range * 100, 3),
             "first_action_max_abs_diff": float(f"{np.abs(a[:, 0] - b[:, 0]).max():.3e}"),
         })
         # 0.999 is the threshold the on-device guard has used since the Spark sweep;
-        # 1% of full stick is the "would you feel it on the machine" line.
+        # 1% of the commanded range is the "would you feel it on the machine" line.
         ok = (out["cosine_min"] >= 0.999
-              and out["max_abs_diff_pct_full_scale"] <= 1.0
+              and out["max_abs_diff_pct_of_range"] <= 1.0
               and out["finite"])
         out["verdict"] = "PASS" if ok else "FAIL"
     else:

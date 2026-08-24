@@ -2,15 +2,21 @@
 
 | venv | backend | brings |
 |---|---|---|
-| `.venv-torch` | `torch` | lerobot 0.5.1, JetPack-matched torch |
-| `.venv-ort` | `ort-split` | onnxruntime-gpu 1.24 + system TensorRT |
+| `.venv-torch` | `torch` (SmolVLA) | lerobot **0.5.1**, JetPack-matched torch |
+| `.venv-torch-xvla` | `torch` (X-VLA) | lerobot **0.6.1** + `[xvla]` |
+| `.venv-ort` | `ort-split`, `ort-mono` | onnxruntime-gpu 1.24 + system TensorRT |
 | `.venv-tether` | `tether` | fastcrest-tether and its own torch/ORT pins |
 
 ```bash
-scripts/10_env_torch.sh      # -> .venv-torch
-scripts/11_env_ort.sh        # -> .venv-ort
-scripts/12_env_tether.sh     # -> .venv-tether
+scripts/10_env_torch.sh        # -> .venv-torch
+scripts/13_env_torch_xvla.sh   # -> .venv-torch-xvla
+scripts/11_env_ort.sh          # -> .venv-ort
+scripts/12_env_tether.sh       # -> .venv-tether
 ```
+
+The two lerobot versions cannot share a venv: 0.5.1 has no xvla policy at all, and the
+SmolVLA side stays on 0.5.1 because that is what the Spark trained and exported with.
+Only the **ONNX** backends are version-agnostic — they never import lerobot.
 
 They are separate because all three want to own torch and onnxruntime, and on this
 board those are exactly the two wheels that are painful to reinstall. One shared venv
@@ -53,6 +59,19 @@ it, and ORT's TensorRT EP will then refuse to register — silently downgrading 
 benchmark to the CUDA EP. `scripts/11_env_ort.sh` creates the venv with
 `--system-site-packages` and asserts `TensorrtExecutionProvider` is in
 `get_available_providers()` before declaring success.
+
+## The X-VLA venv has a second trap: scipy shadowing
+
+With `--system-site-packages`, the JetPack `scipy` (built against numpy 1.x) shadows
+through and makes `import lerobot` fail on `cannot import name 'Inf' from 'numpy'`. pip
+then "resolves" it by downgrading numpy, which breaks lerobot's own `numpy>=2` pin.
+Installing both **into** the venv settles it:
+
+```bash
+pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"
+```
+
+`scripts/13_env_torch_xvla.sh` does this and then asserts that `XVLAPolicy` imports.
 
 ## Version pins that matter
 
