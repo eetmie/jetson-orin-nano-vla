@@ -106,26 +106,40 @@ which (`views`, `cam_slots`):
 | 2-slot export, 1 camera | 1 | long (slot padded) |
 | 2-slot export, 2 cameras | 2 | long |
 
+Confirmed on the public two-slot export (`ainekko/smolvla_base_onnx`), CPU providers, so
+read the call counts and the flat rows rather than the absolute times:
+
+| | vision | vision calls | prefill | decode |
+|---|---:|---:|---:|---:|
+| `--views 1` | 944 ms | **1** | 418 ms | 1648 ms |
+| `--views 2` | 1600 ms | **2** | 356 ms | 1529 ms |
+
+Vision scales with the camera count; prefill and decode do not move. Same conclusion the
+X-VLA bundle diff reached structurally, now reached empirically on the other family.
+
 `--views` sets the real cameras; `--cam-slots` sets what the export was built with.
 PyTorch pads to `cam_slots` with lerobot's all -1 convention behind a False mask,
 because otherwise it would build a 113-token prefix against the ONNX path's 177 and the
 structural mismatch would surface as a parity failure that looks like a numerics bug.
 
-### What this does NOT measure
+### What this does NOT measure, by design
 
-Capture. Two USB cameras at 640×480×30 cost bus bandwidth, a second decode, and — if
-anything is being recorded — a second video encode, all of which land on the CPU that
-this whole comparison exists to protect. None of that is in these numbers.
+**Capture, and anything else touching real hardware.** This repo answers "does the model
+fit, and what does it cost" — it does not drive a robot, open a camera, or measure a
+control loop. Observations come from memory precisely so that a latency number is a
+property of the runtime and not of a camera's timing.
 
-Two things worth knowing when reading them against a real rig. A RealSense D435i
-delivers IR and colour from **one** USB device on one pipeline, so an IR + RGB pair is
-one device, not two, and the two-camera guidance binds less tightly than it sounds.
-And measured on that setup at 640×480×30 for both streams: 0 dropped frames, USB ~6% —
-the expensive part was the second video *encode*, which is host CPU, not bandwidth.
+So the numbers here exclude: USB bandwidth, frame decode, video encode, and the CPU all
+three take. On a board where CPU headroom is the point, that is a real omission and it
+belongs in any writeup — but it is a separate measurement on a separate rig, not a gap
+to be plugged here.
 
-To fold capture into the measurement, run the benchmark with a live camera source
-instead of frames from memory. That is a deliberate follow-up rather than the default,
-because it makes the model comparison depend on camera timing.
+Two figures worth carrying across when someone does read these against real hardware. A
+RealSense D435i delivers IR and colour from **one** USB device on one pipeline, so an
+IR + RGB pair is one device, not two, and the two-camera guidance binds less tightly
+than it sounds. And measured on that setup at 640×480×30 for both streams: 0 dropped
+frames, USB ~6% — the expensive part was the second video *encode*, which is host CPU
+rather than bandwidth.
 
 ## Backends
 
