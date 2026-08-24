@@ -28,11 +28,10 @@ argued about after the fact.
 
 ## Swap: 16 GB, on the NVMe
 
-The 8 GB is **unified** — CPU and GPU share it. TensorRT's first engine build is where
-the monolithic export ran out of room. Without
-swap the monolithic build was an OOM kill; 16 GB is what the split builds were done
-with. Whether the split path strictly needs it has not been tested — the swap is
-insurance, not a measured requirement.
+The 8 GB is **unified** — CPU and GPU share it, and TensorRT's first engine build is
+where the monolithic export ran out of room: without swap it was an OOM kill. 16 GB is
+what the split builds were done with. Whether the split path strictly needs it has not
+been tested — the swap is insurance, not a measured requirement.
 
 Worth knowing why the peak is what it is: for the *monolithic* SmolVLA export the
 build peak is a node-count-independent floor of roughly 6 GB, because TensorRT
