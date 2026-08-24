@@ -216,3 +216,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── jetson-orin-nano-vla ─────────────────────────────────────────────
+# Model bundles and checkpoints are large and machine-local; never committed.
+bundles/
+exports/
+checkpoints/
+*.onnx
+*.onnx.data
+*.engine
+*.safetensors
+
+# Benchmark output: raw JSON is kept, everything else is scratch.
+results/**/raw/
+results/**/*.log
+.cache/

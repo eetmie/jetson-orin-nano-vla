@@ -1,0 +1,20 @@
+# Backend: stock PyTorch (LeRobot SmolVLAPolicy).
+#
+# ORDER MATTERS on a Jetson. `pip install lerobot` resolves torch from PyPI, whose
+# aarch64 wheel is CPU-only — installing it after the JetPack-matched wheel silently
+# turns the "GPU baseline" into a CPU run. Install lerobot first, then force the
+# CUDA-13 aarch64 torch back on top, then verify torch.cuda.is_available().
+#
+#   pip install -r requirements/torch.txt
+#   pip install --force-reinstall --no-deps torch torchvision \
+#       --extra-index-url https://pypi.jetson-ai-lab.io/sbsa/cu130
+#   python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+#
+# scripts/10_env_torch.sh does exactly this.
+#
+# There is no `jp7` index on Jetson AI Lab — the CUDA 13 aarch64 wheels live under
+# `sbsa`. Same index the ONNX Runtime build comes from.
+
+lerobot==0.5.1        # the pin the DGX Spark trains and exports with
+transformers==5.3.0   # pinned to match the Spark export; the tokenizer must agree
+-r bench.txt

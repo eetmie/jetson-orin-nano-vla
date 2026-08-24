@@ -1,0 +1,6 @@
+# Shared by every backend environment — the harness itself.
+# Install these into whichever venv you are running `python -m bench` from.
+numpy
+opencv-python-headless   # resize_with_pad; headless avoids pulling GTK onto the board
+pillow                   # PNG encode for the tether /act payload
+requests                 # tether HTTP client

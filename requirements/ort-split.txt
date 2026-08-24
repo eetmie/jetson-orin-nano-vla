@@ -1,0 +1,24 @@
+# Backend: split 9-graph ONNX on ONNX Runtime + TensorRT EP.
+#
+# `tensorrt` is NOT pip-installed — it ships with JetPack (10.16.x on 7.2). Create the
+# venv with --system-site-packages so it is visible:
+#
+#   python3 -m venv --system-site-packages .venv-ort
+#
+# onnxruntime-gpu for CUDA 13 + cp312 + aarch64 has no PyPI wheel; it comes from the
+# Jetson AI Lab **sbsa** index (there is no jp7 index):
+#
+#   pip install onnxruntime-gpu==1.24.0 \
+#       --extra-index-url https://pypi.jetson-ai-lab.io/sbsa/cu130
+#
+# Verify all three EPs register before benchmarking anything:
+#   python -c "import onnxruntime as o; print(o.__version__, o.get_available_providers())"
+#   -> ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+#
+# A benign "GPU device discovery failed .../card1/device/vendor" warning on import is
+# a Jetson iGPU DRM-probe quirk; the CUDA EP works regardless.
+
+onnxruntime-gpu==1.24.0
+transformers==5.3.0   # tokenizer only — no torch needed on this path
+sentencepiece
+-r bench.txt
