@@ -44,6 +44,35 @@ parameter budget:
 A monolithic export of a model this size does not build on an 8 GB board at any
 precision — the floor is the weight import, not the node count.
 
+## The graphs
+
+| graph | params (M) | MB |
+|---|---:|---:|
+| `vision_0` | 89.6 | 358 |
+| `vision_1` | 75.7 | 303 |
+| `vision_2` | 94.6 | 378 |
+| `vision_3` | 103.0 | 412 |
+| `text_encoder_0` | 94.5 | 378 |
+| `text_encoder_1` | 88.2 | 353 |
+| `text_encoder_2` | 25.2 | 101 |
+| `cond` | 2.1 | 9 |
+| `denoise_0` | 75.6 | 303 |
+| `denoise_1` | 75.6 | 302 |
+| `denoise_2` | 75.6 | 302 |
+| `denoise_3` | 75.6 | 302 |
+| **total** | **875.1** | **3503** |
+
+Constants in `bundle.json`: `num_image_views` 3, `valid_views`
+1, `tokens_per_view` 50, `lang_len` 50,
+`chunk_size` 30, `hidden_size` 1024, `dim_time`
+32, `max_state_dim` 20, `num_denoising_steps`
+10, `action_mode` `ee6d`, `domain_id`
+0.
+
+The four `denoise_*` graphs are 6 transformer blocks each and run **once per denoising
+step** — ten times per action chunk at the default budget, over a 262-token sequence.
+That is where the latency lives.
+
 ## Layout
 
 `bundle.json` is the manifest: graph names, files, input/output names, parameter counts,
@@ -114,8 +143,20 @@ subprocess per graph. Two builds in one process is enough to OOM 8 GB.
 ## Provenance
 
 Exported with `tools/export_split_onnx.py` from the X-VLA runtime work in
-[spark-projects](https://github.com/eetmie/spark-projects). Parity against the PyTorch
-reference on identical seeded inputs: **cosine 1.000000**.
+[spark-projects](https://github.com/eetmie/spark-projects), under lerobot 0.6.1 /
+transformers 5.5.4 / torch 2.11, opset 17.
+
+Parity against the PyTorch reference on identical seeded observations and an identical
+`x1` draw, both driven through the same preprocessing:
+
+| | |
+|---|---|
+| cosine (min over samples) | **1.0000000** |
+| max abs diff | 6.56e-07 |
+| mean abs diff | 9.52e-08 |
+| chunk shape | (30, 20) |
+
+That is machine precision — the split is a re-serialization, not an approximation.
 
 Measured on an Orin Nano 8 GB (JetPack 7.2, FP16 TRT, one camera, 10 denoising steps):
 390 ms per 30-action chunk, 2.56 Hz replan, 5.71 GB peak RSS.

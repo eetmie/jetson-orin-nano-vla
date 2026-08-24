@@ -61,6 +61,29 @@ Backend wiring was confirmed too: the split path reports prefix 113 / 1 camera s
 chunk 12 read off the graphs, ten decode calls and ten calls to each of the four
 CPU-side projectors per inference, and a (12, 4) action chunk.
 
+### X-VLA, same night
+
+`lerobot/xvla-base` had no published ONNX, so one was exported (12 graphs, 875.1 M
+params, 3.5 GB) and both X-VLA backends were run through the harness on CPU providers:
+
+| pair | cosine (min) | max abs diff | % of range |
+|---|---|---|---|
+| split ONNX vs PyTorch FP32 | **1.0000000** | 6.56e-07 | 0.0001 |
+
+Machine precision, and the second family's wiring confirmed: chunk 30, action 20, twelve
+graphs, ten calls to each `denoise_*` graph per inference, `(30, 20)` chunk. The export
+and its model card are ready to publish — see `hf/xvla-base-onnx-README.md`.
+
+The engine split it produced matches the layout the design notes predicted from the
+build-memory curve:
+
+| family | engines | params each (M) |
+|---|---|---|
+| vision (DaViT + projector) | 4 | 89.6 / 75.7 / 94.6 / 103.0 |
+| text encoder (BART + embed) | 3 | 94.5 / 88.2 / 25.2 |
+| conditioning | 1 | 2.1 |
+| denoise (24 blocks, 6 each) | 4 | 75.6 × 4 |
+
 One early number for optimization backlog item 0, from that CPU-provider run — the
 absolute values mean nothing, the ratio is the point: the four per-step projectors
 summed to **16.5 ms** against **611 ms** of decode. If that ratio roughly holds on the
