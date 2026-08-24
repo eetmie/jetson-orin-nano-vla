@@ -22,6 +22,14 @@ Everything is public and Apache 2.0, so the comparison is reproducible by anyone
 the same board. A locally fine-tuned checkpoint drops in by pointing `--checkpoint` and
 `--bundle` at it.
 
+## Scope
+
+Benchmarking and feasibility only: **does the model fit on this board, and what does it
+cost.** No robot, no camera, no control loop — observations come from memory so that a
+latency number is a property of the runtime rather than of a camera's timing. Capture
+cost, USB bandwidth and video encode are real and are deliberately somebody else's
+measurement.
+
 ## What is measured, and why those things
 
 The interesting question on this board is not "which is fastest". It is **what a
