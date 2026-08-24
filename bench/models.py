@@ -50,6 +50,10 @@ class ModelSpec:
     state_dim: int = 6
     action_dim: int | None = None     # None -> the full padded width
     image_views: int = 1              # real cameras to synthesize
+    #: Camera SLOTS the published export was built with. Not the same as real cameras:
+    #: an unused slot still occupies its image tokens in the prefix, so PyTorch has to
+    #: pad to the same count or the two runtimes compute different-length sequences.
+    cam_slots: int | None = None
 
     notes: str = ""
     extras: dict = field(default_factory=dict)
@@ -77,6 +81,7 @@ REGISTRY: dict[str, ModelSpec] = {
         num_steps=10,
         state_dim=6,
         image_views=1,
+        cam_slots=2,
         notes="Reference split export has 2 camera slots; the runtime pads the unused "
               "one with the all -1 image, matching lerobot's convention.",
     ),

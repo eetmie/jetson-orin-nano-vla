@@ -15,7 +15,7 @@ library_name: onnx
 
 A twelve-graph ONNX export of [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base),
 cut so that each graph builds a TensorRT engine inside the 8 GB of a Jetson Orin Nano.
-Weights are unchanged; this is a re-serialization, Apache 2.0 like the original.
+Weights are unchanged.
 
 The equivalent for SmolVLA is [`ainekko/smolvla_base_onnx`](https://huggingface.co/ainekko/smolvla_base_onnx).
 This is that, for X-VLA.
@@ -122,10 +122,21 @@ on `x_t` or `t`.
 | per-engine budget | 0.40 GB FP32 |
 | opset | 17 |
 
-`valid_views` is baked in: it sets the vision engine's batch size. A single camera means
-a batch-1 vision engine and a third of the vision cost — the declared
-`num_image_views` is 3, but padded views are zeroed by the runtime and never need a
-forward pass. Re-export if you need more real cameras.
+`valid_views` is baked in, and it is worth being precise about what it changes. Exporting
+the same checkpoint at `--valid-views 1` and `--valid-views 2` and diffing the result:
+
+| graphs | 1 view vs 2 views |
+|---|---|
+| `vision_0..3` | **differ** — input batch dimension |
+| `text_encoder_0..2`, `cond`, `denoise_0..3` | **byte-identical** |
+
+`seq_len` is 262 in both. The sequence is sized by `num_image_views` (3, from the
+checkpoint), not by how many views are real, so the token slots are paid for whether or
+not a camera fills them.
+
+**A second camera costs exactly one more pass through the vision tower** — it does not
+lengthen the sequence and does not touch the denoise stack, which is the part that runs
+once per denoising step. Re-export only to change the vision batch; nothing else moves.
 
 ## Running it
 

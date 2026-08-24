@@ -26,7 +26,11 @@ from pathlib import Path
 
 import numpy as np
 
+import math
+
 from ..obs import Observation
+from ..vendor.smolvla_split import (IMG_TOKENS, MAX_ACTION_DIM, MAX_STATE_DIM, VLM_DIM,
+                                    make_att_2d_masks, resize_with_pad_uint8)
 from .base import Backend, InferResult, bundle_camera_key, load_export_info, load_stats
 
 #: Graphs the GPU stack refused, recorded rather than raised — see _move_projectors_to_gpu.
@@ -165,6 +169,80 @@ class OrtSplitBackend(Backend):
             except Exception as e:      # a refused graph is a result, not a stop
                 LOG_MOVE_FAILURES.append(f"{name}: {type(e).__name__}: {e}")
 
+    def _sample_actions_multiview(self, obs: Observation) -> np.ndarray:
+        """`sample_actions` for more than one REAL camera.
+
+        The vendored runtime deploys a single-camera policy, so its `sample_actions`
+        takes one image and fills every remaining slot with the padding embedding. That
+        is not a limitation of the export — the reference base export carries two camera
+        slots — so feeding a genuine second camera means rebuilding the prefix here
+        rather than editing the file that runs on the robot.
+
+        Everything numerical is the policy's own: the same vision session, the same
+        language cache, the same mask construction, the same denoise loop. The only
+        difference is that slot *i* gets a real vision pass instead of the cached
+        padding embedding, and its 64 tokens are marked present rather than absent.
+
+        This is also the measurement that matters for a bandwidth-limited board: a
+        padded slot costs **zero** vision passes per inference (its embedding is
+        computed once at load and reused) but still occupies its 64 tokens in the
+        prefix. So the second camera's cost is one vision pass, not a longer sequence —
+        the sequence was already that long.
+        """
+        p = self.policy
+        n_real = len(obs.images)
+        if n_real > p.n_cam_slots:
+            raise ValueError(
+                f"{n_real} cameras given but the export has {p.n_cam_slots} camera "
+                f"slot(s) (prefix {p.prefix_len}). Re-export with more slots, or run "
+                f"with --views {p.n_cam_slots}.")
+
+        img_embs = [p._run_vision(resize_with_pad_uint8(im)) for im in obs.images]
+        lang_emb, lang_mask = p._embed_language(obs.task)
+
+        s_norm = p.norm.normalize_state(
+            np.asarray(obs.state, dtype=np.float32).reshape(-1))
+        s_pad = np.zeros((1, MAX_STATE_DIM), dtype=np.float32)
+        s_pad[0, :s_norm.shape[0]] = s_norm
+        state_emb = p._run_single(p.state_proj, s_pad).reshape(1, 1, VLM_DIM)
+
+        n_pad_cams = p.n_cam_slots - n_real
+        embs = np.concatenate(
+            img_embs + [p._pad_cam_emb] * n_pad_cams + [lang_emb, state_emb],
+            axis=1).astype(np.float32)
+        pad_masks = np.concatenate(
+            [np.ones((1, IMG_TOKENS), dtype=bool)] * n_real
+            + [np.zeros((1, IMG_TOKENS), dtype=bool)] * n_pad_cams
+            + [lang_mask, np.ones((1, 1), dtype=bool)], axis=1)
+        att_masks = np.zeros((1, p.prefix_len), dtype=bool)
+        att_masks[0, -1] = True                       # state starts a new block
+
+        kv = p.prefill.run(p._prefill_kv_names, {
+            "attention_mask": make_att_2d_masks(pad_masks, att_masks),
+            "position_ids": (np.cumsum(pad_masks, axis=1) - 1).astype(np.int64),
+            "vlm_embeds": embs,
+        })
+
+        x_t = obs.noise.astype(np.float32).copy()
+        dt = -1.0 / p.num_steps
+        t = 1.0
+        prefix_pad_2d = np.broadcast_to(
+            pad_masks[:, None, :], (1, p.chunk_size, p.prefix_len))
+        suffix = np.ones((1, p.chunk_size), dtype=bool)
+        full_att_2d = np.concatenate(
+            [prefix_pad_2d, make_att_2d_masks(suffix, suffix)], axis=2)
+        pos_ids = (pad_masks.sum(axis=-1, keepdims=True)
+                   + np.cumsum(suffix, axis=1) - 1).astype(np.int64)
+        kv_feed = {}
+        for i in range(p.n_layers):
+            kv_feed[f"past_key_{i}"] = kv[2 * i]
+            kv_feed[f"past_value_{i}"] = kv[2 * i + 1]
+
+        while t >= -dt / 2:
+            x_t = x_t + dt * p._denoise_step(x_t, t, full_att_2d, pos_ids, kv_feed)
+            t += dt
+        return p.norm.unnormalize_action(x_t[0, :, :self.action_dim])
+
     def meta(self) -> dict:
         import onnxruntime as ort
         p = self.policy
@@ -195,8 +273,11 @@ class OrtSplitBackend(Backend):
     def infer(self, obs: Observation) -> InferResult:
         self._sink.clear()
         t0 = time.perf_counter()
-        chunk = self.policy.sample_actions(obs.image, obs.task, obs.state,
-                                           noise=obs.noise)
+        if len(obs.images) > 1:
+            chunk = self._sample_actions_multiview(obs)
+        else:
+            chunk = self.policy.sample_actions(obs.image, obs.task, obs.state,
+                                               noise=obs.noise)
         total = (time.perf_counter() - t0) * 1000.0
 
         t = {"total": total}
