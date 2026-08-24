@@ -41,6 +41,10 @@ def _add_model(p: argparse.ArgumentParser) -> None:
                    help="action columns to compare; default is the model's full width")
     p.add_argument("--views", type=int, default=None,
                    help="number of REAL cameras to feed")
+    p.add_argument("--cam-slots", type=int, default=None,
+                   help="camera slots the export was built with. An unused slot still "
+                        "occupies its tokens in the prefix, so PyTorch pads to this "
+                        "count to stay comparable with the ONNX path")
     p.add_argument("--chunk-size", type=int, default=None)
     p.add_argument("--noise-width", type=int, default=None,
                    help="padded action width the graph expects (SmolVLA 32, X-VLA 20); "
@@ -97,6 +101,7 @@ class Resolved:
         # a base checkpoint whose real action width is embodiment-dependent.
         self.action_dim = args.action_dim or (spec.action_dim if spec else None)
         self.views = args.views or (spec.image_views if spec else 1)
+        self.cam_slots = args.cam_slots or (spec.cam_slots if spec else None)
         self.tokenizer = spec.tokenizer if spec else None
         # Noise width is the model's PADDED action width, which is not the same as
         # how many columns we compare. SmolVLA emits 32 regardless of the robot's real
@@ -126,8 +131,8 @@ def _finish(args, backend, r: Resolved) -> int:
         monitor_kind=None if args.monitor == "auto" else args.monitor,
         label=label, notes=args.notes)
     result["model"] = {"key": args.model, "family": r.family, "task": r.task,
-                       "views": r.views, "state_dim": r.state_dim,
-                       "action_dim": r.action_dim}
+                       "views": r.views, "cam_slots": r.cam_slots,
+                       "state_dim": r.state_dim, "action_dim": r.action_dim}
     out = args.out or Path("results") / f"{label}.json"
     write_result(result, out)
     lat = result.get("latency_ms", {})
@@ -167,7 +172,8 @@ def cmd_torch(args) -> int:
             Path(ckpt), bundle=bundle, weights=args.weights, autocast=args.autocast,
             device=args.device, action_dim=r.action_dim or 32,
             tokenizer_dir=Path(args.tokenizer or r.tokenizer) if (args.tokenizer or r.tokenizer) else None,
-            compile_model=args.compile, patch_half_out=args.patch_half_out)
+            compile_model=args.compile, patch_half_out=args.patch_half_out,
+            cam_slots=r.cam_slots)
     return _finish(args, be, r)
 
 

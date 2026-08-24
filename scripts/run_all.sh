@@ -6,6 +6,10 @@
 #   MODEL=local FAMILY=smolvla CKPT=~/bundles/mine/pretrained_model \
 #       BUNDLE=~/bundles/mine-split STATE_DIM=3 ACTION_DIM=4 scripts/run_all.sh
 #
+# VIEWS sweeps the real camera count (default "1 2"). Two is the Orin Nano's practical
+# ceiling for USB cameras; one is what prices the second one. A second camera costs one
+# extra vision-tower pass and nothing else — see docs/03 — so this sweep is cheap.
+#
 # Each backend runs in its own venv (they cannot share one — see docs/02). Every run
 # writes results/<label>.json and the script keeps going if one fails, because "this
 # backend does not work on this board" is a result worth having written down.
@@ -18,6 +22,7 @@ CKPT="${CKPT:-$DEST/$MODEL-torch}"
 BUNDLE="${BUNDLE:-$DEST/$MODEL-split}"
 ITERS="${ITERS:-100}"
 OBS="${OBS:-synthetic}"
+VIEWS="${VIEWS:-1 2}"
 
 MODEL_ARGS=()
 if [[ "$MODEL" == "local" ]]; then
@@ -63,8 +68,10 @@ fi
 # 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
 #    for SmolVLA, ~10 for X-VLA. Later runs load from cache in seconds.
 if [[ -d "$BUNDLE" ]]; then
-    run "$VENV_ORT" "$MODEL.ort-split" ort-split --bundle "$BUNDLE" \
-        --precision fp16 "${COMMON[@]}"
+    for v in $VIEWS; do
+        run "$VENV_ORT" "$MODEL.ort-split.${v}cam" ort-split --bundle "$BUNDLE" \
+            --precision fp16 --views "$v" "${COMMON[@]}"
+    done
     # Optimization backlog item 1 — see docs/06.
     if [[ "${PROJECTOR_AB:-1}" == "1" && "${FAMILY:-${MODEL%%-*}}" != "xvla" ]]; then
         run "$VENV_ORT" "$MODEL.ort-split.proj-gpu" ort-split --bundle "$BUNDLE" \

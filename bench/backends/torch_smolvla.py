@@ -66,7 +66,7 @@ class TorchSmolVLABackend(Backend):
                  weights: str = "float32", autocast: str = "off",
                  device: str = "cuda", action_dim: int = 4,
                  tokenizer_dir: Path | None = None, compile_model: bool = False,
-                 patch_half_out: bool = False):
+                 patch_half_out: bool = False, cam_slots: int | None = None):
         self.checkpoint = Path(checkpoint)
         self.bundle = Path(bundle) if bundle else None
         self.dtype_name = _DTYPES[weights]
@@ -76,6 +76,13 @@ class TorchSmolVLABackend(Backend):
         self.action_dim = action_dim
         self.tokenizer_dir = tokenizer_dir
         self.compile_model = compile_model
+        # Camera SLOTS, which is not the same as cameras. An ONNX export bakes its slot
+        # count into the prefix; PyTorch builds a prefix from however many images it is
+        # handed. Feeding torch one image against a two-slot export means a 113-token
+        # prefix against a 177-token one — a structural difference that would surface as
+        # a parity failure and read like a numerics bug. Padding to the export's slot
+        # count keeps the two comparable.
+        self.cam_slots = cam_slots
         self.policy = None
         self._info = load_export_info(self.bundle) if self.bundle else {}
 
@@ -125,6 +132,7 @@ class TorchSmolVLABackend(Backend):
             "max_action_dim": int(self.cfg.max_action_dim),
             "action_dim": self.action_dim,
             "resize": list(self.cfg.resize_imgs_with_padding),
+            "cam_slots": self.cam_slots,
             "torch": torch.__version__,
             "torch_cuda": torch.version.cuda,
             "compiled": self.compile_model,
@@ -152,22 +160,30 @@ class TorchSmolVLABackend(Backend):
         t0 = time.perf_counter()
 
         # -- preprocess: identical maths to the split path, on the CPU in numpy --
-        img = resize_with_pad_uint8(obs.image)              # [1,3,512,512] in [-1,1]
+        imgs = [resize_with_pad_uint8(im) for im in obs.images]   # [1,3,512,512] in [-1,1]
         s = self.norm.normalize_state(np.asarray(obs.state, dtype=np.float32).reshape(-1))
         s_pad = np.zeros((1, MAX_STATE_DIM), dtype=np.float32)
         s_pad[0, :s.shape[0]] = s
         lang_ids, lang_mask = self._language(obs.task)
         t_pre = time.perf_counter()
 
-        image_t = torch.from_numpy(img).to(self.device, self.dtype)
+        image_ts = [torch.from_numpy(i).to(self.device, self.dtype) for i in imgs]
+        img_masks = [torch.ones(1, dtype=torch.bool, device=self.device)
+                     for _ in image_ts]
+        # lerobot's padding convention: an all -1 image (i.e. 0 before the SigLIP
+        # [-1,1] normalization) behind a False mask. Same thing the split runtime
+        # caches as its empty-slot embedding.
+        n_pad = max(0, (self.cam_slots or len(image_ts)) - len(image_ts))
+        for _ in range(n_pad):
+            image_ts.append(torch.full_like(image_ts[0], -1.0))
+            img_masks.append(torch.zeros(1, dtype=torch.bool, device=self.device))
         state_t = torch.from_numpy(s_pad).to(self.device, self.dtype)
         noise_t = torch.from_numpy(obs.noise).to(self.device, self.dtype)
-        img_mask = torch.ones(1, dtype=torch.bool, device=self.device)
         t_h2d = time.perf_counter()
 
         with torch.no_grad(), self._autocast():
             out = self.policy.model.sample_actions(
-                [image_t], [img_mask], lang_ids, lang_mask, state_t, noise=noise_t)
+                image_ts, img_masks, lang_ids, lang_mask, state_t, noise=noise_t)
         if self.device.type == "cuda":
             torch.cuda.synchronize()          # the kernels are async; time the work
         t_model = time.perf_counter()

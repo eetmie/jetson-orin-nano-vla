@@ -54,6 +54,79 @@ X-VLA is 2× the parameters but **2.6× the resident memory**, and cost per para
 worse — which points at TensorRT per-engine activation memory rather than weights. That
 is the difference between 4.9 GB of headroom for the rest of the robot and 1.5 GB.
 
+## How many cameras — and what the second one actually costs
+
+NVIDIA's guidance for the Orin Nano is at most two USB cameras, and that is a real
+constraint on a real deployment. It is a **capture-side** constraint, though: the
+benchmark feeds observations from memory, so it measures what a second camera costs the
+*model*, not what it costs the USB controller. Both numbers matter and they are
+different numbers.
+
+What the model side costs is now measured rather than assumed. The X-VLA export was
+produced twice, at `--valid-views 1` and `--valid-views 2`, and the two bundles were
+compared file by file:
+
+| graphs | 1 view vs 2 views |
+|---|---|
+| `vision_0..3` | **differ** (input batch dimension) |
+| `text_encoder_0..2`, `cond`, `denoise_0..3` | **byte-identical** |
+
+`seq_len` is 262 in both. The sequence is sized by `num_image_views` (3, declared by the
+checkpoint), not by how many of those views are real — so the token slots are paid for
+whether or not a camera fills them.
+
+**A second camera therefore costs exactly one more pass through the vision tower.** It
+does not lengthen the sequence, and it does not touch the denoise stack, which is the
+part that runs ten times per chunk. On the SmolVLA side the same thing holds by
+construction: the padded slot's embedding is computed once at load and reused for the
+life of the process, so an empty slot costs zero vision passes per inference while still
+occupying its 64 tokens in the prefix.
+
+That has a practical consequence worth stating plainly: **if your export already carries
+two slots, running one camera does not make inference much cheaper.** You have already
+paid for the sequence. The cheap configuration is a *one-slot export*, not a two-slot
+export fed one image.
+
+### So: sweep 1 and 2, do not collapse to 2
+
+Two cameras is the right deployment ceiling and belongs in the headline table. But 1-vs-2
+is the measurement that prices the second camera, and it is one flag:
+
+```bash
+python -m bench ort-split --model smolvla-base --bundle $BUNDLE --views 1 --label sv.1cam
+python -m bench ort-split --model smolvla-base --bundle $BUNDLE --views 2 --label sv.2cam
+```
+
+Three configurations are worth distinguishing, and the run metadata records which is
+which (`views`, `cam_slots`):
+
+| config | vision passes | prefix / sequence |
+|---|---|---|
+| 1-slot export, 1 camera | 1 | short |
+| 2-slot export, 1 camera | 1 | long (slot padded) |
+| 2-slot export, 2 cameras | 2 | long |
+
+`--views` sets the real cameras; `--cam-slots` sets what the export was built with.
+PyTorch pads to `cam_slots` with lerobot's all -1 convention behind a False mask,
+because otherwise it would build a 113-token prefix against the ONNX path's 177 and the
+structural mismatch would surface as a parity failure that looks like a numerics bug.
+
+### What this does NOT measure
+
+Capture. Two USB cameras at 640×480×30 cost bus bandwidth, a second decode, and — if
+anything is being recorded — a second video encode, all of which land on the CPU that
+this whole comparison exists to protect. None of that is in these numbers.
+
+Two things worth knowing when reading them against a real rig. A RealSense D435i
+delivers IR and colour from **one** USB device on one pipeline, so an IR + RGB pair is
+one device, not two, and the two-camera guidance binds less tightly than it sounds.
+And measured on that setup at 640×480×30 for both streams: 0 dropped frames, USB ~6% —
+the expensive part was the second video *encode*, which is host CPU, not bandwidth.
+
+To fold capture into the measurement, run the benchmark with a live camera source
+instead of frames from memory. That is a deliberate follow-up rather than the default,
+because it makes the model comparison depend on camera timing.
+
 ## Backends
 
 ### `torch` — stock PyTorch
