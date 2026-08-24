@@ -195,15 +195,29 @@ that alongside an export trace; that fits on a workstation and swaps on 8 GB. Ex
 elsewhere, rsync the graphs over, build the engines on the target — a TensorRT engine is
 hardware- and version-specific and is never copied. The ONNX is the portable artefact.
 
-**The lerobot version matters, in an unobvious way.** The exporter reaches into
-lerobot's *vendored* Florence2 (`lerobot/policies/xvla/modeling_florence2.py`), and that
-module's layout has changed between releases: some revisions expose
-`vlm.multi_modal_projector` and DaViT conv/block modules taking a bare tensor, others
-fold the projector into `image_projection` + `image_proj_norm` and pass `(x, input_size)`
-pairs through the tower. A mismatch fails with an `AttributeError` or a tracing error
-that names neither the real cause nor the fix. Export in a venv pinned to the version
-the exporter was written against (0.6.1); `scripts/export_xvla_split.sh` checks this
-before it starts.
+**The lerobot version matters, in an unobvious way.** Where Florence2 comes from changed
+between releases. lerobot 0.6.1 uses **transformers'** `Florence2Model` — flat children
+`vision_tower` / `multi_modal_projector` / `language_model`, DaViT modules taking a bare
+tensor. Earlier revisions vendored their own `lerobot/policies/xvla/modeling_florence2.py`
+with no `multi_modal_projector` at all (the projection is `image_projection` +
+`image_proj_norm`) and conv/block modules threading `(x, input_size)` pairs through the
+tower. Against the wrong one the export dies with an `AttributeError` or a tracing error
+that names neither the cause nor the fix. Export in a venv pinned to 0.6.1;
+`scripts/export_xvla_split.sh` checks the version before it starts.
+
+Two smaller traps in the same exporter, both fixed upstream in the runtime project while
+producing the export published here:
+
+- The empty-input guard was over-broad. ONNX uses `""` as the legal way to omit a
+  *trailing optional* input, which is exactly what the tracer emits for the DaViT
+  window-attention `Pad` — `constant_value` omitted because at 224×224 every feature map
+  divides evenly by the window size, so the pads are all zero. Flagging that rejected a
+  graph `onnx.checker` passes and ORT loads. The guard now consults the op schema and
+  only rejects an empty string in a *required* position, which is the failure it was
+  written for.
+- The text-encoder branch deletes `vision_tower` to free 1.4 GB before tracing, and then
+  builds a module that looks the VLM up again. Any helper resolving those submodules has
+  to tolerate the tower already being gone.
 
 Both base checkpoints are Apache 2.0, so a derived ONNX export is redistributable with
 attribution. Publishing the X-VLA split export to the Hub would make this comparison
