@@ -110,13 +110,5 @@ verbatim from the projects that deploy them, each carrying its source commit.
 
 ## License
 
-**This repository is MIT** (see `LICENSE`) — the harness, backends, scripts and docs.
-
-The models are not: `lerobot/smolvla_base` and `lerobot/xvla-base` are **Apache 2.0** and
-stay under their own licence. That is also why `hf/xvla-base-onnx-README.md` declares
-`license: apache-2.0` — it is the model card for an ONNX re-serialization of Apache-2.0
-weights, and a derivative inherits the original's terms rather than this repo's. Not an
-inconsistency to fix.
-
-`bench/vendor/` contains two runtimes copied from the author's own projects, included
-here under this repository's MIT licence; each file carries its source and commit.
+This repository is **MIT** (see `LICENSE`). The models are **Apache 2.0** and stay under
+their own licence — which is why `hf/xvla-base-onnx-README.md` declares `apache-2.0`.

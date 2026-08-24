@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # venv for the X-VLA PyTorch baseline. Separate from .venv-torch because lerobot 0.5.1
-# has no xvla policy and the SmolVLA side is pinned to 0.5.1.
+# ships a different X-VLA/Florence2 layout than the export tooling needs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -19,7 +19,8 @@ python3 -m venv --system-site-packages "$VENV"
 import torch, numpy, scipy
 print("torch", torch.__version__, "| numpy", numpy.__version__, "| scipy", scipy.__version__)
 assert torch.cuda.is_available(), (
-    "torch cannot see the GPU. The PyPI aarch64 wheel is CPU-only — reinstall from "
+    "torch cannot see the GPU — a resolver almost certainly replaced the "
+    "JetPack-matched wheel. Reinstall from "
     "https://pypi.jetson-ai-lab.io/sbsa/cu130 and re-run.")
 from lerobot.policies.xvla.modeling_xvla import XVLAPolicy   # noqa: F401
 print("lerobot xvla policy importable, device", torch.cuda.get_device_name(0))

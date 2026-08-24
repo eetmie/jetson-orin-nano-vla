@@ -14,9 +14,13 @@ scripts/11_env_ort.sh          # -> .venv-ort
 scripts/12_env_tether.sh       # -> .venv-tether
 ```
 
-The two lerobot versions cannot share a venv: 0.5.1 has no xvla policy at all, and the
-SmolVLA side stays on 0.5.1 because that is what the Spark trained and exported with.
-Only the **ONNX** backends are version-agnostic — they never import lerobot.
+Two lerobot versions cannot share a venv, and the split is not about a feature list:
+the X-VLA export tooling only works against the layout 0.6.1 ships (see
+`docs/03-backends.md`), while the SmolVLA side stays on the version its checkpoint was
+trained and exported with. Do not trust the version string to tell you which layout you
+have — an install reporting `0.5.1` on this machine carries an `xvla` policy with a
+*vendored* Florence2, which is not what 0.6.1 has. Check the module, not the number.
+Only the **ONNX** backends are version-agnostic; they never import lerobot.
 
 They are separate because all three want to own torch and onnxruntime, and on this
 board those are exactly the two wheels that are painful to reinstall. One shared venv
@@ -24,19 +28,26 @@ means every `pip install` is a coin flip over which backend still works afterwar
 
 ## The one trap that produces a wrong number instead of an error
 
-`pip install lerobot` resolves `torch` from PyPI. **The aarch64 PyPI wheel is
-CPU-only.** Install it after the JetPack-matched wheel and the PyTorch "GPU baseline"
-quietly becomes a CPU run — no error, no warning, just a number roughly twenty times
-too slow, which would make every other backend look far better than it is.
+`pip install lerobot` resolves `torch` from PyPI, which will happily replace the
+JetPack-matched wheel you installed. Whether the replacement works on this board is not
+something to find out from a latency number: a torch that cannot reach the iGPU falls
+back to CPU silently — no error, no warning, just a figure roughly twenty times too
+slow, which would make every other backend look far better than it is.
 
-So the order in `scripts/10_env_torch.sh` is: lerobot first, then force the CUDA-13
-aarch64 torch on top, then assert:
+(Do not assume the PyPI aarch64 wheel is CPU-only. It is not, at least off-Jetson:
+`torch 2.11.0+cu130` installed from plain PyPI on aarch64 reports
+`torch.cuda.is_available() == True`. What matters is that the wheel matches this
+board's CUDA stack, not which index it came from.)
+
+So the order in `scripts/10_env_torch.sh` is: lerobot first, then force the
+JetPack-matched torch on top, then assert:
 
 ```python
 assert torch.cuda.is_available()
 ```
 
-The script fails loudly if that assert does not hold. Do not skip it.
+The script fails loudly if that assert does not hold. Do not skip it — it is the only
+thing standing between a resolver decision and a wrong number.
 
 ## Where the aarch64 CUDA-13 wheels live
 

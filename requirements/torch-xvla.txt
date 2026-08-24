@@ -1,9 +1,10 @@
 # Backend: stock PyTorch for X-VLA (LeRobot XVLAPolicy).
 #
-# SEPARATE from requirements/torch.txt on purpose. `lerobot 0.5.1` has no xvla policy
-# at all, and the SmolVLA side is pinned to 0.5.1 because that is what the Spark
-# trained and exported with. Two lerobot versions cannot share one venv, so X-VLA gets
-# its own.
+# SEPARATE from requirements/torch.txt on purpose. The X-VLA export tooling only works
+# against the layout lerobot 0.6.1 ships, while the SmolVLA side stays on the version
+# its checkpoint was exported with. Two lerobot versions cannot share one venv, so
+# X-VLA gets its own. Check the module layout rather than the version string — an
+# install reporting 0.5.1 here carries an xvla policy with a vendored Florence2.
 #
 #   pip install -r requirements/torch-xvla.txt
 #   pip install --force-reinstall --no-deps torch torchvision \
