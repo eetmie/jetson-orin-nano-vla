@@ -1,0 +1,21 @@
+# Backend: FastCrest Tether.
+#
+# Upstream recommends its own installer, which probes the platform and picks extras:
+#   curl -fsSL https://fastcrest.com/install | sh
+#
+# The explicit form, which is what scripts/12_env_tether.sh uses so the installed set
+# is recorded rather than inferred. `jetson` is a declared extra; `serve` brings the
+# HTTP server, `gpu` the ORT GPU runtime, `monolithic` the PyTorch->ONNX export path
+# (needed for anything that ships as raw PyTorch weights, i.e. our checkpoint).
+#
+#   pip install 'fastcrest-tether[jetson,serve,gpu,monolithic]'
+#
+# Tether pins transformers==5.3.0 on the monolithic path, which happens to match the
+# Spark export pin — do not let a resolver drift it.
+#
+# KEEP THIS IN ITS OWN VENV. It depends on torch and onnxruntime and will otherwise
+# fight the other two environments over exactly the wheels that are hardest to
+# reinstall on this board.
+
+fastcrest-tether[jetson,serve,gpu,monolithic]
+-r bench.txt
