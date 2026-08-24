@@ -156,8 +156,9 @@ def build_report(paths: list[Path], prefer_ref: str | None = None) -> str:
         "",
         "`1st infer` is the very first call after load — a lazy TensorRT build, a "
         "cuDNN autotune or a CUDA context lands there. `drift` compares the last "
-        "quarter of the run against the first: a positive number is the board "
-        "throttling under sustained load, which is what a real deployment lives with.",
+        "quarter of the run against the first; read it next to `tj max °C` in the "
+        "footprint table. It is only meaningful on a run long enough to heat the "
+        "board — see `--duration-s`.",
         "",
         "## Footprint",
         "",
