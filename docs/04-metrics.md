@@ -23,10 +23,11 @@ stack, both matter. A single "RAM" figure answers neither.
 
 `p50` / `p95` / `max`, plus `quartile_means_in_order` and `drift_q4_vs_q1_pct`.
 
-Use p95, not the mean. And read the drift: an Orin Nano at MAXN with pinned clocks
-sustains for a while and then throttles, so a ten-second benchmark quoting a mean can
-miss the number a real deployment actually lives with. That is what
-`--duration-s 300` is for.
+Use p95, not the mean. And read the drift, which exists because a short run cannot tell
+you whether latency holds. Whether this board's clocks hold under a sustained VLA load
+at MAXN is **not measured yet** — `--duration-s 300` is how it gets answered, and
+`tj max °C` next to the drift column is what makes the answer readable. Until that run
+exists, treat every latency figure here as a short-run figure.
 
 `first_infer_ms` is separated out but never hidden. A lazy TensorRT build, a cuDNN
 autotune or CUDA context creation lands there — and on a board where `/tmp` clears at

@@ -13,12 +13,13 @@ resident cost (weights, engines, arenas) and its *running* cost are different
 questions, and on an 8 GB unified-memory board with a robot control stack to host,
 both matter. Reporting one number for "RAM" would answer neither.
 
-Thermal drift
--------------
-Latency is reported per quartile as well as in aggregate. An Orin Nano at MAXN with
-pinned clocks will sustain for a while and then thermal-throttle; a benchmark that
-runs for ten seconds and quotes a mean can miss it entirely. If quartile 4 is
-materially slower than quartile 1, that is the number a real deployment lives with.
+Drift
+-----
+Latency is reported per quartile as well as in aggregate, because a short run cannot
+show whether latency holds. Whether this board sustains a VLA load at MAXN, or gives
+clock back as it heats, is an open question here — `--duration-s` is how it gets asked,
+and the quartile means are the answer. If quartile 4 is materially slower than quartile
+1, that is the figure a deployment lives with rather than the mean.
 """
 
 from __future__ import annotations

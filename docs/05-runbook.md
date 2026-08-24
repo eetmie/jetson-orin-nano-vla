@@ -89,8 +89,8 @@ on its own (it passed on Blackwell at cosine 0.999999).
 
 ## 5. The split TensorRT path
 
-**The first run builds every engine, one subprocess per graph** — ~5 min for SmolVLA's
-nine, ~10 for X-VLA's twelve. Do not run anything else on the board while it builds: two
+**The first run builds every engine, one subprocess per graph** — around 5 min for
+SmolVLA's nine, and longer for X-VLA's twelve (not yet timed on this board). Do not run anything else on the board while it builds: two
 builds in one process OOM 8 GB, and a browser does the same from outside.
 
 ```bash
@@ -146,14 +146,15 @@ A failure is recorded and the day moves on.
 
 ## 8. Sustained run, for thermals
 
-The short runs will not catch throttling.
+Short runs cannot tell you whether latency holds. This is the run that answers it.
 
 ```bash
 .venv-ort/bin/python -m bench ort-split --model $M --bundle $BUNDLE \
     --duration-s 300 --label $M.ort-split.sustained
 ```
 
-Read `drift_q4_vs_q1_pct` and `tj max °C` together.
+Read `drift_q4_vs_q1_pct` and `tj max °C` together. A flat drift is a result too — it
+would mean the board sustains this load at MAXN, which nothing here has established.
 
 ## 9. Report
 

@@ -198,7 +198,8 @@ about three of nine graphs. `--projectors gpu` rebuilds those four on the TRT/CU
 stack so the alternative can be measured rather than argued about.
 
 First run builds every engine, one subprocess per graph. Two builds in one process OOM
-8 GB. Budget ~5 min for SmolVLA, ~10 for X-VLA; afterwards they load from cache.
+8 GB. Budget around 5 min for SmolVLA's nine, longer for X-VLA's twelve (not yet
+timed); afterwards they load from cache in seconds.
 
 ### `ort-mono` — the monolith A/B
 
