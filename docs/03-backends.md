@@ -13,7 +13,8 @@ python -m bench models          # the registry, with defaults and caveats
 | `smolvla-base` | smolvla | 450 M | `lerobot/smolvla_base` | `ainekko/smolvla_base_onnx` |
 | `xvla-base` | xvla | 880 M | `lerobot/xvla-base` | none published — export it |
 
-Both are Apache 2.0. Anything not in the registry is benchmarked by pointing
+Both checkpoints are Apache 2.0 and stay under that licence; this repository's own code
+is MIT. Anything not in the registry is benchmarked by pointing
 `--checkpoint` / `--bundle` at it and passing `--family`.
 
 **Base weights produce meaningless actions.** They were never fine-tuned on a robot
