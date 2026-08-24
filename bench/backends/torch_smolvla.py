@@ -58,8 +58,8 @@ from .base import Backend, InferResult, load_export_info, load_stats
 _DTYPES = {"float32": "float32", "float16": "float16", "bfloat16": "bfloat16"}
 
 
-class TorchLeRobotBackend(Backend):
-    name = "torch"
+class TorchSmolVLABackend(Backend):
+    name = "torch-smolvla"
     noise_injected = True
 
     def __init__(self, checkpoint: Path, bundle: Path | None = None,
@@ -113,6 +113,7 @@ class TorchLeRobotBackend(Backend):
         import torch
         m = {
             "backend": self.name,
+            "family": "smolvla",
             "checkpoint": str(self.checkpoint),
             "weights_dtype": self.dtype_name,
             "autocast": self.autocast_name,

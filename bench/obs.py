@@ -34,23 +34,38 @@ DEFAULT_H, DEFAULT_W = 480, 640
 
 @dataclass
 class Observation:
+    """One timestep, as every backend receives it.
+
+    `images` is a list because the families differ: SmolVLA's reference export carries
+    two camera slots, X-VLA declares three views. Give each backend only the *real*
+    cameras — padded views are zeroed or filled with the convention image by the
+    runtime itself and never need a forward pass, so handing over a fake frame would
+    buy a vision-tower pass that the real deployment does not pay for.
+    """
+
     index: int
-    image: np.ndarray          # uint8 HxWx3, the camera frame as the robot sees it
-    state: np.ndarray          # float32 (n_joints,), raw units (degrees), NOT normalized
+    images: list[np.ndarray]   # uint8 HxWx3 each, in camera order
+    state: np.ndarray          # float32 (state_dim,), raw units, NOT normalized
     task: str
-    noise: np.ndarray          # float32 (1, chunk_size, max_action_dim)
+    noise: np.ndarray          # float32 (1, chunk_size, action_width)
+
+    @property
+    def image(self) -> np.ndarray:
+        """The first camera — what a single-view policy sees."""
+        return self.images[0]
 
 
 class ObsSource:
     def __init__(self, task: str, chunk_size: int, state_dim: int,
                  max_action_dim: int = 32, seed: int = 1234,
-                 state_scale: float = 20.0):
+                 state_scale: float = 20.0, n_views: int = 1):
         self.task = task
         self.chunk_size = chunk_size
         self.state_dim = state_dim
         self.max_action_dim = max_action_dim
         self.seed = seed
         self.state_scale = state_scale
+        self.n_views = n_views
 
     def _rng(self, index: int) -> np.random.Generator:
         # Per-index seeding, so obs[i] does not depend on how many were drawn before
@@ -88,9 +103,9 @@ class SyntheticObs(ObsSource):
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         self._yy, self._xx = yy / h, xx / w
 
-    def __getitem__(self, index: int) -> Observation:
-        r = self._rng(index)
-        phase = (index % 60) / 60.0
+    def _view(self, index: int, view: int) -> np.ndarray:
+        r = np.random.default_rng([self.seed, index, view])
+        phase = ((index + 17 * view) % 60) / 60.0
         img = np.zeros((self.h, self.w, 3), dtype=np.float32)
         img[..., 0] = 60 + 120 * self._yy                       # ground gradient
         img[..., 1] = 50 + 100 * (1.0 - self._yy)
@@ -99,11 +114,15 @@ class SyntheticObs(ObsSource):
         blob = np.exp(-(((self._xx - cx) ** 2 + (self._yy - cy) ** 2) / 0.01))
         img += (blob * 110.0)[..., None]
         img += r.normal(0, 6.0, img.shape)                      # sensor speckle
-        return Observation(index, np.clip(img, 0, 255).astype(np.uint8),
+        return np.clip(img, 0, 255).astype(np.uint8)
+
+    def __getitem__(self, index: int) -> Observation:
+        return Observation(index, [self._view(index, v) for v in range(self.n_views)],
                            self._state(index), self.task, self._noise(index))
 
     def describe(self) -> dict:
-        return {"kind": "synthetic", "hw": [self.h, self.w], "seed": self.seed,
+        return {"kind": "synthetic", "hw": [self.h, self.w], "views": self.n_views,
+                "seed": self.seed,
                 "note": "procedural scene; action VALUES are not physically meaningful"}
 
 
@@ -130,20 +149,26 @@ class FrameDirObs(ObsSource):
         return self._cache[i]
 
     def __getitem__(self, index: int) -> Observation:
-        return Observation(index, self._load(index % len(self.files)),
-                           self._state(index), self.task, self._noise(index))
+        # Multi-view from one directory: consecutive files stand in for cameras, so a
+        # second view is a genuinely different image rather than a copy.
+        imgs = [self._load((index * self.n_views + v) % len(self.files))
+                for v in range(self.n_views)]
+        return Observation(index, imgs, self._state(index), self.task,
+                           self._noise(index))
 
     def describe(self) -> dict:
         return {"kind": "frames", "dir": str(self.dir), "n_files": len(self.files),
-                "seed": self.seed}
+                "views": self.n_views, "seed": self.seed}
 
 
 def make_obs(spec: str, task: str, chunk_size: int, state_dim: int,
-             max_action_dim: int = 32, seed: int = 1234) -> ObsSource:
+             max_action_dim: int = 32, seed: int = 1234,
+             n_views: int = 1) -> ObsSource:
     """`synthetic` or `frames:/path/to/dir`."""
     if spec == "synthetic":
-        return SyntheticObs(task, chunk_size, state_dim, max_action_dim, seed)
+        return SyntheticObs(task, chunk_size, state_dim, max_action_dim, seed,
+                            n_views=n_views)
     if spec.startswith("frames:"):
         return FrameDirObs(spec.split(":", 1)[1], task, chunk_size, state_dim,
-                           max_action_dim, seed)
+                           max_action_dim, seed, n_views=n_views)
     raise ValueError(f"unknown obs spec {spec!r} (want 'synthetic' or 'frames:DIR')")

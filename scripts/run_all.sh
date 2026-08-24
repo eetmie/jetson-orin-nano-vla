@@ -1,28 +1,42 @@
 #!/usr/bin/env bash
-# The whole comparison, in the order that fails cheapest first.
+# The whole comparison for one model, in the order that fails cheapest first.
 #
-#   BUNDLE=~/bundles/smolvla-digging-clean-ir12-35k \
-#   CKPT=~/bundles/clean_ir12-035000/pretrained_model \
-#   scripts/run_all.sh
+#   MODEL=smolvla-base scripts/run_all.sh
+#   MODEL=xvla-base    scripts/run_all.sh
+#   MODEL=local FAMILY=smolvla CKPT=~/bundles/mine/pretrained_model \
+#       BUNDLE=~/bundles/mine-split STATE_DIM=3 ACTION_DIM=4 scripts/run_all.sh
 #
 # Each backend runs in its own venv (they cannot share one — see docs/02). Every run
-# writes results/<label>.json and keeps going if one fails, because "this backend
-# does not work on this board" is a result worth having written down.
+# writes results/<label>.json and the script keeps going if one fails, because "this
+# backend does not work on this board" is a result worth having written down.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-BUNDLE="${BUNDLE:?set BUNDLE to the split export bundle directory}"
-CKPT="${CKPT:?set CKPT to the LeRobot pretrained_model directory}"
+MODEL="${MODEL:-smolvla-base}"
+DEST="${DEST:-$HOME/bundles}"
+CKPT="${CKPT:-$DEST/$MODEL-torch}"
+BUNDLE="${BUNDLE:-$DEST/$MODEL-split}"
 ITERS="${ITERS:-100}"
 OBS="${OBS:-synthetic}"
-COMMON=(--iters "$ITERS" --obs "$OBS" --idle-s 5 --warmup 5)
+
+MODEL_ARGS=()
+if [[ "$MODEL" == "local" ]]; then
+    MODEL_ARGS+=(--family "${FAMILY:?set FAMILY=smolvla|xvla for a local model}")
+else
+    MODEL_ARGS+=(--model "$MODEL")
+fi
+[[ -n "${STATE_DIM:-}"  ]] && MODEL_ARGS+=(--state-dim  "$STATE_DIM")
+[[ -n "${ACTION_DIM:-}" ]] && MODEL_ARGS+=(--action-dim "$ACTION_DIM")
+[[ -n "${TASK:-}"       ]] && MODEL_ARGS+=(--task       "$TASK")
+
+COMMON=(--iters "$ITERS" --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}")
 
 VENV_TORCH="${VENV_TORCH:-.venv-torch}"
 VENV_ORT="${VENV_ORT:-.venv-ort}"
 VENV_TETHER="${VENV_TETHER:-.venv-tether}"
 
 mkdir -p results
-run() {  # run <venv> <label> <args...>
+run() {  # run <venv> <label> <bench-args...>
     local venv="$1" label="$2"; shift 2
     if [[ ! -x "$venv/bin/python" ]]; then
         echo "!! skipping $label: $venv missing (run the matching scripts/1*_env_*.sh)"
@@ -35,30 +49,52 @@ run() {  # run <venv> <label> <args...>
 echo "== board state =="
 scripts/00_host_prep.sh --verify | head -20
 
-# 1. PyTorch first: no export step, no engine build, so if this fails everything else
-#    is downstream of a broken environment rather than a broken backend.
-run "$VENV_TORCH" torch-fp32   torch --checkpoint "$CKPT" --bundle "$BUNDLE" \
+# 1. PyTorch first: no export, no engine build. If this fails, the problem is the
+#    environment rather than any backend.
+run "$VENV_TORCH" "$MODEL.torch-fp32"  torch --checkpoint "$CKPT" \
     --weights float32 --autocast off "${COMMON[@]}"
-run "$VENV_TORCH" torch-amp16  torch --checkpoint "$CKPT" --bundle "$BUNDLE" \
+run "$VENV_TORCH" "$MODEL.torch-amp16" torch --checkpoint "$CKPT" \
     --weights float32 --autocast float16 "${COMMON[@]}"
-run "$VENV_TORCH" torch-half16 torch --checkpoint "$CKPT" --bundle "$BUNDLE" \
-    --weights float16 --autocast off --patch-half-out "${COMMON[@]}"
+if [[ "${FAMILY:-${MODEL%%-*}}" != "xvla" ]]; then
+    run "$VENV_TORCH" "$MODEL.torch-half16" torch --checkpoint "$CKPT" \
+        --weights float16 --autocast off --patch-half-out "${COMMON[@]}"
+fi
 
-# 2. The incumbent. The first run builds three TensorRT engines (~5 min, one
-#    subprocess per graph — two builds in one process OOM 8 GB). Later runs load
-#    from ~/.cache/jetson-orin-nano-vla/trt in seconds.
-run "$VENV_ORT" ort-split-fp16 ort-split --bundle "$BUNDLE" --precision fp16 "${COMMON[@]}"
+# 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
+#    for SmolVLA, ~10 for X-VLA. Later runs load from cache in seconds.
+if [[ -d "$BUNDLE" ]]; then
+    run "$VENV_ORT" "$MODEL.ort-split" ort-split --bundle "$BUNDLE" \
+        --precision fp16 "${COMMON[@]}"
+    # Optimization backlog item 1 — see docs/06.
+    if [[ "${PROJECTOR_AB:-1}" == "1" && "${FAMILY:-${MODEL%%-*}}" != "xvla" ]]; then
+        run "$VENV_ORT" "$MODEL.ort-split.proj-gpu" ort-split --bundle "$BUNDLE" \
+            --precision fp16 --projectors gpu "${COMMON[@]}"
+    fi
+else
+    echo "!! no split export at $BUNDLE — skipping ort-split (docs/03 covers exporting one)"
+fi
 
-# 3. Tether. Give it a long startup budget: a monolithic TensorRT build on this board
-#    is minutes at best, and the interesting outcome may be that it never finishes.
-run "$VENV_TETHER" tether-trt tether --export-dir "${TETHER_EXPORT:-$BUNDLE}" \
-    --bundle "$BUNDLE" --providers TensorrtExecutionProvider,CUDAExecutionProvider,CPUExecutionProvider \
-    --startup-timeout 1800 "${COMMON[@]}"
+# 3. The monolith A/B — backlog item 6. Only if a monolithic export is present.
+if [[ -n "${MONO_ONNX:-}" ]]; then
+    run "$VENV_ORT" "$MODEL.mono-trt"     ort-mono --onnx "$MONO_ONNX" \
+        --bundle "$BUNDLE" "${COMMON[@]}"
+    run "$VENV_ORT" "$MODEL.mono-cuda-ep" ort-mono --onnx "$MONO_ONNX" \
+        --bundle "$BUNDLE" --no-trt "${COMMON[@]}"
+fi
 
-# 4. Sustained run on whatever won, to catch thermal drift the short runs miss.
-if [[ "${SUSTAINED:-1}" == "1" ]]; then
-    run "$VENV_ORT" ort-split-fp16-sustained ort-split --bundle "$BUNDLE" \
-        --precision fp16 --duration-s "${SUSTAINED_S:-300}" --obs "$OBS" --idle-s 5 --warmup 5
+# 4. Tether. Long startup budget: a monolithic TensorRT build here is minutes at best,
+#    and the interesting outcome may be that it never finishes.
+if [[ -n "${TETHER_EXPORT:-}" ]]; then
+    run "$VENV_TETHER" "$MODEL.tether" tether --export-dir "$TETHER_EXPORT" \
+        --providers TensorrtExecutionProvider,CUDAExecutionProvider,CPUExecutionProvider \
+        --startup-timeout 1800 "${COMMON[@]}"
+fi
+
+# 5. Sustained run, to catch thermal drift the short runs miss.
+if [[ "${SUSTAINED:-1}" == "1" && -d "$BUNDLE" ]]; then
+    run "$VENV_ORT" "$MODEL.ort-split.sustained" ort-split --bundle "$BUNDLE" \
+        --precision fp16 --duration-s "${SUSTAINED_S:-300}" \
+        --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}"
 fi
 
 echo; echo "== report =="

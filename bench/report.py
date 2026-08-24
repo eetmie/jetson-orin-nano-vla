@@ -118,12 +118,12 @@ def parity_table(runs: list[dict], prefer_ref: str | None = None) -> str:
     for c in rep["comparisons"]:
         rows.append([c.get("candidate"), c.get("verdict"), c.get("mode"),
                      c.get("cosine_min"), c.get("max_abs_diff"),
-                     c.get("max_abs_diff_pct_full_scale"),
+                     c.get("max_abs_diff_pct_of_range"),
                      c.get("max_dim_mean_shift")])
     head = f"Reference: **{rep['reference']}**\n\n"
     return head + _md_table(rows, [
         "candidate", "verdict", "mode", "cosine min", "max abs diff",
-        "% full stick", "max dim mean shift"])
+        "% of range", "max dim mean shift"])
 
 
 def env_table(runs: list[dict]) -> str:

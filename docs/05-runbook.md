@@ -1,31 +1,27 @@
 # 5. Runbook — the bench day, in order
 
-Ordered so the cheapest failures happen first. Budget ~2 h including the cold
-TensorRT build; the actual measuring is minutes.
+Ordered so the cheapest failures happen first. Budget ~2 h per model including the cold
+TensorRT build; the measuring itself is minutes.
 
-## 0. Get the artefacts onto the board (do this before anything else)
-
-Two things come from the DGX Spark:
-
-| what | why | size |
-|---|---|---|
-| the **split export bundle** | `ort-split` runs it; every backend reads its `stats.json`, `tokenizer/` and `export_info.json` | ~1.5 GB |
-| the **LeRobot checkpoint** (`pretrained_model/`) | `torch` loads it | ~0.9 GB |
+## 0. Artefacts
 
 ```bash
-rsync -avP <spark>:~/Desktop/smolvla-digging-clean-ir12-35k/ ~/bundles/smolvla-digging-clean-ir12-35k/
-rsync -avP <spark>:~/spark-projects/smolvla-spark-finetune/outputs/digging_clean/clean_ir12/checkpoints/035000/pretrained_model/ \
-           ~/bundles/clean_ir12-035000/pretrained_model/
+scripts/fetch_models.sh smolvla-base     # weights + the public split ONNX
+scripts/fetch_models.sh xvla-base        # weights only — no split ONNX is published
 ```
 
-Copy `pretrained_model/` only — `training_state/` is another 400 MB of optimizer state
-that inference never touches, and disk is not free here.
+Sizes: SmolVLA ~0.9 GB weights + 1.6 GB ONNX; X-VLA ~3.5 GB weights. Check the disk
+before starting.
 
-Sanity-check the pair before trusting any comparison: the bundle's `export_info.json`
-names the checkpoint it was exported from, and its `PARITY.txt` records the split-vs-
-torch check that was run at export time (cosine 1.0000000, max abs 2.6e-06). If those
-two do not refer to the same checkpoint, the benchmark is comparing two different
-models and every parity number below is meaningless.
+For a locally fine-tuned policy, rsync the `pretrained_model/` directory and the split
+export instead, and sanity-check that they refer to the same checkpoint — the bundle's
+`export_info.json` names the one it came from, and `PARITY.txt` records the split-vs-
+torch check run at export time. If those disagree, the benchmark is comparing two
+different models and every parity number is meaningless. Copy `pretrained_model/` only;
+`training_state/` is another 400 MB of optimizer state inference never touches.
+
+X-VLA has no published ONNX. Export it on a machine with room (not this board) and
+rsync the graphs over — see `docs/03-backends.md`.
 
 ## 1. Board state
 
@@ -40,12 +36,13 @@ Confirm swap exists. Close the browser and the editor — the 8 GB is shared.
 
 ```bash
 scripts/10_env_torch.sh          # asserts torch.cuda.is_available()
+scripts/13_env_torch_xvla.sh     # only if benchmarking X-VLA (lerobot 0.6.1)
 scripts/11_env_ort.sh            # asserts TensorrtExecutionProvider registers
-scripts/12_env_tether.sh         # runs `tether doctor` — keep its output
+scripts/12_env_tether.sh         # optional; runs `tether doctor` — keep its output
 ```
 
-Each script fails loudly rather than proceeding into a wrong measurement. If
-`10_env_torch.sh` passes but CUDA is missing, stop: everything downstream is invalid.
+Each fails loudly rather than proceeding into a wrong measurement. If `10_env_torch.sh`
+passes but CUDA is missing, stop: everything downstream is invalid.
 
 ## 3. Prove the instruments before trusting them
 
@@ -63,21 +60,22 @@ No export, no engine build — so if this fails, the problem is the environment,
 backend.
 
 ```bash
-BUNDLE=~/bundles/smolvla-digging-clean-ir12-35k
-CKPT=~/bundles/clean_ir12-035000/pretrained_model
+M=smolvla-base
+CKPT=~/bundles/$M-torch
+BUNDLE=~/bundles/$M-split
 
-.venv-torch/bin/python -m bench torch --checkpoint $CKPT --bundle $BUNDLE \
-    --weights float32 --autocast off --iters 30 --label torch-fp32
+.venv-torch/bin/python -m bench torch --model $M --checkpoint $CKPT \
+    --weights float32 --autocast off --iters 30 --label $M.torch-fp32
 ```
 
-Start at 30 iterations. If `torch-fp32` is ~1 s per inference on this board, 100
-iterations is five minutes of waiting for a number you already have.
+Start at 30 iterations. If a run is ~1 s per inference, 100 iterations is five minutes
+of waiting for a number you already have.
 
-Then the two FP16 variants:
+Then the FP16 variants (SmolVLA):
 
 ```bash
-... --weights float32 --autocast float16                  --label torch-amp16
-... --weights float16  --autocast off --patch-half-out    --label torch-half16
+... --weights float32 --autocast float16                --label $M.torch-amp16
+... --weights float16  --autocast off --patch-half-out  --label $M.torch-half16
 ```
 
 Check parity immediately — before spending an hour on TensorRT:
@@ -86,66 +84,78 @@ Check parity immediately — before spending an hour on TensorRT:
 .venv-torch/bin/python -m bench parity results
 ```
 
-If `torch-half16` fails parity against `torch-fp32` on Orin, that is a headline
-finding on its own (it passed on Blackwell at cosine 0.999999).
+If `torch-half16` fails parity against `torch-fp32` on Orin, that is a headline finding
+on its own (it passed on Blackwell at cosine 0.999999).
 
 ## 5. The split TensorRT path
 
-**The first run builds three engines, one subprocess per graph, ~5 min.** Do not run
-anything else on the board while it builds — two builds in one process OOM 8 GB, and a
-browser will do the same from outside.
+**The first run builds every engine, one subprocess per graph** — ~5 min for SmolVLA's
+nine, ~10 for X-VLA's twelve. Do not run anything else on the board while it builds: two
+builds in one process OOM 8 GB, and a browser does the same from outside.
 
 ```bash
-.venv-ort/bin/python -m bench ort-split --bundle $BUNDLE --precision fp16 \
-    --iters 100 --label ort-split-fp16
+.venv-ort/bin/python -m bench ort-split --model $M --bundle $BUNDLE \
+    --precision fp16 --iters 100 --label $M.ort-split
 ```
 
-Watch the first-run log for the provider each graph landed on. If `smolvlm_vision`
-reports `CUDAExecutionProvider` instead of `TensorrtExecutionProvider`, the engine did
-not build and the number is not the number you think it is — the run metadata records
-`providers_per_graph` for exactly this reason.
+Check the run metadata's `providers_per_graph`. If a heavy graph reports
+`CUDAExecutionProvider` instead of `TensorrtExecutionProvider`, the engine did not build
+and the number is not what it looks like.
 
-If the build struggles for memory: `--drop-cuda-ep` (frees the 3 GiB CUDA arena), and
-`TRT_WORKSPACE_MB=512 TRT_OPT_LEVEL=2` are the settings already proven to fit here.
+Memory-tight build: `--drop-cuda-ep` frees the 3 GiB CUDA arena, and
+`--trt-workspace-mb 512 --trt-opt-level 2` are the settings already proven to fit here.
 
-## 6. Tether
-
-Expect this one to be the fight. Give it room:
+Then the first item off the optimization backlog, which is one flag:
 
 ```bash
-.venv-tether/bin/python -m bench tether --export-dir <tether export dir> \
-    --bundle $BUNDLE --startup-timeout 1800 \
+.venv-ort/bin/python -m bench ort-split --model $M --bundle $BUNDLE \
+    --projectors gpu --label $M.ort-split.proj-gpu
+```
+
+See `docs/06-optimization-backlog.md` for what else is one flag away and what is not.
+
+## 6. The monolith A/B
+
+Worth doing before any third-party runtime, because it establishes what a monolithic
+graph does on this board independently of anyone's tooling.
+
+```bash
+.venv-ort/bin/python -m bench ort-mono --model $M --onnx <mono>.onnx --bundle $BUNDLE \
+    --label $M.mono-trt
+.venv-ort/bin/python -m bench ort-mono --model $M --onnx <mono>.onnx --bundle $BUNDLE \
+    --no-trt --label $M.mono-cuda-ep
+```
+
+Read `active_provider` and `trt_engine_cached` in the result before reading the latency.
+A silent CPU fallback still returns a finite, plausible action chunk.
+
+## 7. Tether (optional)
+
+```bash
+.venv-tether/bin/python -m bench tether --model $M --export-dir <tether export> \
+    --startup-timeout 1800 \
     --providers TensorrtExecutionProvider,CUDAExecutionProvider,CPUExecutionProvider \
-    --iters 100 --label tether-trt
+    --iters 100 --label $M.tether
 ```
 
-If `/act` refuses every payload shape:
+If `/act` refuses every payload shape, `bench tether-probe --url http://127.0.0.1:8000`
+prints the server's own schema; pass the right shape with `--payload-template`. If the
+export has to be produced elsewhere, record that in `--notes`.
 
-```bash
-.venv-tether/bin/python -m bench tether-probe --url http://127.0.0.1:8000
-```
+A failure is recorded and the day moves on.
 
-and pass the right shape with `--payload-template`.
-
-If `tether export` cannot run on the board, export on the Spark and rsync the export
-directory. Record that in `--notes` — a number whose artefact was built elsewhere
-needs to say so.
-
-**A failure here is a result.** The JSON records it, the report prints it, and "the
-monolithic path does not build in 8 GB" is exactly the sort of thing this repo is for.
-
-## 7. Sustained run, for thermals
+## 8. Sustained run, for thermals
 
 The short runs will not catch throttling.
 
 ```bash
-.venv-ort/bin/python -m bench ort-split --bundle $BUNDLE --duration-s 300 \
-    --label ort-split-fp16-sustained
+.venv-ort/bin/python -m bench ort-split --model $M --bundle $BUNDLE \
+    --duration-s 300 --label $M.ort-split.sustained
 ```
 
 Read `drift_q4_vs_q1_pct` and `tj max °C` together.
 
-## 8. Report
+## 9. Report
 
 ```bash
 .venv-torch/bin/python -m bench report results --out docs/RESULTS.md
@@ -157,25 +167,24 @@ summary.
 ## Or just
 
 ```bash
-BUNDLE=~/bundles/smolvla-digging-clean-ir12-35k \
-CKPT=~/bundles/clean_ir12-035000/pretrained_model \
-scripts/run_all.sh
+MODEL=smolvla-base scripts/run_all.sh
+MODEL=xvla-base    scripts/run_all.sh
 ```
 
-which does steps 4–8 in that order and keeps going past a failure.
+which does steps 4–9 in that order and keeps going past a failure. Tether and the
+monolith are opt-in via `TETHER_EXPORT=` and `MONO_ONNX=`.
 
 ## If the actions matter, use real frames
 
 Synthetic observations are fine for latency, power and CPU — the transformer does the
 same work whatever the pixels are. They are not fine for judging what a runtime
-*predicts*, because a procedural scene is out of distribution for a policy trained on a
-sandbox.
+*predicts*, because a procedural scene is out of distribution for any trained policy.
 
 ```bash
-python -m bench.tools.extract_frames --video <dataset>/videos/.../cam1/episode_000000.mp4 \
+python -m bench.tools.extract_frames --video <dataset>/videos/.../episode_000000.mp4 \
     --out frames/ --count 30 --stride 10
-... -m bench ort-split --bundle $BUNDLE --obs frames:frames/ ...
+... -m bench ort-split --model $M --bundle $BUNDLE --obs frames:frames/
 ```
 
-Use the same `--obs` for every backend in a comparison, or the parity table is
-comparing different inputs.
+Use the same `--obs` for every backend in a comparison, or the parity table is comparing
+different inputs.
