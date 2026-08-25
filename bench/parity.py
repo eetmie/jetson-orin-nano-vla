@@ -166,7 +166,15 @@ def parity_report(runs: list[dict], prefer_ref: str | None = None) -> dict:
         NOT COMPARABLE with the reason, never as a verdict.
         """
         m = r.get("model", {})
-        return (m.get("family"), m.get("views"))
+        # cam_slots belongs here as much as views: an export built with 2 slots has a
+        # 177-token prefix against a 1-slot export's 113, so two runs that agree on
+        # real cameras still see different sequences if their slot counts differ.
+        # Leaving it out would let a 1-slot bundle be compared against a 2-slot
+        # reference and the difference read as a runtime defect.
+        meta = r.get("meta") or {}
+        slots = (m.get("cam_slots") or meta.get("n_cam_slots")
+                 or meta.get("num_views"))
+        return (m.get("family"), m.get("views"), slots)
 
     ref_key = _key(ref)
     comparisons, skipped = [], []
@@ -176,12 +184,14 @@ def parity_report(runs: list[dict], prefer_ref: str | None = None) -> dict:
         if _key(r) == ref_key:
             comparisons.append(compare(ref, r))
         else:
-            fam, views = _key(r)
+            fam, views, slots = _key(r)
             why = []
             if fam != ref_key[0]:
                 why.append(f"family {fam} vs {ref_key[0]}")
             if views != ref_key[1]:
                 why.append(f"{views} real cameras vs {ref_key[1]}")
+            if slots != ref_key[2]:
+                why.append(f"{slots} camera slots vs {ref_key[2]}")
             skipped.append({"candidate": r.get("label"),
                             "verdict": "NOT COMPARABLE",
                             "mode": "; ".join(why)})
