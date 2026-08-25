@@ -40,8 +40,12 @@ def _cams(r: dict) -> str:
     the reference never saw.
     """
     views = _g(r, "model", "views", default=None)
-    slots = _g(r, "model", "cam_slots", default=None) or _g(
-        r, "meta", "n_cam_slots", default=None)
+    # Each family names the declared count differently: smolvla carries cam_slots (the
+    # slots its published export was built with), xvla carries num_views (the
+    # checkpoint's num_image_views). Same concept, so the column reads the same.
+    slots = (_g(r, "model", "cam_slots", default=None)
+             or _g(r, "meta", "n_cam_slots", default=None)
+             or _g(r, "meta", "num_views", default=None))
     if views is None:
         return "—"
     return f"{views}/{slots}" if slots else str(views)
