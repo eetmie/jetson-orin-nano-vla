@@ -34,10 +34,16 @@ from ..vendor.smolvla_split import (IMG_TOKENS, MAX_ACTION_DIM, MAX_STATE_DIM, V
 
 
 def enable_iobinding(policy) -> None:
-    """Swap `policy.sample_actions` for the device-resident-KV version, in place."""
+    """Swap `policy.sample_actions` for the device-resident-KV version, in place.
+
+    Also exposes `policy._iobind_prefill_denoise`, so the backend's multi-camera
+    path (which rebuilds the prefix itself) gets the same treatment instead of
+    silently falling back to the stock numpy feeds.
+    """
     policy._io = policy.decode.io_binding()
     policy._pio = policy.prefill.io_binding()
     policy.sample_actions = _sample_actions.__get__(policy, type(policy))
+    policy._iobind_prefill_denoise = _prefill_and_denoise.__get__(policy, type(policy))
 
 
 def _sample_actions(self, image_hwc_uint8, instruction, state, noise=None):
@@ -59,6 +65,17 @@ def _sample_actions(self, image_hwc_uint8, instruction, state, noise=None):
     att_masks = np.zeros((1, self.prefix_len), dtype=bool)
     att_masks[0, -1] = True
 
+    att_masks = np.zeros((1, self.prefix_len), dtype=bool)
+    att_masks[0, -1] = True
+    return self._iobind_prefill_denoise(embs, pad_masks, att_masks, noise)
+
+
+def _prefill_and_denoise(self, embs, pad_masks, att_masks, noise=None):
+    """Prefill with KV bound straight to device, then the denoise loop.
+
+    Shared by the single-camera `sample_actions` above and the backend's
+    multi-camera path, which differ only in how they build `embs`/`pad_masks`.
+    """
     # prefill: KV outputs bound straight to device, never touching the host
     pio = self._pio
     pio.clear_binding_inputs(); pio.clear_binding_outputs()

@@ -55,6 +55,20 @@ class _TimedSession:
         self._sink[self._label + "_n"] = self._sink.get(self._label + "_n", 0) + 1
         return out
 
+    def run_with_iobinding(self, io_binding, run_options=None):
+        """Same accounting for the IOBinding path.
+
+        Without this the `--iobinding` runs report graph.decode / graph.prefill as
+        0.00 and dump their time into `python_numpy`, because run_with_iobinding
+        would otherwise reach the wrapped session through __getattr__ untimed.
+        """
+        t0 = time.perf_counter()
+        out = self._s.run_with_iobinding(io_binding, run_options)
+        self._sink[self._label] = self._sink.get(self._label, 0.0) + \
+            (time.perf_counter() - t0) * 1000.0
+        self._sink[self._label + "_n"] = self._sink.get(self._label + "_n", 0) + 1
+        return out
+
     def __getattr__(self, item):
         return getattr(self._s, item)
 
@@ -222,6 +236,11 @@ class OrtSplitBackend(Backend):
             + [lang_mask, np.ones((1, 1), dtype=bool)], axis=1)
         att_masks = np.zeros((1, p.prefix_len), dtype=bool)
         att_masks[0, -1] = True                       # state starts a new block
+
+        if self.iobinding:
+            # Same device-resident KV path as the single-camera route; without this
+            # --iobinding would silently do nothing as soon as --views > 1.
+            return p._iobind_prefill_denoise(embs, pad_masks, att_masks, obs.noise)
 
         kv = p.prefill.run(p._prefill_kv_names, {
             "attention_mask": make_att_2d_masks(pad_masks, att_masks),
