@@ -80,7 +80,12 @@ REGISTRY: dict[str, ModelSpec] = {
         chunk_size=50,
         num_steps=10,
         state_dim=6,
-        image_views=1,
+        # Native = fill the slots the published export was BUILT with. This repo
+        # measures models as shipped, not as a particular robot would tune them; a
+        # padded slot costs no vision pass, so feeding fewer cameras than the export
+        # declares measures a configuration nobody published. Drop to --views 1 to see
+        # what a camera costs -- that is a finding, not the default.
+        image_views=2,
         cam_slots=2,
         notes="Reference split export has 2 camera slots; the runtime pads the unused "
               "one with the all -1 image, matching lerobot's convention.",
@@ -100,7 +105,9 @@ REGISTRY: dict[str, ModelSpec] = {
         num_steps=10,
         state_dim=8,
         action_dim=20,
-        image_views=1,
+        # Native: the checkpoint declares num_image_views=3. See the note on
+        # smolvla-base above -- --views 1 is the interesting variation, not the default.
+        image_views=3,
         notes="ee6d 20-dim action space, 3 declared image views. Feed only the real "
               "cameras: padded views are zeroed by the runtime and never need a "
               "forward pass, so one camera means a batch-1 vision engine.",

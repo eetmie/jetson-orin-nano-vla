@@ -180,8 +180,20 @@ failures, and the backlog turns into a result rather than a to-do list.
 
 # MEASURED — Orin Nano Super, JetPack 7.2, 2026-08-25
 
-Board pinned (MAXN_SUPER, `jetson_clocks`, now persistent via `jetson-perf.service`),
-stock 2 GB swap, `smolvla-base` public split export, synthetic obs, `num_steps=10`.
+Board at MAXN_SUPER, stock 2 GB swap, `smolvla-base` public split export, synthetic
+obs, `num_steps=10`.
+
+> **Correction (2026-08-25, later):** these numbers were taken with clocks **NOT**
+> pinned. `jetson-perf.service` was enabled but had been failing at every boot —
+> its `ExecStart=/usr/bin/jetson_clocks` exits non-zero on a board whose GPU has not
+> finished initialising, and nothing checked. `nvpmodel` still reported MAXN_SUPER, so
+> the board looked configured while every clock floated. Re-measured on a genuinely
+> pinned board (CPU 1728 MHz min=max, GPU 1020 MHz min=max, EMC 3199 MHz) the medians
+> barely move but the spread collapses: the tuned config goes p50 134.8 -> 133.1 ms
+> with p95 144.4 -> 133.8 ms, std 1.00 ms, and drift q4/q1 -2.0% -> -0.1%. The old
+> "drift" was the DVFS governor ramping, exactly as `01-host-setup.md` warns, not
+> thermals. Treat the per-step table below as sound in its *ratios* — every row shares
+> the same unpinned condition — and see `RESULTS.md` for pinned absolutes.
 Every step below was measured in isolation, and each one's output was checked against
 the previous configuration before it was kept.
 

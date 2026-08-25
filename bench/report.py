@@ -30,21 +30,46 @@ def _md_table(rows: list[list], header: list[str]) -> str:
     return "\n".join(out)
 
 
+def _ran_on(r: dict) -> str:
+    """Where the graphs ACTUALLY ran, as "<n> TRT / <n> CUDA / <n> CPU".
+
+    This column exists because a silent CPU fallback is indistinguishable from a good
+    run everywhere else in the report. A stale TensorRT engine cache -- one built
+    against a different device or driver -- is rejected at session creation and ORT
+    drops to the CPU EP without raising: the run then reports status ok, a full
+    latency distribution and a plausible action chunk, while being ~17x slower and
+    never touching the GPU. Observed here after a GPU fault invalidated the cache.
+
+    Read it against the backend's intent: an ort-split run with --projectors cpu is
+    SUPPOSED to show 3 TRT / 6 CPU (vision, prefill, decode on TRT; text, state_proj
+    and the four projectors on CPU). Zero TRT on an ort-split row means the number in
+    the p50 column is measuring the wrong thing entirely.
+    """
+    per = _g(r, "meta", "providers_per_graph", default=None)
+    if not per:
+        return "—"
+    from collections import Counter
+    n = Counter(v.replace("ExecutionProvider", "") for v in per.values())
+    parts = [f"{n[k]} {k.replace('Tensorrt', 'TRT').replace('CUDA', 'CUDA')}"
+             for k in ("Tensorrt", "CUDA", "CPU") if n.get(k)]
+    return " / ".join(parts)
+
+
 def speed_table(runs: list[dict]) -> str:
     rows = []
     for r in runs:
         if r.get("status") != "ok":
-            rows.append([r.get("label"), "**FAILED**", *["—"] * 7])
+            rows.append([r.get("label"), "**FAILED**", *["—"] * 8])
             continue
         lat = r.get("latency_ms", {})
         rows.append([
             r.get("label"), "ok", lat.get("p50"), lat.get("p95"), lat.get("max"),
-            lat.get("hz_mean"), r.get("first_infer_ms"), r.get("load_s"),
+            lat.get("hz_mean"), _ran_on(r), r.get("first_infer_ms"), r.get("load_s"),
             lat.get("drift_q4_vs_q1_pct"),
         ])
     return _md_table(rows, [
-        "run", "status", "p50 ms", "p95 ms", "max ms", "Hz", "1st infer ms",
-        "load s", "drift q4/q1 %"])
+        "run", "status", "p50 ms", "p95 ms", "max ms", "Hz", "graphs ran on",
+        "1st infer ms", "load s", "drift q4/q1 %"])
 
 
 def footprint_table(runs: list[dict]) -> str:
