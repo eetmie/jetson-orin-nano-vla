@@ -198,11 +198,35 @@ the previous configuration before it was kept.
 |---|---:|---:|---:|---:|---|
 | stock split (CPU projectors) | 229.8 | 4.35 | 2.86 | 3840 | — |
 | `--projectors gpu` | 179.8 | 5.56 | 0.59 | 2962 | cosine 1.000000 |
-| `+ --iobinding` | **136.7** | **7.31** | **0.53** | **2522** | **bit-identical** |
+| `+ --iobinding` | **134.8** | **7.35** | **0.53** | **2522** | **bit-identical** |
 
-**1.68x faster than the stock split, 6.9x faster than the best PyTorch path
+**1.70x faster than the stock split, 7.0x faster than the best PyTorch path
 (torch-half16, 938 ms), and it gives back 2.33 of six CPU cores.** Chunk headroom at
 30 fps goes from 3.1x to 12.0x. Cost: RSS 4162 -> 4632 MB.
+
+## How many cameras? One. Two costs one more vision pass
+
+Every number above is **one real camera** padded to the export's two slots
+(`views=1`, `n_cam_slots=2`, prefix 177 = 2x64 img + 48 lang + 1 state), on the
+**base** `lerobot/smolvla_base` weights with synthetic observations. A padded slot
+costs zero vision passes — its embedding is computed once at load — but still occupies
+its 64 prefix tokens, so a second *real* camera buys one extra vision pass and nothing
+else:
+
+| views | p50 ms | Hz | vision ms (calls) | prefill | decode |
+|---|---:|---:|---:|---:|---:|
+| 1 | 134.8 | 7.35 | 33.9 (1) | 12.2 | 62.1 |
+| 2 | **174.0** | **5.68** | 68.2 (2) | 12.3 | 62.3 |
+
+Confirmed empirically: prefill and decode do not move (12.2 -> 12.3, 62.1 -> 62.3);
+the entire +39 ms is the second vision pass plus its numpy. **A two-camera rig like
+`kaivuriprokkis` (D435i IR + colour) should budget ~174 ms, not 135.**
+
+Do not read a parity verdict across different `--views`: two real cameras is a
+different observation, not different arithmetic. Comparing `--views 2` against a
+`--views 1` reference reports cosine 0.649, which means nothing. Compare like with
+like — `--views 2` with and without `--iobinding` is bit-identical
+(max abs diff 0.000e+00), which is the check that actually validates the code path.
 
 Per-stage, 20 cycles (ms per inference):
 
@@ -240,6 +264,19 @@ from 101.2 -> 65.6 ms and wall from 181.6 -> 136.2. Output is **bit-identical**
 (max abs diff 0.000e+00 over 8 chunks). Implemented in
 `bench/backends/split_iobind.py`, applied to the live policy instance so the vendored
 runtime stays byte-identical to what runs on the robot.
+
+Two traps found while validating it, both now fixed and worth knowing if you port this:
+
+- **The multi-camera path bypassed it entirely.** `_sample_actions_multiview` rebuilds
+  the prefix itself and re-implements the denoise loop, so patching
+  `policy.sample_actions` did nothing as soon as `--views > 1` — the first two-camera
+  run was 215.7 ms with the flag on and no effect from it. The prefill+denoise core is
+  now shared (`policy._iobind_prefill_denoise`), giving 212.1 -> 174.0 ms at two
+  cameras, bit-identical.
+- **`run_with_iobinding` was not timed.** It reaches the wrapped session through
+  `_TimedSession.__getattr__`, so `--iobinding` runs reported `graph.decode` and
+  `graph.prefill` as **0.00** and dumped ~76 ms into `python_numpy`. The wrapper now
+  intercepts it; the breakdown reads decode 62.1 / prefill 12.2 / numpy 14.7.
 
 ## What did not work
 
