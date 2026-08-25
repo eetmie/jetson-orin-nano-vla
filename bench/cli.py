@@ -364,16 +364,27 @@ def main(argv=None) -> int:
                    help="denoise steps (default: from the export)")
     p.add_argument("--cache-dir", default=DEFAULT_CACHE,
                    help="TRT engine cache — keep it OFF /tmp, which clears at boot")
-    p.add_argument("--projectors", choices=["cpu", "gpu"], default="cpu",
-                   help="SmolVLA: where the four per-step projectors run. 'cpu' is the "
-                        "stock runtime; 'gpu' rebuilds them on the TRT/CUDA stack")
+    # Default gpu, not cpu. Both are bit-identical in output (cosine 1.0000000, max abs
+    # diff 0.000e+00), and gpu is 226 -> 169 ms while giving back 1.9 of six CPU cores.
+    # Leaving the slow one as the default meant the headline number described a
+    # configuration nobody would deploy. --projectors cpu still reproduces the stock
+    # runtime for the A/B.
+    p.add_argument("--projectors", choices=["cpu", "gpu"], default="gpu",
+                   help="SmolVLA: where the four per-step projectors run. 'gpu' is the "
+                        "default and is bit-identical to 'cpu', which reproduces the "
+                        "stock runtime")
     p.add_argument("--trt-opt-level", type=int, default=None,
                    help="TensorRT builder optimization level (stock here is 2; TRT's "
                         "own default is 3). Clear the engine cache to force a rebuild")
     p.add_argument("--trt-workspace-mb", type=int, default=None,
                    help="per-tactic TRT scratch (stock here is 512)")
-    p.add_argument("--iobinding", action="store_true",
-                   help="bind the KV cache to device once per inference (bit-identical, ~-24%% wall)")
+    # On by default for the same reason: bit-identical output, ~24%% off wall. The stock
+    # loop re-feeds 32 KV tensors (7.2 MB) as numpy on every denoise step -- 72 MB of
+    # host->device copies per inference for data that is constant after prefill.
+    p.add_argument("--no-iobinding", dest="iobinding", action="store_false",
+                   help="re-feed the KV cache as numpy every denoise step, as the stock "
+                        "runtime does. Slower and bit-identical; for the A/B only")
+    p.set_defaults(iobinding=True)
     p.add_argument("--drop-cuda-ep", action="store_true",
                    help="TRT_DROP_CUDA_EP=1: frees the 3 GiB CUDA arena for a tight build")
     p.add_argument("--tokenizer", default=None)
