@@ -202,7 +202,7 @@ def cmd_ort_split(args) -> int:
             drop_cuda_ep=args.drop_cuda_ep, seed=args.seed,
             projectors=args.projectors, trt_opt_level=args.trt_opt_level,
             trt_workspace_mb=args.trt_workspace_mb,
-            tokenizer=args.tokenizer or r.tokenizer)
+            tokenizer=args.tokenizer or r.tokenizer, iobinding=args.iobinding)
     return _finish(args, be, r)
 
 
@@ -372,6 +372,8 @@ def main(argv=None) -> int:
                         "own default is 3). Clear the engine cache to force a rebuild")
     p.add_argument("--trt-workspace-mb", type=int, default=None,
                    help="per-tactic TRT scratch (stock here is 512)")
+    p.add_argument("--iobinding", action="store_true",
+                   help="bind the KV cache to device once per inference (bit-identical, ~-24%% wall)")
     p.add_argument("--drop-cuda-ep", action="store_true",
                    help="TRT_DROP_CUDA_EP=1: frees the 3 GiB CUDA arena for a tight build")
     p.add_argument("--tokenizer", default=None)

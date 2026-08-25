@@ -30,7 +30,9 @@ scripts/00_host_prep.sh          # MAXN_SUPER + pinned clocks + cache dir
 scripts/00_host_prep.sh --verify
 ```
 
-Confirm swap exists. Close the browser and the editor — the 8 GB is shared.
+Confirm swap exists — the stock 2 GB is enough for the split builds (measured
+2026-08-25); 16 GB is only needed if you are attempting the monolith. Close the
+browser and the editor — the 8 GB is shared.
 
 ## 2. Environments
 
