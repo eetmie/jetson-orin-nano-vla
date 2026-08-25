@@ -166,10 +166,19 @@ def parity_table(runs: list[dict], prefer_ref: str | None = None) -> str:
                      c.get("cosine_min"), c.get("max_abs_diff"),
                      c.get("max_abs_diff_pct_of_range"),
                      c.get("max_dim_mean_shift")])
+    for c in rep.get("not_comparable", []):
+        rows.append([c["candidate"], c["verdict"], c["mode"], "—", "—", "—", "—"])
     head = f"Reference: **{rep['reference']}**\n\n"
+    tail = ""
+    if rep.get("not_comparable"):
+        tail = ("\n\nRows marked **NOT COMPARABLE** are not failures. A different model "
+                "family or a different number of real cameras is a different "
+                "observation, so a cosine against this reference would be measuring "
+                "the input, not the runtime. Compare those against a reference of "
+                "their own group with `--prefer-ref`.")
     return head + _md_table(rows, [
         "candidate", "verdict", "mode", "cosine min", "max abs diff",
-        "% of range", "max dim mean shift"])
+        "% of range", "max dim mean shift"]) + tail
 
 
 def env_table(runs: list[dict]) -> str:

@@ -135,13 +135,18 @@ def pick_reference(runs: list[dict], prefer: str | None = None) -> dict | None:
                 return r
     # Default gold: full-precision PyTorch — the dtype the model was trained in is
     # closest to, and the only run with no export step between it and the weights.
+    # startswith, not ==: the backends are registered as "torch-smolvla" /
+    # "torch-xvla", so an equality test against "torch" never matched and the gold
+    # silently fell through to ok[0] -- alphabetically the first ONNX run. That made
+    # every parity verdict a comparison against an export rather than against PyTorch.
     for r in ok:
         m = r.get("meta", {})
-        if (r.get("backend") == "torch" and m.get("weights_dtype") == "float32"
+        if (str(r.get("backend", "")).startswith("torch")
+                and m.get("weights_dtype") == "float32"
                 and m.get("autocast", "off") == "off"):
             return r
     for r in ok:
-        if r.get("backend") == "torch":
+        if str(r.get("backend", "")).startswith("torch"):
             return r
     return ok[0]
 
@@ -150,9 +155,39 @@ def parity_report(runs: list[dict], prefer_ref: str | None = None) -> dict:
     ref = pick_reference(runs, prefer_ref)
     if ref is None:
         return {"error": "no successful run with saved chunks"}
+    def _key(r):
+        """What makes two runs comparable at all: same model family, same observation.
+
+        Cameras are part of the observation, not a setting: a run fed 1 real camera
+        sees a different prefix than one fed 2, so comparing them reports a cosine
+        against a sequence the reference never saw. That is how the old --views 2 row
+        came to show 0.649 and get written down as a FAIL, which it was not -- it was a
+        category error. Anything outside the reference's group is reported as
+        NOT COMPARABLE with the reason, never as a verdict.
+        """
+        m = r.get("model", {})
+        return (m.get("family"), m.get("views"))
+
+    ref_key = _key(ref)
+    comparisons, skipped = [], []
+    for r in runs:
+        if r is ref or r.get("status") != "ok":
+            continue
+        if _key(r) == ref_key:
+            comparisons.append(compare(ref, r))
+        else:
+            fam, views = _key(r)
+            why = []
+            if fam != ref_key[0]:
+                why.append(f"family {fam} vs {ref_key[0]}")
+            if views != ref_key[1]:
+                why.append(f"{views} real cameras vs {ref_key[1]}")
+            skipped.append({"candidate": r.get("label"),
+                            "verdict": "NOT COMPARABLE",
+                            "mode": "; ".join(why)})
     return {
         "reference": ref.get("label"),
         "reference_file": ref.get("_file"),
-        "comparisons": [compare(ref, r) for r in runs
-                        if r is not ref and r.get("status") == "ok"],
+        "comparisons": comparisons,
+        "not_comparable": skipped,
     }
