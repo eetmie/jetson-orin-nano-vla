@@ -30,6 +30,23 @@ def _md_table(rows: list[list], header: list[str]) -> str:
     return "\n".join(out)
 
 
+def _cams(r: dict) -> str:
+    """Real cameras fed, over the slots the export declares -- e.g. "2/2", "1/3".
+
+    Never compare two rows whose `cams` differ and call it a speedup: a padded slot
+    costs no vision pass but still occupies its prefix tokens, so fewer real cameras is
+    a different OBSERVATION, not the same work done faster. Parity across differing
+    cams is meaningless for the same reason -- it reports a cosine against a sequence
+    the reference never saw.
+    """
+    views = _g(r, "model", "views", default=None)
+    slots = _g(r, "model", "cam_slots", default=None) or _g(
+        r, "meta", "n_cam_slots", default=None)
+    if views is None:
+        return "—"
+    return f"{views}/{slots}" if slots else str(views)
+
+
 def _ran_on(r: dict) -> str:
     """Where the graphs ACTUALLY ran, as "<n> TRT / <n> CUDA / <n> CPU".
 
@@ -63,12 +80,12 @@ def speed_table(runs: list[dict]) -> str:
             continue
         lat = r.get("latency_ms", {})
         rows.append([
-            r.get("label"), "ok", lat.get("p50"), lat.get("p95"), lat.get("max"),
-            lat.get("hz_mean"), _ran_on(r), r.get("first_infer_ms"), r.get("load_s"),
-            lat.get("drift_q4_vs_q1_pct"),
+            r.get("label"), "ok", _cams(r), lat.get("p50"), lat.get("p95"),
+            lat.get("max"), lat.get("hz_mean"), _ran_on(r), r.get("first_infer_ms"),
+            r.get("load_s"), lat.get("drift_q4_vs_q1_pct"),
         ])
     return _md_table(rows, [
-        "run", "status", "p50 ms", "p95 ms", "max ms", "Hz", "graphs ran on",
+        "run", "status", "cams", "p50 ms", "p95 ms", "max ms", "Hz", "graphs ran on",
         "1st infer ms", "load s", "drift q4/q1 %"])
 
 
