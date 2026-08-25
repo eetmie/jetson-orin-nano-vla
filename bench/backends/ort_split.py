@@ -88,7 +88,7 @@ class OrtSplitBackend(Backend):
                  drop_cuda_ep: bool = False, seed: int = 0,
                  projectors: str = "cpu", trt_opt_level: int | None = None,
                  trt_workspace_mb: int | None = None,
-                 tokenizer: str | None = None):
+                 tokenizer: str | None = None, iobinding: bool = False):
         self.bundle = Path(bundle)
         self.cache_dir = cache_dir
         self.precision = precision
@@ -96,6 +96,7 @@ class OrtSplitBackend(Backend):
         self.seed = seed
         self.projectors = projectors
         self.tokenizer = tokenizer
+        self.iobinding = iobinding
         self._info = load_export_info(self.bundle)
         self.num_steps = num_steps or int(self._info.get("num_steps", 10))
         self._moved: list[str] = []
@@ -133,6 +134,11 @@ class OrtSplitBackend(Backend):
         )
         if self.projectors == "gpu":
             self._move_projectors_to_gpu()
+        if self.iobinding:
+            # Bind the KV cache to device once per inference instead of re-feeding
+            # 72 MB of numpy per inference. Bit-identical; see split_iobind.py.
+            from .split_iobind import enable_iobinding
+            enable_iobinding(self.policy)
         self._providers = {n: getattr(self.policy, n).get_providers()[0]
                            for n in self._SESSIONS}
         for n in self._SESSIONS:

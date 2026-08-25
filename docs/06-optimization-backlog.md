@@ -175,3 +175,128 @@ separates "Tether is slow" from "the monolith cannot build here".
 A per-graph breakdown of a split VLA on an 8 GB Orin, plus a monolithic build result on
 the same board, is not published anywhere. Keep the numbers per change, keep the
 failures, and the backlog turns into a result rather than a to-do list.
+
+---
+
+# MEASURED — Orin Nano Super, JetPack 7.2, 2026-08-25
+
+Board pinned (MAXN_SUPER, `jetson_clocks`, now persistent via `jetson-perf.service`),
+stock 2 GB swap, `smolvla-base` public split export, synthetic obs, `num_steps=10`.
+Every step below was measured in isolation, and each one's output was checked against
+the previous configuration before it was kept.
+
+## The recipe
+
+```bash
+.venv-ort/bin/python -m bench ort-split --model smolvla-base \
+    --bundle ~/bundles/smolvla-base-split \
+    --tokenizer ~/bundles/smolvlm2-tokenizer \
+    --precision fp16 --projectors gpu --iobinding --iters 100
+```
+
+| config | p50 ms | Hz | cpu cores busy | mJ/infer | parity vs previous |
+|---|---:|---:|---:|---:|---|
+| stock split (CPU projectors) | 229.8 | 4.35 | 2.86 | 3840 | — |
+| `--projectors gpu` | 179.8 | 5.56 | 0.59 | 2962 | cosine 1.000000 |
+| `+ --iobinding` | **136.7** | **7.31** | **0.53** | **2522** | **bit-identical** |
+
+**1.68x faster than the stock split, 6.9x faster than the best PyTorch path
+(torch-half16, 938 ms), and it gives back 2.33 of six CPU cores.** Chunk headroom at
+30 fps goes from 3.1x to 12.0x. Cost: RSS 4162 -> 4632 MB.
+
+Per-stage, 20 cycles (ms per inference):
+
+| stage | stock | projectors gpu | + iobinding |
+|---|---:|---:|---:|
+| vision (TRT, x1) | 34.1 | 34.0 | 34.0 |
+| prefill (TRT, x1) | 14.8 | 14.8 | 12.9 |
+| **decode (TRT, x10)** | 109.0 | 102.1 | **65.6** |
+| time_in (x10) | 36.4 | 4.0 | 3.8 |
+| time_out (x10) | 20.8 | 3.4 | 3.2 |
+| action_in + action_out (x10) | 4.4 | 7.9 | 5.9 |
+| **wall** | **231.6** | **178.6** | **136.2** |
+
+## What worked
+
+**1. `--projectors gpu` — take it.** The four CPU projectors were 61.6 ms, 26.6% of
+wall, and almost all of it was `time_in` (36.4) + `time_out` (20.8); `action_in`/
+`action_out` were 4.4 ms combined. Moving them cuts wall 22.9% and `cpu_cores_busy`
+from 2.86 to 0.59 — the number that matters when a 100 Hz control thread wants the
+same six cores.
+
+*Move all four or none.* Moving only `time_in`/`time_out` is **worse** than moving all
+four (183.9 ms vs 178.6): `time_in`'s per-call cost goes 0.40 -> 1.08 ms when it has
+CPU neighbours. Transfer/sync overhead dominates, which is what item 3 then exploits.
+
+*TRT declines all four.* ORT logs `No graph will run on TensorRT execution provider`
+and they run on the **CUDA EP** — while `get_providers()[0]` still cheerfully reports
+`TensorrtExecutionProvider`. See the warning at the bottom of this file.
+
+**3. IOBinding — the single biggest win, and free.** The stock loop re-feeds the KV
+cache as numpy every step: 32 tensors, 7.2 MB, x10 = **72 MB of host->device copies per
+inference** for data that is constant after prefill. Binding it to device once, and
+having prefill write its KV straight to device rather than via the host, takes decode
+from 101.2 -> 65.6 ms and wall from 181.6 -> 136.2. Output is **bit-identical**
+(max abs diff 0.000e+00 over 8 chunks). Implemented in
+`bench/backends/split_iobind.py`, applied to the live policy instance so the vendored
+runtime stays byte-identical to what runs on the robot.
+
+## What did not work
+
+**2. TRT build settings — the defaults are already right.** `TRT_OPT_LEVEL=5`
+(workspace 1024 MB) **does not build on this board**. It failed the same way the
+monolith does: a 318 MB constant-region allocation failure, then
+`Error Code 10: Could not find any implementation for node`, with only 2 of 3 engines
+built and the third heading for a silent CUDA-EP fallback. Killed after ~9 min rather
+than waiting out the documented 85-minute failure. Level 5 explores more tactics per
+node and each needs a working allocation — on 8 GB unified memory it runs out. The
+vendored defaults (opt level unset = TRT 10's 3, workspace 1024 MB) stand.
+
+**4. Precompute the time-embedding term — now pointless.** Worth doing only if
+`time_in` was significant, and after item 1 it is 3.8 ms. The whole trick can save
+~2 ms. Dropped.
+
+## Gated on robot validation
+
+**5. Fewer denoise steps.** Real latency, but it genuinely changes the actions — this
+is the one item that alters policy behaviour rather than just cost:
+
+| num_steps | p50 ms | Hz | cos_min vs 10-step | max abs diff |
+|---|---:|---:|---:|---:|
+| 10 | 179.8 | 5.56 | — | — |
+| 5 | 116.7 | 8.52 | 0.981 | 1.95 (11.0% of range) |
+| 4 | 103.9 | 9.60 | 0.960 | 15.0% of range |
+
+Both fail the 0.999 gate, as a different ODE step count should. Base weights produce
+meaningless actions, so nothing on this board can say whether the difference *matters* —
+that needs the action<->motion correlation check against real episodes on the
+fine-tuned checkpoint. Do not ship a reduced step count on a latency argument alone.
+
+**6. The monolith A/B — not runnable here.** No monolithic SmolVLA ONNX exists locally
+and it has to be exported on the Spark. The prior is strong that it will not TRT-build
+(see `docs/03-backends.md`), and item 2 above is fresh evidence for the same mechanism
+at much smaller scale.
+
+## Smaller split — one fusion is worth it
+
+Fusing the **four projectors + SiLU into the decode graph** turns 5 GPU calls per step
+into 1, removing 40 host round trips per inference. Weight cost is trivial — projectors
+are 6.4 MB against decode's 399 MB (+1.6%) — so by the build-peak formula in
+`docs/03-backends.md` it still fits. Ceiling is modest now: ~13 ms of projector time
+plus some in-loop numpy, so expect ~120 ms rather than a step change. The concat and
+SiLU between `time_in` and `time_out` are numpy today and would have to become ONNX
+ops, which is far cleaner at export time on the Spark than with `onnx.compose` here.
+
+Do **not** fuse vision+prefill: 393 MB + 644 MB = 1.04 GB of weights puts the build
+peak near 9 GB by that same formula, and it would save one round trip on a
+once-per-inference path.
+
+## Warning: `get_providers()[0]` is not what ran
+
+ORT reports the session's provider *preference list*, not the provider that took the
+graph. With `--projectors gpu`, all four projectors log `No graph will run on
+TensorRT execution provider` and execute on the CUDA EP, yet the session still reports
+`TensorrtExecutionProvider` first. **`providers_per_graph` in the result JSON inherits
+this bug**, so `docs/05-runbook.md`'s advice to read that field to confirm a TRT engine
+built is not sufficient. Confirm instead that an `.engine` file appeared in the cache
+directory, or watch the ORT warnings during load.

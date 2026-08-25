@@ -231,3 +231,6 @@ checkpoints/
 results/**/raw/
 results/**/*.log
 .cache/
+
+# The per-backend venvs this repo creates (.venv alone does not match these)
+.venv-*/

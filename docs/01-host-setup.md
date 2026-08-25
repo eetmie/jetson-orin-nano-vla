@@ -26,12 +26,18 @@ A run taken at 15 W and a run taken at MAXN are not comparable. The power mode i
 recorded into every result JSON (`env.nvpmodel`) precisely so this cannot be
 argued about after the fact.
 
-## Swap: 16 GB, on the NVMe
+## Swap: 16 GB for the monolith, stock 2 GB is enough for the split
 
 The 8 GB is **unified** — CPU and GPU share it, and TensorRT's first engine build is
 where the monolithic export ran out of room: without swap it was an OOM kill. 16 GB is
-what the split builds were done with. Whether the split path strictly needs it has not
-been tested — the swap is insurance, not a measured requirement.
+what the *monolithic* build attempts were done with.
+
+**The split path does not need it — measured 2026-08-25.** A cold `ort-split` run on a
+fresh JetPack 7.2 board with the **stock 2 GB swapfile** built all three heavy engines
+(vision, expert-prefill, expert-decode; 719 MB cached total, `fp16_sm87`) with no OOM,
+no thrash and no swap spike — swap use peaked at ~437 MB and the board never dropped
+below ~1.4 GB available. Grow swap when you are attempting the monolith; do not bother
+for the split.
 
 Worth knowing why the peak is what it is: for the *monolithic* SmolVLA export the
 build peak is a node-count-independent floor of roughly 6 GB, because TensorRT
