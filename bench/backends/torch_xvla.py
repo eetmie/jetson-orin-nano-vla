@@ -78,10 +78,15 @@ class TorchXVLABackend(Backend):
         self.cfg = policy.config
         self.model = policy.model
         self.num_views = int(self.cfg.num_image_views)
-        self.steps = self.num_steps or int(
-            getattr(self.cfg, "num_denoising_steps", 10))
+        self.steps = (self.num_steps if self.num_steps is not None else int(
+            getattr(self.cfg, "num_denoising_steps", 10)))
+        if self.steps <= 0:
+            raise ValueError("num_steps must be positive")
         self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_id)
         self._lang_cache: dict[str, object] = {}
+
+    def artifact_paths(self) -> dict[str, Path]:
+        return {"checkpoint": self.checkpoint}
 
     def meta(self) -> dict:
         import torch
@@ -98,6 +103,7 @@ class TorchXVLABackend(Backend):
             "state_dim": int(self.model.dim_proprio),
             "num_views": self.num_views,
             "valid_views": self.valid_views,
+            "resize": [224, 224],
             "domain_id": self.domain_id,
             "tokenizer": self.tokenizer_id,
             "torch": torch.__version__,

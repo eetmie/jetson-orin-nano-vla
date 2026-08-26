@@ -16,9 +16,10 @@ from dataclasses import replace
 from pathlib import Path
 
 from . import models
-from .backends.base import load_export_info
+from .backends.base import artifact_manifest, load_export_info
 from .obs import make_obs
-from .parity import load_results, parity_report
+from .parity import (ResultLoadError, attach_comparison_signature, load_results,
+                     parity_report)
 from .report import build_report
 from .runner import collect_env, run_benchmark, write_result
 
@@ -69,6 +70,9 @@ def _add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--seed", type=int, default=1234)
     p.add_argument("--save-chunks", type=int, default=8,
                    help="action chunks kept for the parity comparison")
+    p.add_argument("--obs-ring-size", type=int, default=16,
+                   help="bounded observations materialized before monitoring; duration "
+                        "runs wrap the ring (it grows to include warmup + saved chunks)")
     p.add_argument("--monitor", choices=["auto", "tegrastats", "psutil"], default="auto")
     p.add_argument("--notes", default=None)
 
@@ -82,6 +86,10 @@ class Resolved:
 
         self.spec = spec
         self.info = info
+        if args.family and spec and args.family != spec.family:
+            raise ValueError(
+                f"--family {args.family!r} conflicts with --model {spec.key!r} "
+                f"(family {spec.family!r})")
         self.family = args.family or (spec.family if spec else None)
         if not self.family:
             sys.exit("cannot tell which model family this is: pass --model or --family.")
@@ -98,21 +106,26 @@ class Resolved:
         # dataset to read it from), and .get("fps", 30) returns that None rather than
         # the default -- the key exists. Same reason chunk_size below is chained with
         # `or` instead of trusting a present-but-null value.
-        self.fps = args.fps or info.get("fps") or 30
-        self.chunk_size = (args.chunk_size or info.get("chunk_size")
-                           or (spec.chunk_size if spec else None) or 50)
-        self.state_dim = (args.state_dim or (spec.state_dim if spec else None) or 6)
+        self.fps = args.fps if args.fps is not None else (info.get("fps") or 30)
+        self.chunk_size = (args.chunk_size if args.chunk_size is not None
+                           else (info.get("chunk_size")
+                                 or (spec.chunk_size if spec else None) or 50))
+        self.state_dim = (args.state_dim if args.state_dim is not None
+                          else ((spec.state_dim if spec else None) or 6))
         # None means "compare every column the model emits" — stricter, and correct for
         # a base checkpoint whose real action width is embodiment-dependent.
-        self.action_dim = args.action_dim or (spec.action_dim if spec else None)
-        self.views = args.views or (spec.image_views if spec else 1)
-        self.cam_slots = args.cam_slots or (spec.cam_slots if spec else None)
+        self.action_dim = (args.action_dim if args.action_dim is not None
+                           else (spec.action_dim if spec else None))
+        self.views = (args.views if args.views is not None
+                      else (spec.image_views if spec else 1))
+        self.cam_slots = (args.cam_slots if args.cam_slots is not None
+                          else (spec.cam_slots if spec else None))
         self.tokenizer = spec.tokenizer if spec else None
         # Noise width is the model's PADDED action width, which is not the same as
         # how many columns we compare. SmolVLA emits 32 regardless of the robot's real
         # action dim (the rest is padding); X-VLA emits its real width. Getting this
         # from --action-dim would hand the graph a wrongly-shaped noise tensor.
-        if args.noise_width:
+        if args.noise_width is not None:
             self.noise_width = args.noise_width
         elif self.family == "xvla":
             self.noise_width = (spec.action_dim if spec and spec.action_dim else 20)
@@ -127,6 +140,32 @@ class Resolved:
 
 
 def _finish(args, backend, r: Resolved) -> int:
+    positive = {
+        "iters": args.iters,
+        "fps": r.fps,
+        "chunk_size": r.chunk_size,
+        "state_dim": r.state_dim,
+        "views": r.views,
+        "noise_width": r.noise_width,
+        "obs_ring_size": args.obs_ring_size,
+    }
+    if r.action_dim is not None:
+        positive["action_dim"] = r.action_dim
+    if r.cam_slots is not None:
+        positive["cam_slots"] = r.cam_slots
+    if getattr(args, "num_steps", None) is not None:
+        positive["num_steps"] = args.num_steps
+    for name, value in positive.items():
+        if value <= 0:
+            raise ValueError(f"{name} must be positive, got {value}")
+    if args.warmup < 0 or args.idle_s < 0 or args.save_chunks < 0:
+        raise ValueError("warmup, idle_s, and save_chunks must be non-negative")
+    if args.duration_s is not None and args.duration_s <= 0:
+        raise ValueError("duration_s must be positive when set")
+    if r.cam_slots is not None and r.views > r.cam_slots:
+        raise ValueError(
+            f"views ({r.views}) exceeds the export camera slots ({r.cam_slots})")
+
     obs = make_obs(args.obs, r.task, r.chunk_size, r.state_dim,
                    max_action_dim=r.noise_width, seed=args.seed, n_views=r.views)
     label = r.label(args, backend.name)
@@ -134,10 +173,19 @@ def _finish(args, backend, r: Resolved) -> int:
         backend, obs, iters=args.iters, warmup=args.warmup, idle_s=args.idle_s,
         duration_s=args.duration_s, save_chunks=args.save_chunks, fps=r.fps,
         monitor_kind=None if args.monitor == "auto" else args.monitor,
-        label=label, notes=args.notes)
+        label=label, notes=args.notes, obs_ring_size=args.obs_ring_size)
     result["model"] = {"key": args.model, "family": r.family, "task": r.task,
                        "views": r.views, "cam_slots": r.cam_slots,
                        "state_dim": r.state_dim, "action_dim": r.action_dim}
+    paths = backend.artifact_paths()
+    if paths:
+        result["artifacts"] = artifact_manifest(paths)
+        result["validity"]["provenance"] = (
+            "pass" if result["artifacts"]["complete"] else "fail")
+    else:
+        result["validity"]["provenance"] = "not_available"
+    if result["status"] == "ok":
+        attach_comparison_signature(result)
     out = args.out or Path("results") / f"{label}.json"
     write_result(result, out)
     lat = result.get("latency_ms", {})
@@ -176,9 +224,9 @@ def cmd_torch(args) -> int:
         be = TorchSmolVLABackend(
             Path(ckpt), bundle=bundle, weights=args.weights, autocast=args.autocast,
             device=args.device, action_dim=r.action_dim or 32,
-            tokenizer_dir=Path(args.tokenizer or r.tokenizer) if (args.tokenizer or r.tokenizer) else None,
+            tokenizer_dir=args.tokenizer,
             compile_model=args.compile, patch_half_out=args.patch_half_out,
-            cam_slots=r.cam_slots)
+            cam_slots=r.cam_slots, num_steps=args.num_steps)
     return _finish(args, be, r)
 
 
@@ -207,7 +255,7 @@ def cmd_ort_split(args) -> int:
             drop_cuda_ep=args.drop_cuda_ep, seed=args.seed,
             projectors=args.projectors, trt_opt_level=args.trt_opt_level,
             trt_workspace_mb=args.trt_workspace_mb,
-            tokenizer=args.tokenizer or r.tokenizer, iobinding=args.iobinding)
+            tokenizer=args.tokenizer, iobinding=args.iobinding)
     return _finish(args, be, r)
 
 
@@ -221,21 +269,6 @@ def cmd_ort_mono(args) -> int:
         tokenizer=args.tokenizer or r.tokenizer, action_dim=r.action_dim,
         drop_cuda_ep=args.drop_cuda_ep, trt_opt_level=args.trt_opt_level,
         trt_workspace_mb=args.trt_workspace_mb)
-    return _finish(args, be, r)
-
-
-def cmd_tether(args) -> int:
-    from .backends.tether_http import TetherHttpBackend
-    bundle = Path(args.bundle) if args.bundle else None
-    r = Resolved(args, bundle)
-    log = Path(args.serve_log) if args.serve_log else Path("results") / "tether-serve.log"
-    log.parent.mkdir(parents=True, exist_ok=True)
-    be = TetherHttpBackend(
-        export_dir=Path(args.export_dir) if args.export_dir else None,
-        url=args.url, port=args.port, device=args.device, providers=args.providers,
-        api_key=args.api_key, action_dim=r.action_dim or 32,
-        startup_timeout_s=args.startup_timeout, payload_template=args.payload_template,
-        extra_args=args.serve_arg or [], log_path=log)
     return _finish(args, be, r)
 
 
@@ -281,36 +314,22 @@ def cmd_report(args) -> int:
 
 
 def cmd_parity(args) -> int:
-    rep = parity_report(load_results([Path(p) for p in args.paths]), args.reference)
-    print(json.dumps(rep, indent=2))
-    bad = [c for c in rep.get("comparisons", [])
-           if c.get("verdict") in ("FAIL", "SUSPECT", "SHAPE MISMATCH")]
-    return 1 if bad else 0
+    try:
+        report = parity_report(
+            load_results([Path(path) for path in args.paths]), args.reference)
+    except (ResultLoadError, ValueError) as exc:
+        report = {"error": str(exc)}
+    print(json.dumps(report, indent=2))
+    if report.get("error") or not report.get("comparisons"):
+        return 2
+    # Only numerical PASS is a successful parity gate. Distribution-only PLAUSIBLE
+    # remains useful evidence but cannot certify cross-runtime equality.
+    return 0 if all(c.get("verdict") == "PASS"
+                    for c in report["comparisons"]) else 1
 
 
 def cmd_env(args) -> int:
     print(json.dumps(collect_env(), indent=2))
-    return 0
-
-
-def cmd_tether_probe(args) -> int:
-    """Print the server's own /act schema, for when payload negotiation fails."""
-    import requests
-    base = args.url.rstrip("/")
-    for path in ("/openapi.json", "/config", "/health"):
-        try:
-            r = requests.get(base + path, timeout=10)
-            print(f"\n=== GET {path} -> {r.status_code} ===")
-            body = r.json()
-            if path == "/openapi.json":
-                print(json.dumps(body.get("paths", {}).get("/act", {}), indent=2)[:4000])
-                print("\n--- component schemas ---")
-                print(json.dumps(body.get("components", {}).get("schemas", {}),
-                                 indent=2)[:4000])
-            else:
-                print(json.dumps(body, indent=2)[:2000])
-        except Exception as e:
-            print(f"\n=== GET {path} -> {e}")
     return 0
 
 
@@ -414,28 +433,6 @@ def main(argv=None) -> int:
     _add_common(p)
     p.set_defaults(func=cmd_ort_mono)
 
-    p = sub.add_parser("tether", help="FastCrest Tether serve + /act")
-    p.add_argument("--export-dir", default=None,
-                   help="tether export dir to serve; omit to attach to a running server")
-    p.add_argument("--url", default=None, help="attach to an already-running server")
-    p.add_argument("--bundle", default=None, help="split bundle, for task/fps/chunk")
-    p.add_argument("--port", type=int, default=8000)
-    p.add_argument("--device", default="cuda")
-    p.add_argument("--providers", default=None,
-                   help="comma-separated ORT providers, e.g. "
-                        "TensorrtExecutionProvider,CUDAExecutionProvider")
-    p.add_argument("--api-key", default=None)
-    p.add_argument("--startup-timeout", type=float, default=900.0,
-                   help="a first TensorRT build can take many minutes")
-    p.add_argument("--payload-template", default=None,
-                   help="JSON file using {{image_b64}} / {{instruction}} / {{state}}")
-    p.add_argument("--serve-arg", action="append",
-                   help="extra flag passed through to `tether serve` (repeatable)")
-    p.add_argument("--serve-log", default=None)
-    _add_model(p)
-    _add_common(p)
-    p.set_defaults(func=cmd_tether)
-
     p = sub.add_parser("models", help="what can be benchmarked")
     p.set_defaults(func=cmd_models)
 
@@ -453,15 +450,12 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("parity", help="compare saved action chunks across runs")
     p.add_argument("paths", nargs="*", default=["results"])
-    p.add_argument("--reference", default=None)
+    p.add_argument("--reference", required=True,
+                   help="exact label of the reference run (required; parity fails closed)")
     p.set_defaults(func=cmd_parity)
 
     p = sub.add_parser("env", help="print the machine fingerprint")
     p.set_defaults(func=cmd_env)
-
-    p = sub.add_parser("tether-probe", help="print a running tether server's /act schema")
-    p.add_argument("--url", default="http://127.0.0.1:8000")
-    p.set_defaults(func=cmd_tether_probe)
 
     p = sub.add_parser("selftest", help="check the monitors read real numbers")
     p.add_argument("--seconds", type=float, default=4.0)

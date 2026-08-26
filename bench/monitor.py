@@ -7,9 +7,9 @@ so the harness can be developed and smoke-tested off the target board.
 
 Why sample the whole system rather than just our process
 --------------------------------------------------------
-One of the backends under test (`tether`) runs the model in a **separate server
-process**, and the ORT/TensorRT EP spawns its own worker threads. A per-process
-number would quietly miss both. So the primary metrics are system-wide deltas
+ORT/TensorRT can spawn worker threads and unified GPU allocations are not owned by
+a separately measurable GPU process. A process-only number can therefore miss real
+costs. So the primary metrics are system-wide deltas
 measured against an idle baseline taken with the model already loaded:
 
     idle window   model resident, no inference   -> baseline

@@ -40,7 +40,6 @@ browser and the editor — the 8 GB is shared.
 scripts/10_env_torch.sh          # asserts torch.cuda.is_available()
 scripts/13_env_torch_xvla.sh     # only if benchmarking X-VLA (lerobot 0.6.1)
 scripts/11_env_ort.sh            # asserts TensorrtExecutionProvider registers
-scripts/12_env_tether.sh         # optional; runs `tether doctor` — keep its output
 ```
 
 Each fails loudly rather than proceeding into a wrong measurement. If `10_env_torch.sh`
@@ -83,7 +82,7 @@ Then the FP16 variants (SmolVLA):
 Check parity immediately — before spending an hour on TensorRT:
 
 ```bash
-.venv-torch/bin/python -m bench parity results
+.venv-torch/bin/python -m bench parity results --reference $M.torch-fp32
 ```
 
 If `torch-half16` fails parity against `torch-fp32` on Orin, that is a headline finding
@@ -100,7 +99,7 @@ builds in one process OOM 8 GB, and a browser does the same from outside.
     --precision fp16 --iters 100 --label $M.ort-split
 ```
 
-Check the run metadata's `providers_per_graph`. If a heavy graph reports
+Check an ORT placement profile before trusting the configured provider priority. If a heavy graph runs on
 `CUDAExecutionProvider` instead of `TensorrtExecutionProvider`, the engine did not build
 and the number is not what it looks like.
 
@@ -131,22 +130,7 @@ graph does on this board independently of anyone's tooling.
 Read `active_provider` and `trt_engine_cached` in the result before reading the latency.
 A silent CPU fallback still returns a finite, plausible action chunk.
 
-## 7. Tether (optional)
-
-```bash
-.venv-tether/bin/python -m bench tether --model $M --export-dir <tether export> \
-    --startup-timeout 1800 \
-    --providers TensorrtExecutionProvider,CUDAExecutionProvider,CPUExecutionProvider \
-    --iters 100 --label $M.tether
-```
-
-If `/act` refuses every payload shape, `bench tether-probe --url http://127.0.0.1:8000`
-prints the server's own schema; pass the right shape with `--payload-template`. If the
-export has to be produced elsewhere, record that in `--notes`.
-
-A failure is recorded and the day moves on.
-
-## 8. Sustained run, for thermals
+## 7. Sustained run, for thermals
 
 Short runs cannot tell you whether latency holds. This is the run that answers it.
 
@@ -158,7 +142,7 @@ Short runs cannot tell you whether latency holds. This is the run that answers i
 Read `drift_q4_vs_q1_pct` and `tj max °C` together. A flat drift is a result too — it
 would mean the board sustains this load at MAXN, which nothing here has established.
 
-## 9. Report
+## 8. Report
 
 ```bash
 .venv-torch/bin/python -m bench report results --out docs/RESULTS.md
@@ -174,8 +158,7 @@ MODEL=smolvla-base scripts/run_all.sh
 MODEL=xvla-base    scripts/run_all.sh
 ```
 
-which does steps 4–9 in that order and keeps going past a failure. Tether and the
-monolith are opt-in via `TETHER_EXPORT=` and `MONO_ONNX=`.
+which runs the supported matrix in order and keeps going past a failure. The monolith remains opt-in.
 
 ## If the actions matter, use real frames
 

@@ -32,72 +32,187 @@ actually commands.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
 
 
+class ResultLoadError(ValueError):
+    pass
 
-def _chunks(result: dict) -> np.ndarray | None:
+
+def _canonical_sha256(value: dict) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def attach_comparison_signature(result: dict) -> dict:
+    """Persist the exact semantic/input identity a parity verdict requires."""
     saved = result.get("saved_chunks") or {}
-    ch = saved.get("chunks")
-    return np.asarray(ch, dtype=np.float64) if ch else None
+    model = result.get("model") or {}
+    meta = result.get("meta") or {}
+    obs = result.get("obs") or {}
+    export = meta.get("export_info") or {}
+    indices = saved.get("obs_indices") or []
+    inputs = saved.get("input_sha256") or []
+    noise = saved.get("noise_sha256") or []
+    records = sorted(zip(indices, inputs, noise), key=lambda row: row[0])
+
+    fields = {
+        "schema": 1,
+        "policy": {
+            "model_key": model.get("key"),
+            "family": model.get("family"),
+            "task": model.get("task"),
+            "real_views": model.get("views"),
+            "camera_slots": (model.get("cam_slots") or meta.get("n_cam_slots")
+                             or meta.get("num_views")),
+            "state_dim": model.get("state_dim"),
+            "action_dim": (result.get("chunk_shape") or [None, None])[-1],
+            "chunk_size": (result.get("chunk_shape") or [None])[0],
+            "num_steps": meta.get("num_steps"),
+        },
+        "observation": {
+            "kind": obs.get("kind"),
+            "shape_hw": obs.get("hw"),
+            "views": obs.get("views"),
+            "seed": obs.get("seed"),
+            "indices": [row[0] for row in records],
+            "input_sha256": [row[1] for row in records],
+            "noise_sha256": [row[2] for row in records],
+        },
+        "preprocessing": {
+            "resize": meta.get("resize"),
+            "tokenizer": (meta.get("tokenizer_sha256") or meta.get("tokenizer")
+                          or export.get("tokenizer_revision")),
+            "stats": meta.get("stats_sha256") or export.get("stats_sha256"),
+        },
+    }
+    result["comparison"] = {"fields": fields, "sha256": _canonical_sha256(fields)}
+    return result
+
+
+def _saved_by_index(result: dict) -> dict[int, np.ndarray]:
+    saved = result.get("saved_chunks")
+    if not isinstance(saved, dict):
+        raise ValueError("missing saved_chunks object")
+    chunks = saved.get("chunks")
+    indices = saved.get("obs_indices")
+    inputs = saved.get("input_sha256")
+    noise = saved.get("noise_sha256")
+    if not all(isinstance(x, list) for x in (chunks, indices, inputs, noise)):
+        raise ValueError("saved chunks require lists of chunks, indices, input and noise hashes")
+    if not chunks:
+        raise ValueError("run saved no action chunks")
+    if not (len(chunks) == len(indices) == len(inputs) == len(noise)):
+        raise ValueError("saved chunk/index/input/noise lengths differ")
+    if len(set(indices)) != len(indices):
+        raise ValueError("saved observation indices are not unique")
+    return {int(index): np.asarray(chunk, dtype=np.float64)
+            for index, chunk in zip(indices, chunks)}
 
 
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     a, b = a.reshape(-1), b.reshape(-1)
     na, nb = np.linalg.norm(a), np.linalg.norm(b)
-    return float(np.dot(a, b) / (na * nb)) if na and nb else float("nan")
+    if na == 0 and nb == 0:
+        return 1.0
+    if na == 0 or nb == 0:
+        return 0.0
+    return float(np.dot(a, b) / (na * nb))
+
+
+def _identity(result: dict) -> tuple[str | None, str | None]:
+    comparison = result.get("comparison") or {}
+    fields = comparison.get("fields")
+    digest = comparison.get("sha256")
+    if not isinstance(fields, dict) or not isinstance(digest, str):
+        return None, "missing comparison signature"
+    try:
+        actual = _canonical_sha256(fields)
+    except (TypeError, ValueError) as exc:
+        return None, f"malformed comparison signature: {exc}"
+    if actual != digest:
+        return None, "comparison signature hash does not match its fields"
+    return digest, None
 
 
 def compare(ref: dict, cand: dict) -> dict:
-    """One reference run against one candidate run."""
-    a, b = _chunks(ref), _chunks(cand)
+    """One explicitly selected reference run against one candidate run."""
     out = {"reference": ref.get("label"), "candidate": cand.get("label")}
-    if a is None or b is None:
-        return {**out, "verdict": "NO DATA", "reason": "a run saved no action chunks"}
 
-    n = min(len(a), len(b))
-    a, b = a[:n], b[:n]
+    ref_sig, ref_error = _identity(ref)
+    cand_sig, cand_error = _identity(cand)
+    if ref_error or cand_error:
+        why = "; ".join(x for x in (
+            f"reference: {ref_error}" if ref_error else None,
+            f"candidate: {cand_error}" if cand_error else None,
+        ) if x)
+        return {**out, "verdict": "IDENTITY MISMATCH", "reason": why}
+    if ref_sig != cand_sig:
+        return {
+            **out,
+            "verdict": "IDENTITY MISMATCH",
+            "reason": "comparison signatures differ",
+            "reference_signature": ref_sig,
+            "candidate_signature": cand_sig,
+        }
+
+    try:
+        a_by_index = _saved_by_index(ref)
+        b_by_index = _saved_by_index(cand)
+    except ValueError as exc:
+        return {**out, "verdict": "NO DATA", "reason": str(exc)}
+    if set(a_by_index) != set(b_by_index):
+        return {
+            **out,
+            "verdict": "IDENTITY MISMATCH",
+            "reason": "saved observation index sets differ",
+            "reference_indices": sorted(a_by_index),
+            "candidate_indices": sorted(b_by_index),
+        }
+
+    indices = sorted(a_by_index)
+    a = np.stack([a_by_index[index] for index in indices])
+    b = np.stack([b_by_index[index] for index in indices])
     if a.shape != b.shape:
         return {**out, "verdict": "SHAPE MISMATCH",
                 "reference_shape": list(a.shape), "candidate_shape": list(b.shape)}
 
-    both_seeded = (ref.get("saved_chunks", {}).get("noise_injected")
-                   and cand.get("saved_chunks", {}).get("noise_injected"))
-    out["noise_injected_both"] = bool(both_seeded)
-    out["n_observations"] = n
-    out["finite"] = bool(np.all(np.isfinite(a)) and np.all(np.isfinite(b)))
+    finite = bool(np.all(np.isfinite(a)) and np.all(np.isfinite(b)))
+    both_seeded = bool((ref.get("saved_chunks") or {}).get("noise_injected")
+                       and (cand.get("saved_chunks") or {}).get("noise_injected"))
+    out["noise_injected_both"] = both_seeded
+    out["n_observations"] = len(indices)
+    out["obs_indices"] = indices
+    out["finite"] = finite
+
+    if not finite:
+        return {**out, "verdict": "FAIL", "reason": "action chunks contain NaN or infinity"}
 
     if both_seeded:
-        cos = [cosine(a[i], b[i]) for i in range(n)]
+        cos = [cosine(a[i], b[i]) for i in range(len(indices))]
         diff = np.abs(a - b)
-        # The reference's own span, so the percentage means the same thing whatever
-        # action space the policy uses. Guarded against a degenerate constant output.
         ref_range = float(np.ptp(a)) or 1.0
         out.update({
-            "mode": "elementwise (identical seeded noise)",
+            "mode": "elementwise (exact signed inputs and seeded noise)",
             "cosine_min": round(float(np.min(cos)), 7),
             "cosine_mean": round(float(np.mean(cos)), 7),
             "max_abs_diff": float(f"{diff.max():.3e}"),
             "mean_abs_diff": float(f"{diff.mean():.3e}"),
             "reference_action_range": round(ref_range, 4),
             "max_abs_diff_pct_of_range": round(float(diff.max()) / ref_range * 100, 3),
-            "first_action_max_abs_diff": float(f"{np.abs(a[:, 0] - b[:, 0]).max():.3e}"),
+            "first_action_max_abs_diff": float(
+                f"{np.abs(a[:, 0] - b[:, 0]).max():.3e}"),
         })
-        # 0.999 is the threshold the on-device guard has used since the Spark sweep;
-        # 1% of the commanded range is the "would you feel it on the machine" line.
         ok = (out["cosine_min"] >= 0.999
-              and out["max_abs_diff_pct_of_range"] <= 1.0
-              and out["finite"])
+              and out["max_abs_diff_pct_of_range"] <= 1.0)
         out["verdict"] = "PASS" if ok else "FAIL"
     else:
-        # No shared noise: only distribution-level checks are honest.
         out["mode"] = "distribution only (noise not injectable in one backend)"
-        out["caveat"] = ("cannot certify numerical parity — the two runs integrated "
-                         "different noise draws. A PASS here means 'not obviously "
-                         "broken', not 'matches'.")
+        out["caveat"] = "distribution checks cannot certify numerical parity"
         am, bm = a.reshape(-1, a.shape[-1]), b.reshape(-1, b.shape[-1])
         out["per_dim_mean_ref"] = [round(float(x), 4) for x in am.mean(0)]
         out["per_dim_mean_cand"] = [round(float(x), 4) for x in bm.mean(0)]
@@ -107,97 +222,71 @@ def compare(ref: dict, cand: dict) -> dict:
         dstd = np.abs(am.std(0) - bm.std(0)).max()
         out["max_dim_mean_shift"] = round(float(dmean), 4)
         out["max_dim_std_shift"] = round(float(dstd), 4)
-        out["verdict"] = ("PLAUSIBLE" if out["finite"] and dmean < 0.15 and dstd < 0.15
-                          else "SUSPECT")
+        out["verdict"] = ("PLAUSIBLE" if dmean < 0.15 and dstd < 0.15 else "SUSPECT")
     return out
 
 
 def load_results(paths: list[Path]) -> list[dict]:
     runs = []
-    for p in paths:
-        for f in ([p] if p.is_file() else sorted(p.glob("*.json"))):
+    for path in paths:
+        if not path.exists():
+            raise ResultLoadError(f"result path does not exist: {path}")
+        files = [path] if path.is_file() else sorted(path.glob("*.json"))
+        if not files:
+            raise ResultLoadError(f"no result JSON files found in: {path}")
+        for file in files:
             try:
-                r = json.loads(f.read_text())
-            except Exception:
-                continue
-            r["_file"] = str(f)
-            runs.append(r)
+                result = json.loads(file.read_text())
+            except Exception as exc:
+                raise ResultLoadError(f"malformed result JSON {file}: {exc}") from exc
+            if not isinstance(result, dict):
+                raise ResultLoadError(f"result JSON is not an object: {file}")
+            result["_file"] = str(file)
+            runs.append(result)
     return runs
 
 
 def pick_reference(runs: list[dict], prefer: str | None = None) -> dict | None:
-    ok = [r for r in runs if r.get("status") == "ok" and _chunks(r) is not None]
-    if not ok:
+    if not prefer:
         return None
-    if prefer:
-        for r in ok:
-            if r.get("label") == prefer:
-                return r
-    # Default gold: full-precision PyTorch — the dtype the model was trained in is
-    # closest to, and the only run with no export step between it and the weights.
-    # startswith, not ==: the backends are registered as "torch-smolvla" /
-    # "torch-xvla", so an equality test against "torch" never matched and the gold
-    # silently fell through to ok[0] -- alphabetically the first ONNX run. That made
-    # every parity verdict a comparison against an export rather than against PyTorch.
-    for r in ok:
-        m = r.get("meta", {})
-        if (str(r.get("backend", "")).startswith("torch")
-                and m.get("weights_dtype") == "float32"
-                and m.get("autocast", "off") == "off"):
-            return r
-    for r in ok:
-        if str(r.get("backend", "")).startswith("torch"):
-            return r
-    return ok[0]
+    matches = [run for run in runs if run.get("label") == prefer]
+    if len(matches) != 1:
+        return None
+    ref = matches[0]
+    if ref.get("status") != "ok":
+        return None
+    try:
+        _saved_by_index(ref)
+    except ValueError:
+        return None
+    return ref
 
 
 def parity_report(runs: list[dict], prefer_ref: str | None = None) -> dict:
+    if not prefer_ref:
+        return {"error": "an explicit --reference label is required"}
     ref = pick_reference(runs, prefer_ref)
     if ref is None:
-        return {"error": "no successful run with saved chunks"}
-    def _key(r):
-        """What makes two runs comparable at all: same model family, same observation.
+        return {"error": f"reference {prefer_ref!r} is missing, duplicated, failed, or has no data"}
 
-        Cameras are part of the observation, not a setting: a run fed 1 real camera
-        sees a different prefix than one fed 2, so comparing them reports a cosine
-        against a sequence the reference never saw. That is how the old --views 2 row
-        came to show 0.649 and get written down as a FAIL, which it was not -- it was a
-        category error. Anything outside the reference's group is reported as
-        NOT COMPARABLE with the reason, never as a verdict.
-        """
-        m = r.get("model", {})
-        # cam_slots belongs here as much as views: an export built with 2 slots has a
-        # 177-token prefix against a 1-slot export's 113, so two runs that agree on
-        # real cameras still see different sequences if their slot counts differ.
-        # Leaving it out would let a 1-slot bundle be compared against a 2-slot
-        # reference and the difference read as a runtime defect.
-        meta = r.get("meta") or {}
-        slots = (m.get("cam_slots") or meta.get("n_cam_slots")
-                 or meta.get("num_views"))
-        return (m.get("family"), m.get("views"), slots)
-
-    ref_key = _key(ref)
-    comparisons, skipped = [], []
-    for r in runs:
-        if r is ref or r.get("status") != "ok":
+    comparisons = []
+    for run in runs:
+        if run is ref:
             continue
-        if _key(r) == ref_key:
-            comparisons.append(compare(ref, r))
-        else:
-            fam, views, slots = _key(r)
-            why = []
-            if fam != ref_key[0]:
-                why.append(f"family {fam} vs {ref_key[0]}")
-            if views != ref_key[1]:
-                why.append(f"{views} real cameras vs {ref_key[1]}")
-            if slots != ref_key[2]:
-                why.append(f"{slots} camera slots vs {ref_key[2]}")
-            skipped.append({"candidate": r.get("label"),
-                            "verdict": "NOT COMPARABLE",
-                            "mode": "; ".join(why)})
+        if run.get("status") != "ok":
+            comparisons.append({
+                "reference": ref.get("label"),
+                "candidate": run.get("label"),
+                "verdict": "FAILED RUN",
+                "reason": run.get("error") or f"status={run.get('status')!r}",
+            })
+            continue
+        comparisons.append(compare(ref, run))
+
+    if not comparisons:
+        return {"error": "no candidate run exists for the selected reference"}
     return {
         "reference": ref.get("label"),
         "reference_file": ref.get("_file"),
         "comparisons": comparisons,
-        "not_comparable": skipped,
     }

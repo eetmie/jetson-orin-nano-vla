@@ -1,6 +1,6 @@
 # 3. What is being compared
 
-Two model families × four runtimes, on one board, with the same seeded observations.
+Two model families × three runtimes, on one board, with the same seeded observations.
 
 ## Models
 
@@ -220,43 +220,6 @@ Three outcomes are distinguished, and the backend records which happened:
 That last case is why `active_provider`, `trt_engine_cached` and `ran_on_gpu` are in
 every result. When TensorRT gives up, ONNX Runtime does not error — it partitions
 elsewhere and keeps going, still returning a finite, plausible action chunk.
-
-### `tether` — an off-the-shelf deployment CLI
-
-[FastCrest Tether](https://github.com/FastCrest/tether) exports, verifies and serves VLA
-policies behind an HTTP endpoint. It is included because it is a ready-made alternative
-to hand-rolling an export, it supports both families here, and it is the kind of thing
-someone will reasonably ask about. No affiliation, no endorsement — it is one row in the
-table.
-
-Its hardware table lists SmolVLA on an 8 GB Orin Nano at ~25 ms FP16, which is well
-below what the split TensorRT path measures for a full denoise loop on this board
-(vision 33 ms, prefill 16.5 ms, decode 11.4 ms × steps). That could mean several things
-— a single forward pass rather than the whole loop, adaptive step early-exit, a
-different board state — and the benchmark simply reports what happens here rather than
-adjudicating. If it does not build or does not serve, the run is recorded as a failure
-and the comparison moves on; **this backend is optional and `run_all.sh` skips it
-unless `TETHER_EXPORT` is set.**
-
-Two things it measures around. **It is a server** — the model is in another process, so
-CPU/RSS attribution follows that PID. **The timing includes transport** — `total` is the
-client roundtrip (PNG encode, JSON, loopback HTTP); where the response carries a
-server-side figure it is reported separately as `server`. Compare `server` against the
-other backends' `total` for a model-to-model number, and the roundtrip when asking what
-a control loop would see. See `docs/04-metrics.md`.
-
-The `/act` schema is not pinned in Tether's public docs, so the first call negotiates
-across several payload shapes and records the accepted one. If none work:
-
-```bash
-python -m bench tether-probe --url http://127.0.0.1:8000   # its own OpenAPI schema
-python -m bench tether --payload-template my_payload.json ...
-```
-
-Its fast path is a monolithic ONNX, which is the graph shape that will not TRT-build
-here — so run `ort-mono` first. That separates "this runtime is slow" from "the monolith
-cannot build on this board", which is a distinction worth having before drawing any
-conclusion about anyone's tooling.
 
 ## The published SmolVLA ONNX does not match the checkpoint under lerobot 0.5.1
 

@@ -2,7 +2,7 @@
 
 Does a VLA policy fit on an **8 GB Jetson Orin Nano Super**, and what does it cost?
 
-Two model families, four runtimes, one board, the same seeded observations fed to all of
+Two model families, three runtimes, one board, the same seeded observations fed to all of
 them — so the numbers can be compared rather than collected.
 
 | model | family | params | PyTorch | split ONNX |
@@ -15,7 +15,6 @@ them — so the numbers can be compared rather than collected.
 | **`torch`** | stock PyTorch — the LeRobot policy straight off the checkpoint |
 | **`ort-split`** | the split ONNX export on ONNX Runtime + TensorRT EP (FP16) |
 | **`ort-mono`** | the *monolithic* ONNX on ORT — the split-vs-monolith A/B |
-| **`tether`** | optional: [FastCrest Tether](https://github.com/FastCrest/tether) `serve` + `/act` |
 
 Both checkpoints are Apache 2.0, so the comparison is reproducible by anyone with the
 same board. A locally fine-tuned checkpoint drops in by pointing `--checkpoint` and
@@ -40,7 +39,6 @@ scripts/00_host_prep.sh                 # MAXN_SUPER, pinned clocks, persistent 
 scripts/10_env_torch.sh                 # .venv-torch       (asserts torch sees the GPU)
 scripts/13_env_torch_xvla.sh            # .venv-torch-xvla  (lerobot 0.6.1, for X-VLA)
 scripts/11_env_ort.sh                   # .venv-ort         (asserts the TensorRT EP registers)
-scripts/12_env_tether.sh                # .venv-tether      (optional)
 
 .venv-torch/bin/python -m bench selftest      # do the instruments read real numbers?
 
@@ -58,7 +56,7 @@ python -m bench torch     --model smolvla-base --checkpoint ~/bundles/smolvla-ba
 python -m bench ort-split --model smolvla-base --bundle ~/bundles/smolvla-base-split --views 2
 python -m bench ort-mono  --model smolvla-base --onnx exports/smolvla_base_static.onnx --no-trt
 
-python -m bench parity results
+python -m bench parity results --reference smolvla-base.torch
 python -m bench report results --out docs/RESULTS.md
 ```
 
@@ -74,7 +72,7 @@ python -m bench ort-split --family smolvla --bundle ~/bundles/my-split-export \
 | | |
 |---|---|
 | [`01-host-setup.md`](docs/01-host-setup.md) | power mode, swap, engine cache |
-| [`02-environments.md`](docs/02-environments.md) | four venvs, and the traps that silently produce a wrong number |
+| [`02-environments.md`](docs/02-environments.md) | three venvs, and the traps that silently produce a wrong number |
 | [`03-backends.md`](docs/03-backends.md) | the models, the runtimes, cameras, why the monolith will not build here |
 | [`04-metrics.md`](docs/04-metrics.md) | what every number means and what it does not |
 | [`05-runbook.md`](docs/05-runbook.md) | the bench day, cheapest failures first |
@@ -93,7 +91,6 @@ bench/
   obs.py           deterministic observations: same images, state, task AND noise draw
   parity.py        cross-backend action-chunk comparison
   report.py        result JSONs -> the markdown tables in docs/RESULTS.md
-  backends/        torch_smolvla · torch_xvla · ort_split · ort_split_xvla · ort_mono · tether_http
   vendor/          the two split runtimes, copied so the measured code is pinned
 docs/  scripts/  results/
 ```

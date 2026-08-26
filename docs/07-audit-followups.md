@@ -39,7 +39,7 @@ final board measurements can be evaluated without guessing.
 - `bench/obs.py` creates indexed synthetic or frame-backed observations and noise.
 - `bench/runner.py` owns load, first inference, warmup, idle, measurement, and JSON output.
 - `bench/monitor.py` and `bench/procwatch.py` collect board and process measurements.
-- `bench/backends/` contains Torch, split ORT, monolithic ORT, and Tether adapters.
+- `bench/backends/` contains Torch, split ORT, and monolithic ORT adapters.
 - `bench/vendor/` pins the two split runtimes next to the measurements.
 - `bench/parity.py` compares saved action chunks; `bench/report.py` renders the report.
 
@@ -239,22 +239,13 @@ All counts, dimensions, durations, view counts, and step counts need explicit ra
 validation. Comparable runs should fail when required tokenizer/stats provenance is
 missing rather than silently substituting a fallback.
 
-### A07. Tether can leak secrets and misstate work
+### A07. Unsupported Tether backend removed
 
-Status: **Proven**
+Status: **Resolved by removal**
 
-- `--api-key` is inserted into the spawned command and then persisted as
-  `meta.serve_cmd` (`bench/backends/tether_http.py:127-139,204-216`). Result files are
-  intended to be committed, so this can publish a credential.
-- payload negotiation and inference encode only `obs.image`, even when result metadata
-  records multiple cameras.
-- an attached server cannot be included in process attribution; only the client PID is
-  known.
-- metadata is captured before payload negotiation, so `payload_shape` remains stale.
-- request `total` stops before action extraction, conversion, validation, and slicing.
-
-Secrets must be redacted before persistence. Multi-camera use must either be implemented
-or rejected. Attached and spawned server measurements need different attribution labels.
+The Tether backend, CLI commands, environment, dependencies, and runbook entries
+were removed because its monolithic path does not build on the 8 GB Orin Nano.
+No Tether credentials or unsupported speed claims are persisted by this repo.
 
 ### A08. Successful status does not validate outputs or instruments
 
@@ -431,9 +422,7 @@ Decision rule:
    stats requirements, denoise-step propagation, and X-VLA view/bundle matching.
 4. Tiny ONNX tests proving that configured provider order is not actual node placement.
 5. Golden monitor/parser, statistics, and Markdown-report tests.
-6. Tether fake-server tests for payload negotiation, camera count, metadata refresh,
-   process attribution labels, output validation, and secret redaction.
-7. Linux CI for CPU tests and shell lint; a separate manual self-hosted Jetson job for
+6. Linux CI for CPU tests and shell lint; a separate manual self-hosted Jetson job for
    engines, profiling, power, and long-duration measurements.
 
 ## Non-goals

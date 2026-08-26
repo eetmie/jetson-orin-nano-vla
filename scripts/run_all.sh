@@ -6,9 +6,8 @@
 #   MODEL=local FAMILY=smolvla CKPT=~/bundles/mine/pretrained_model \
 #       BUNDLE=~/bundles/mine-split STATE_DIM=3 ACTION_DIM=4 scripts/run_all.sh
 #
-# VIEWS sweeps the real camera count (default "1 2"). Two is the Orin Nano's practical
-# ceiling for USB cameras; one is what prices the second one. A second camera costs one
-# extra vision-tower pass and nothing else — see docs/03 — so this sweep is cheap.
+# VIEWS must match the selected export bundle. Camera count is static for X-VLA and
+# camera slots change SmolVLA sequence shape, so cross-view sweeps need separate bundles.
 #
 # Each backend runs in its own venv (they cannot share one — see docs/02). Every run
 # writes results/<label>.json and the script keeps going if one fails, because "this
@@ -22,7 +21,11 @@ CKPT="${CKPT:-$DEST/$MODEL-torch}"
 BUNDLE="${BUNDLE:-$DEST/$MODEL-split}"
 ITERS="${ITERS:-100}"
 OBS="${OBS:-synthetic}"
-VIEWS="${VIEWS:-1 2}"
+MODEL_FAMILY="$MODEL_FAMILY"
+VIEWS="${VIEWS:-}"
+if [[ -z "$VIEWS" ]]; then
+    [[ "$MODEL_FAMILY" == "xvla" ]] && VIEWS=3 || VIEWS=2
+fi
 
 MODEL_ARGS=()
 if [[ "$MODEL" == "local" ]]; then
@@ -38,7 +41,6 @@ COMMON=(--iters "$ITERS" --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}")
 
 VENV_TORCH="${VENV_TORCH:-.venv-torch}"
 VENV_ORT="${VENV_ORT:-.venv-ort}"
-VENV_TETHER="${VENV_TETHER:-.venv-tether}"
 
 mkdir -p results
 run() {  # run <venv> <label> <bench-args...>
@@ -60,7 +62,7 @@ run "$VENV_TORCH" "$MODEL.torch-fp32"  torch --checkpoint "$CKPT" \
     --weights float32 --autocast off "${COMMON[@]}"
 run "$VENV_TORCH" "$MODEL.torch-amp16" torch --checkpoint "$CKPT" \
     --weights float32 --autocast float16 "${COMMON[@]}"
-if [[ "${FAMILY:-${MODEL%%-*}}" != "xvla" ]]; then
+if [[ "$MODEL_FAMILY" != "xvla" ]]; then
     run "$VENV_TORCH" "$MODEL.torch-half16" torch --checkpoint "$CKPT" \
         --weights float16 --autocast off --patch-half-out "${COMMON[@]}"
 fi
@@ -73,7 +75,7 @@ if [[ -d "$BUNDLE" ]]; then
             --precision fp16 --views "$v" "${COMMON[@]}"
     done
     # Optimization backlog item 1 — see docs/06.
-    if [[ "${PROJECTOR_AB:-1}" == "1" && "${FAMILY:-${MODEL%%-*}}" != "xvla" ]]; then
+    if [[ "${PROJECTOR_AB:-1}" == "1" && "$MODEL_FAMILY" != "xvla" ]]; then
         run "$VENV_ORT" "$MODEL.ort-split.proj-gpu" ort-split --bundle "$BUNDLE" \
             --precision fp16 --projectors gpu "${COMMON[@]}"
     fi
@@ -89,15 +91,7 @@ if [[ -n "${MONO_ONNX:-}" ]]; then
         --bundle "$BUNDLE" --no-trt "${COMMON[@]}"
 fi
 
-# 4. Tether. Long startup budget: a monolithic TensorRT build here is minutes at best,
-#    and the interesting outcome may be that it never finishes.
-if [[ -n "${TETHER_EXPORT:-}" ]]; then
-    run "$VENV_TETHER" "$MODEL.tether" tether --export-dir "$TETHER_EXPORT" \
-        --providers TensorrtExecutionProvider,CUDAExecutionProvider,CPUExecutionProvider \
-        --startup-timeout 1800 "${COMMON[@]}"
-fi
-
-# 5. Sustained run, to catch thermal drift the short runs miss.
+# 4. Sustained run, to catch thermal drift the short runs miss.
 if [[ "${SUSTAINED:-1}" == "1" && -d "$BUNDLE" ]]; then
     run "$VENV_ORT" "$MODEL.ort-split.sustained" ort-split --bundle "$BUNDLE" \
         --precision fp16 --duration-s "${SUSTAINED_S:-300}" \

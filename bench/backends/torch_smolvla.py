@@ -53,7 +53,8 @@ import numpy as np
 
 from ..obs import Observation
 from ..vendor.smolvla_split import LANG_LEN, MAX_STATE_DIM, resize_with_pad_uint8
-from .base import Backend, InferResult, load_export_info, load_stats
+from .base import (Backend, InferResult, file_sha256, load_export_info, load_stats,
+                   tree_sha256)
 
 _DTYPES = {"float32": "float32", "float16": "float16", "bfloat16": "bfloat16"}
 
@@ -65,8 +66,9 @@ class TorchSmolVLABackend(Backend):
     def __init__(self, checkpoint: Path, bundle: Path | None = None,
                  weights: str = "float32", autocast: str = "off",
                  device: str = "cuda", action_dim: int = 4,
-                 tokenizer_dir: Path | None = None, compile_model: bool = False,
-                 patch_half_out: bool = False, cam_slots: int | None = None):
+                 tokenizer_dir: str | Path | None = None, compile_model: bool = False,
+                 patch_half_out: bool = False, cam_slots: int | None = None,
+                 num_steps: int | None = None):
         self.checkpoint = Path(checkpoint)
         self.bundle = Path(bundle) if bundle else None
         self.dtype_name = _DTYPES[weights]
@@ -83,6 +85,7 @@ class TorchSmolVLABackend(Backend):
         # a parity failure and read like a numerics bug. Padding to the export's slot
         # count keeps the two comparable.
         self.cam_slots = cam_slots
+        self.num_steps = num_steps
         self.policy = None
         self._info = load_export_info(self.bundle) if self.bundle else {}
 
@@ -106,15 +109,31 @@ class TorchSmolVLABackend(Backend):
             policy.model = torch.compile(policy.model)
         self.policy = policy
         self.cfg = policy.config
+        if self.num_steps is not None:
+            if self.num_steps <= 0:
+                raise ValueError("num_steps must be positive")
+            self.cfg.num_steps = self.num_steps
+            policy.model.config.num_steps = self.num_steps
 
         # Same tokenizer as the split bundle when one is available, so token ids are
         # identical and a parity difference can only come from the runtime.
         tok_dir = self.tokenizer_dir or (self.bundle / "tokenizer" if self.bundle else None)
         self.tokenizer = (AutoTokenizer.from_pretrained(str(tok_dir)) if tok_dir
-                          and Path(tok_dir).exists()
                           else policy.language_tokenizer)
+        self._tokenizer_name = str(
+            tok_dir or getattr(self.tokenizer, "name_or_path", type(self.tokenizer).__name__))
+        self._tokenizer_sha256 = (
+            tree_sha256(Path(tok_dir)) if tok_dir and Path(tok_dir).exists() else None)
+        stats_path = self.bundle / "stats.json" if self.bundle else Path("stats.json")
+        self._stats_sha256 = file_sha256(stats_path)
         self.norm = load_stats(self.bundle) if self.bundle else load_stats(Path("."))
         self._lang_cache: dict[str, tuple] = {}
+
+    def artifact_paths(self) -> dict[str, Path]:
+        paths = {"checkpoint": self.checkpoint}
+        if self.bundle is not None:
+            paths["bundle"] = self.bundle
+        return paths
 
     def meta(self) -> dict:
         import torch
@@ -133,6 +152,9 @@ class TorchSmolVLABackend(Backend):
             "action_dim": self.action_dim,
             "resize": list(self.cfg.resize_imgs_with_padding),
             "cam_slots": self.cam_slots,
+            "tokenizer": self._tokenizer_name,
+            "tokenizer_sha256": self._tokenizer_sha256,
+            "stats_sha256": self._stats_sha256,
             "torch": torch.__version__,
             "torch_cuda": torch.version.cuda,
             "compiled": self.compile_model,

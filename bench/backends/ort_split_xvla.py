@@ -29,6 +29,7 @@ projections, their positional-embedding slice and the soft prompts do not depend
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from pathlib import Path
@@ -36,7 +37,7 @@ from pathlib import Path
 import numpy as np
 
 from ..obs import Observation
-from .base import Backend, InferResult
+from .base import Backend, InferResult, tree_sha256
 from .ort_split import _TimedSession
 
 
@@ -54,6 +55,8 @@ class OrtSplitXVLABackend(Backend):
         self.cache_dir = cache_dir or str(self.split_dir / "trt_cache")
         self.precision = precision
         self.num_steps = num_steps
+        if self.num_steps is not None and self.num_steps <= 0:
+            raise ValueError("num_steps must be positive")
         self.tokenizer = tokenizer
         self.seed = seed
         self.valid_views = valid_views
@@ -62,6 +65,21 @@ class OrtSplitXVLABackend(Backend):
 
     def load(self) -> None:
         from ..vendor.xvla_split_ort import XVLASplitPolicy, prebuild_engines
+
+        bundle = json.loads((self.split_dir / "bundle.json").read_text())
+        self.bundle_valid_views = int(bundle["valid_views"])
+        self.bundle_num_views = int(bundle["num_image_views"])
+        if self.valid_views is None:
+            self.valid_views = self.bundle_valid_views
+        if self.valid_views != self.bundle_valid_views:
+            raise ValueError(
+                f"requested {self.valid_views} real view(s), but bundle declares "
+                f"valid_views={self.bundle_valid_views}; use a separately exported bundle")
+        tokenizer_source = self.tokenizer or "facebook/bart-large"
+        self._tokenizer_name = str(tokenizer_source)
+        tokenizer_path = Path(tokenizer_source)
+        self._tokenizer_sha256 = (
+            tree_sha256(tokenizer_path) if tokenizer_path.exists() else None)
 
         # One subprocess per graph. Not an optimization: two engines building or
         # resident in one process was enough to OOM 8 GB during the SmolVLA work.
@@ -86,6 +104,9 @@ class OrtSplitXVLABackend(Backend):
         self.policy.cond = _TimedSession(self.policy.cond, "cond", self._sink)
         self._labels = list(self._providers)
 
+    def artifact_paths(self) -> dict[str, Path]:
+        return {"bundle": self.split_dir}
+
     def meta(self) -> dict:
         import onnxruntime as ort
         p = self.policy
@@ -101,14 +122,20 @@ class OrtSplitXVLABackend(Backend):
             "action_dim": p.action_dim,
             "state_dim": p.state_dim,
             "num_views": p.num_views,
+            "requested_views": self.valid_views,
+            "bundle_valid_views": self.bundle_valid_views,
+            "processed_views": p.valid_views,
             "valid_views": p.valid_views,
+            "resize": [224, 224],
+            "tokenizer": self._tokenizer_name,
+            "tokenizer_sha256": self._tokenizer_sha256,
             "tokens_per_view": p.tokens_per_view,
             "lang_len": p.lang_len,
             "hidden_size": p.hidden,
             "action_mode": p.bundle.get("action_mode"),
             "n_graphs": len(self._providers),
             "n_graphs_on_trt": n_trt,
-            "providers_per_graph": self._providers,
+            "configured_provider_priority_per_graph": self._providers,
             "onnxruntime": ort.__version__,
             "engine_cache": self.cache_dir,
             "kv_cache": False,
@@ -117,6 +144,10 @@ class OrtSplitXVLABackend(Backend):
         }
 
     def infer(self, obs: Observation) -> InferResult:
+        if len(obs.images) != self.bundle_valid_views:
+            raise ValueError(
+                f"observation has {len(obs.images)} view(s), bundle requires exactly "
+                f"{self.bundle_valid_views}")
         self._sink.clear()
         t0 = time.perf_counter()
         # X-VLA injects x1, the single fixed noise draw the loop interpolates against,

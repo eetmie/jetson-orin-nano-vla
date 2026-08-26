@@ -89,6 +89,15 @@ class OrtMonoBackend(Backend):
         self.sess = None
         self._build_s: float | None = None
 
+    def artifact_paths(self) -> dict[str, Path]:
+        paths = {"onnx": self.onnx_path}
+        data = Path(str(self.onnx_path) + ".data")
+        if data.exists():
+            paths["onnx_data"] = data
+        if self.bundle is not None:
+            paths["bundle"] = self.bundle
+        return paths
+
     def load(self) -> None:
         import os
         import onnxruntime as ort

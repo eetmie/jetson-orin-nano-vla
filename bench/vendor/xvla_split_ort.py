@@ -283,7 +283,10 @@ class XVLASplitPolicy:
         self.hidden = b["hidden_size"]
         self.dim_time = b["dim_time"]
         self.state_dim = b["max_state_dim"]
-        self.steps = num_denoising_steps or b["num_denoising_steps"]
+        self.steps = (num_denoising_steps if num_denoising_steps is not None
+                      else b["num_denoising_steps"])
+        if self.steps <= 0:
+            raise ValueError("num_denoising_steps must be positive")
         self.rng = np.random.default_rng(seed)
 
         # Gripper channels get a sigmoid after the loop (BaseActionSpace.postprocess).
