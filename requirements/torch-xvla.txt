@@ -21,3 +21,10 @@
 
 lerobot[xvla]==0.6.1
 -r bench.txt
+
+# Not a mistake: the X-VLA *PyTorch* backend imports preprocess_image from the vendored
+# xvla_split_ort, which imports onnxruntime at module scope. Without this the torch
+# backend cannot even be imported. The alternative is patching the vendored runtime,
+# which would break the guarantee that the measured code is byte-identical to what the
+# deploy project runs.
+onnxruntime
