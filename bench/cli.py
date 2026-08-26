@@ -93,7 +93,12 @@ class Resolved:
                 "export_info.json carries one. The policy conditions on the language "
                 "embedding, so the wrong phrasing is a silently out-of-distribution run.")
 
-        self.fps = args.fps or int(info.get("fps", 30))
+        # `or`, not a .get default: export_info.json records fps as an explicit null
+        # when the exporter could not resolve it (a base checkpoint has no training
+        # dataset to read it from), and .get("fps", 30) returns that None rather than
+        # the default -- the key exists. Same reason chunk_size below is chained with
+        # `or` instead of trusting a present-but-null value.
+        self.fps = args.fps or info.get("fps") or 30
         self.chunk_size = (args.chunk_size or info.get("chunk_size")
                            or (spec.chunk_size if spec else None) or 50)
         self.state_dim = (args.state_dim or (spec.state_dim if spec else None) or 6)
