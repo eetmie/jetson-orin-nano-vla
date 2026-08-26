@@ -258,6 +258,81 @@ here — so run `ort-mono` first. That separates "this runtime is slow" from "th
 cannot build on this board", which is a distinction worth having before drawing any
 conclusion about anyone's tooling.
 
+## The published SmolVLA ONNX does not match the checkpoint under lerobot 0.5.1
+
+`ainekko/smolvla_base_onnx` is the only public split export of `lerobot/smolvla_base`,
+and this repo used it as `smolvla-base`'s bundle. Measured against a PyTorch reference
+running lerobot 0.5.1, on the same board, through the same runtime and harness, with
+the same observation:
+
+| bundle | cosine | max abs diff | % of range | first action |
+|---|---:|---:|---:|---:|
+| exported here (`--cam-slots 2`) | **0.9993839** | 0.3439 | **1.94%** | 0.088 |
+| `ainekko/smolvla_base_onnx` | 0.9393259 | 2.2940 | **12.92%** | 0.657 |
+
+12.9% of commanded range is not a numerical artefact. It is a difference you would feel
+on a machine, and nothing errors — the actions are finite, plausible and wrong.
+
+**It is not the weights.** All 198 initializers in ainekko's vision graph appear in
+ours: 125 exactly, 73 under transpose (they store `W` and emit `Transpose -> MatMul`,
+we pre-transpose into `MatMul`). None unmatched, `max|d| = 0.000e+00`.
+
+**It is not precision or TensorRT.** The same graphs on the CPU EP at fp32 deviate
+identically — 0.9543 against 0.9541 for the fp16 TRT run.
+
+**It is not preprocessing, padding or the tokenizer.** Both backends share
+`resize_with_pad_uint8` and `normalize_state`; the native run has zero padded slots and
+still shows it; the text graph is *bit-identical* between the two exports
+(`max|d| = 0.000e+00`).
+
+**It is the vision graph.** Feeding one fixed input through both, stage by stage on the
+CPU EP:
+
+```
+smolvlm_text     max|d| = 0.0000e+00   cos = 1.0000000
+smolvlm_vision   max|d| = 2.8263e+01   cos = 0.8221545
+```
+
+Same weights, different wiring: 1419 nodes against our 530, LayerNorm decomposed into
+primitives, and no input convention that reconciles them (`[-1,1]`, `[0,1]`,
+ImageNet-normalized and `[0,255]` were all tried; `[-1,1]` is closest, so the runtime
+feeds it correctly). That reads like an export traced from a different lerobot, whose
+`embed_image` differs.
+
+**Read this carefully before calling the published export wrong.** Both exports compared
+here were traced under lerobot 0.5.1 and scored against a 0.5.1 PyTorch reference, so
+ours is the same code traced twice — consistent, not independently canonical. Against
+whatever lerobot ainekko used, theirs may well score 0.9999 and ours may be the outlier.
+What is established is narrower and still worth knowing: **under lerobot 0.5.1, that
+export produces actions 12.9% of range from the checkpoint it is named after.**
+
+## `torch` for X-VLA does not currently run
+
+`bench/backends/torch_xvla.py` has never produced a result row. It fails before the
+first inference with
+
+```
+ValueError: Sequence length 1204 exceeds max_len_seq=512
+```
+
+raised inside X-VLA's own `soft_transformer.py`, not Florence2. The split ONNX path
+builds a 262-token sequence for the same observation; the PyTorch path builds 1204, and
+the length does not change with `--views`, so it is not the camera count. Image shapes
+were checked and are correct — `(1, 3, 3, 224, 224)`, resized by `preprocess_image`.
+
+Unresolved. It is a discrepancy between how this backend drives the policy and how the
+export does, and it needs instrumented shapes rather than inference. Three environment
+bugs were fixed on the way to reaching it, all of which suggest the path had simply
+never been exercised: `13_env_torch_xvla.sh` installed torch 2.13.0 (whose
+`libtorch_cuda.so` wants `ncclCommResume`, absent on JetPack 7.2) where 2.11.0+cu130 is
+required, and a PyTorch-only run needs `onnxruntime` installed because the vendored
+`xvla_split_ort` imports it at module scope just to provide `preprocess_image`.
+
+X-VLA parity is therefore quoted from `xvla-runtime/parity.py` — cosine 0.999993
+(action) and 0.999953 (cond_tokens) — which builds both sides' inputs in one script at
+CPU fp32. That is a **less demanding test** than the cross-backend comparison used for
+SmolVLA, and should be cited as such rather than presented as equivalent.
+
 ## Getting the artefacts
 
 ```bash
