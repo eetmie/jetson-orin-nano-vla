@@ -59,42 +59,16 @@ A systemd unit that runs `jetson_clocks` at boot will fail on a board in that st
 and stay failed, which is worth knowing before concluding the platform cannot pin
 clocks: check `systemctl status` for the unit before believing it.
 
-## Swap: 16 GB for the monolith, stock 2 GB is enough for the split
+## Swap and build memory
 
-The 8 GB is **unified** — CPU and GPU share it, and TensorRT's first engine build is
-where the monolithic export ran out of room: without swap it was an OOM kill. 16 GB is
-what the *monolithic* build attempts were done with.
+The 8 GB is unified memory: model weights, TensorRT build scratch, desktop applications,
+and the runtime all compete for the same pool.
 
-**SmolVLA's split does not need it — measured 2026-08-25.** A cold `ort-split` run on a
-fresh JetPack 7.2 board with the **stock 2 GB swapfile** built all three heavy engines
-(vision, expert-prefill, expert-decode; 719 MB cached total, `fp16_sm87`) with no OOM,
-no thrash and no swap spike — swap use peaked at ~437 MB and the board never dropped
-below ~1.4 GB available.
-
-**X-VLA's split is a different question — read this before assuming "the split is
-fine".** Twelve engines and 875 M params, not three engines and 450 M. An `ort-split`
-run against the **FP32** X-VLA bundle on the stock 2 GB swapfile reached 6055 MB RSS
-with 169 MB free and 1154 MB of swap consumed, and had built **zero** engines — it was
-thrashing on the first one and was killed rather than left to hit the OOM killer. The
-subprocess-per-graph isolation was working correctly; it is not what saves you here.
-
-What fixed it: the **FP16 bundle** (`tools/fp16_weights.py`, 3503 -> 1753 MB), run with
-16 GB of swap available. Engines then built with **swap essentially untouched (1 MB
-used, ~4.1 GB available)** — so on this evidence the FP16 bundle is doing the work and
-the extra swap was headroom that never got called on. Both were changed at once, so
-which one is strictly necessary is untested; if you want the answer, try FP16 on the
-stock 2 GB. Note that FP16 is *not* expected to reduce the TRT build peak — TensorRT
-imports weights as FP32 working copies whatever the file dtype — so the mechanism here
-is probably the smaller ONNX parse rather than the engine build itself.
-
-Grow swap when you are attempting the monolith, or anything X-VLA-sized; the stock 2 GB
-is enough for SmolVLA's split.
-
-Worth knowing why the peak is what it is: for the *monolithic* SmolVLA export the
-build peak is a node-count-independent floor of roughly 6 GB, because TensorRT
-imports all 450M weights as FP32 working copies at once. That is why the monolith
-does not build on this board at any precision or step count, and why the deploy path
-is per-component engines. See `docs/03-backends.md`.
+SmolVLA's split export was cold-built successfully with the stock 2 GB swapfile; swap
+use peaked around 437 MB. X-VLA's FP32 bundle did not complete its first engine, while
+the smaller FP16 bundle built successfully. Use the FP16 X-VLA bundle, keep swap
+enabled, and close memory-heavy applications before building. Larger swap can provide
+failure headroom, but it does not make an oversized engine a supported deployment path.
 
 ## Engine cache off /tmp
 

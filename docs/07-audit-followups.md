@@ -39,7 +39,7 @@ final board measurements can be evaluated without guessing.
 - `bench/obs.py` creates indexed synthetic or frame-backed observations and noise.
 - `bench/runner.py` owns load, first inference, warmup, idle, measurement, and JSON output.
 - `bench/monitor.py` and `bench/procwatch.py` collect board and process measurements.
-- `bench/backends/` contains Torch, split ORT, and monolithic ORT adapters.
+- `bench/backends/` contains the supported Torch and split ORT adapters.
 - `bench/vendor/` pins the two split runtimes next to the measurements.
 - `bench/parity.py` compares saved action chunks; `bench/report.py` renders the report.
 
@@ -244,8 +244,9 @@ missing rather than silently substituting a fallback.
 Status: **Resolved by removal**
 
 The Tether backend, CLI commands, environment, dependencies, and runbook entries
-were removed because its monolithic path does not build on the 8 GB Orin Nano.
-No Tether credentials or unsupported speed claims are persisted by this repo.
+were removed because it does not provide an 8 GB Orin-local deployment and its remote
+fallback is outside this repository's scope. No Tether credentials or unsupported speed
+claims are persisted by this repo.
 
 ### A08. Successful status does not validate outputs or instruments
 
@@ -431,6 +432,235 @@ The base checkpoints were not fine-tuned for a robot in this repository. Synthet
 actions can establish runtime parity but cannot establish task success or whether a
 changed denoise budget is safe on hardware. Camera capture, the control stack, and robot
 validation remain separate deployment measurements.
+
+
+## X-VLA initial audit addendum
+
+Audit date: 2026-08-26
+
+Scope: the X-VLA benchmark adapters in this repository, the split runtime/exporter in
+`spark-projects/orin-nano/xvla-runtime`, the excavator fine-tune project in
+`spark-projects/xvla-spark-finetune`, the saved base-model evidence, and the X-VLA
+bundles currently present on the Orin. This pass records findings only; no runtime,
+exporter, training, engine-cache, or robot-control fix was applied.
+
+Code and artifact snapshot:
+
+- benchmark repository: clean `fe98810` after the audit-contract patch;
+- Spark projects: tracked files at `cd197a6` (an unrelated editor swap file in the
+  sibling `scene-reconstruction` project was left untouched);
+- Orin benchmark checkout: `75c6658` with the already staged audit patch, not yet
+  synchronized to `fe98810`;
+- Orin base bundles: `xvla-base-split`, `xvla-base-split-fp16`, and
+  `xvla-base-split-3cam`; all three pass their complete `MANIFEST.sha256` checks;
+- exporter recorded by those bundles: `851695a`, LeRobot 0.6.1, Torch 2.11.0+cu130,
+  Transformers 5.5.4, opset 17;
+- excavator checkpoint: only `outputs/digging/ir/checkpoints/000250` exists.
+
+The earlier X-VLA runtime work is useful prior evidence, but is not a current publishable
+benchmark result. It reported action cosine `1.000000` and maximum absolute error
+`6.5e-4` for the FP32-graph bundle, and cosine `1.000000` / `7.4e-4` for the FP16-weight
+bundle, against one seeded PyTorch fixture. The committed benchmark result
+`results/xvla-base.ort.json` instead has no artifact record, validity contract,
+comparison signature, explicit PyTorch reference, or parity verdict.
+
+### X01. The fine-tuned action/state contract is not deployable
+
+Priority: **P0**
+
+Status: **Proven from checkpoint, exporter, and runtime control flow**
+
+The 250-step excavator checkpoint requires a processor contract that is materially
+different from the base `ee6d` benchmark:
+
+- raw state is 3-D `[lift, tilt, scoop]` and uses `MEAN_STD` normalization;
+- real action is 4-D `[slew, lift, tilt, scoop]` and uses `MEAN_STD` normalization;
+- the X-VLA model still pads both tensors to width 20 internally;
+- `action_mode` is `auto`;
+- the policy postprocessor truncates to the real four axes and unnormalizes them.
+
+The split exporter writes `max_state_dim` and `action_mode`, but not the real state/action
+dimensions, normalization tensors, processor identities, or output feature names. The
+split runtime has a fixed gripper-index table for `ee6d`, `agibot_ee6d`, `joint`, and
+`so101_bimanual`; it rejects `action_mode="auto"` during load. Even if that guard were
+removed, `sample_actions()` currently copies raw state directly into the padded model
+input and returns the full padded model output without the checkpoint's state normalizer,
+four-axis slice, or action unnormalizer.
+
+Required resolution:
+
+1. Make the export bundle carry the real input/output feature contract and exact
+   preprocessor/postprocessor state.
+2. Normalize the real 3-D state before padding it to the graph's 20-D input.
+3. Define `auto` postprocessing from bundle metadata rather than a guessed gripper map.
+4. Slice the real four action axes and unnormalize them before returning a robot chunk.
+5. Save parity at both the normalized 20-D model boundary and the physical four-axis
+   controller boundary.
+
+No fine-tuned X-VLA export is robot-ready until this finding is closed.
+
+### X02. Bundle checksums do not freeze model or tokenizer identity
+
+Priority: **P0 for parity claims; P1 for base-model experimentation**
+
+Status: **Measured on the local and Orin bundles**
+
+The three current Orin bundles are internally intact: their manifests verify every
+listed file. Their provenance identifies the checkpoint only as the relative path
+`models/xvla-base`; it does not record an immutable Hub revision or checkpoint tree
+hash. The tokenizer is not included in the bundle and the runtime falls back to the
+mutable identifier `facebook/bart-large`. When that identifier is used, the benchmark
+records no tokenizer hash. The older Spark-local one-view and two-view bundles predate
+both provenance and manifest generation entirely.
+
+Because token IDs feed the exported text encoder, a graph manifest alone is not enough
+to establish input identity.
+
+Required resolution:
+
+1. Record the exact `lerobot/xvla-base` Hub commit and checkpoint tree hash, or the full
+   tree hash of a local fine-tuned checkpoint.
+2. Save the tokenizer into each deployable bundle, include it in the manifest, and make
+   offline local loading mandatory on the robot.
+3. Include pre/postprocessor tensors and their hashes for fine-tuned bundles.
+4. Reject incomplete or identity-ambiguous bundles before engine construction.
+
+### X03. The excavator training target is a smoke test, not a candidate
+
+Priority: **P0 before starting a long training run**
+
+Status: **Measured from the saved train configuration and checkpoint directory**
+
+Only checkpoint `000250` exists. It was deliberately produced as a throughput and
+configuration smoke test. The saved run used:
+
+- `local/masi_digging_ir`, the older 82-episode dataset family, with 74 train episodes;
+- chunk and action horizon 50;
+- one real IR feature but a three-slot model buffer;
+- 10 denoising steps, batch 32, seed 1000;
+- 1.823 seconds per optimizer step at the end of the probe.
+
+A 20,000-step run at that measured rate is about 10.1 hours. Since the proven SmolVLA
+robot candidate now uses the cleaned 181-episode IR dataset and a 12-action chunk, the
+old X-VLA recipe would not be an apples-to-apples model comparison or necessarily the
+right deployment target.
+
+Before spending that compute, explicitly settle and record:
+
+1. cleaned dataset and held-out episode identity;
+2. one-camera versus two-camera target;
+3. chunk 12, 30, or 50 and the corresponding evaluation horizon;
+4. task string, state/action feature order, training FPS, normalization, and seed;
+5. checkpoint/evaluation cadence so an earlier useful model is not lost behind only a
+   final checkpoint.
+
+Chunk 12 is a candidate because it matches the currently successful robot policy, not a
+pre-approved X-VLA choice. X-VLA's sequence cost and task quality must be measured.
+
+### X04. Current X-VLA parity evidence is not attached to the hardened harness
+
+Priority: **P0 before publishing or deploying an export**
+
+Status: **Historical parity is encouraging; current gate is absent**
+
+The standalone X-VLA parity script retains one seeded reference and reports excellent
+base-model parity. It does not provide the multi-observation, real-input, exact-identity
+evidence now required by this repository. The historical `xvla-base.ort` result was made
+before observation materialization, strict output validation, atomic results, exact
+comparison signatures, and explicit reference selection were added.
+
+Required rerun:
+
+1. Build a canonical fixture from at least eight real excavator IR observations with
+   aligned raw state, exact resized pixels, tokens, masks, domain ID, and seeded `x1`.
+2. Emit the FP32 PyTorch gold on the Spark from the exact checkpoint.
+3. Validate CPU ORT against that gold to isolate export correctness.
+4. Validate Orin FP16 TRT against both, including per-observation cosine, maximum error
+   as a percentage of reference range, and the real controller axes.
+5. Repeat the warmed Orin run in a fresh process and require deterministic output.
+6. Save an ORT profile proving actual node placement for every heavy graph.
+
+### X05. Direct runtime range and cache validation remain fail-open
+
+Priority: **P1**
+
+Status: **Proven; the benchmark adapter protects some but not all entry points**
+
+The hardened benchmark adapter rejects non-positive denoising-step overrides. The
+standalone runtime still selects steps with `override or bundle_default`: zero silently
+becomes the default, while a negative value is accepted and executes no denoising loop,
+returning a plausible postprocessed result. `run_pipeline.py` does not validate positive
+duration or step counts.
+
+`prebuild_engines()` also launches one subprocess for every graph on every invocation.
+It relies on TensorRT's cache internally but has no cache manifest keyed by graph hash,
+precision, device, ORT/TRT/CUDA versions, workspace, and optimization level. A cache hit
+can therefore still cost twelve process launches, while a stale or mixed cache is not
+rejected explicitly.
+
+Required resolution:
+
+1. Validate all direct runtime numeric arguments before loading artifacts.
+2. Add an artifact-specific engine-cache manifest and verify it before reuse.
+3. Record cold build, warm cache validation, and session-load time separately.
+4. Add CPU tests for negative/zero steps, duration, stale cache identity, and incomplete
+   bundles.
+
+### X06. Device residency is the first semantics-preserving performance target
+
+Priority: **P1 after parity is established**
+
+Status: **Opportunity measured from the historical stage breakdown**
+
+The historical 3-camera benchmark reports 415.86 ms mean backend wall time, of which
+393.693 ms is inside session calls and 22.163 ms is Python/NumPy. The denoise family
+accounts for 295.512 ms and executes four split sessions per step for 10 steps: 40
+session boundaries per inference. Every ordinary `session.run()` returns an intermediate
+to NumPy before the next GPU session consumes it; `x_t` interpolation also runs on the
+host.
+
+IOBinding with preallocated OrtValues, device-resident conditioning and hidden states,
+and a device-side interpolation/update is therefore the first X-VLA optimization to
+profile. It changes data movement, not model semantics. Capture ORT and Nsight evidence
+before and after rather than assuming all 22 ms of unattributed wall is recoverable.
+
+Reducing denoising steps is a separate, behavior-changing experiment. Ten to five steps
+could remove roughly half of the historical 296 ms denoise cost, but it cannot be
+certified with base-model synthetic actions. It needs a trained checkpoint, recorded
+episodes, and eventual guarded robot validation.
+
+The SmolVLA vision optimization does not transfer directly: an operator inventory of
+both local X-VLA bundles found zero `IsNaN` nodes in all vision and denoise graphs and no
+`IsNaN -> Where` attention guards to remove.
+
+### X07. Memory headroom needs an integrated deployment measurement
+
+Priority: **P1 before robot integration**
+
+Status: **Historical model-only measurements exist; integrated headroom is unproven**
+
+The earlier FP16 stress run reported approximately 5.71 GB peak process RSS and a 1.47 GB
+system-available floor. That is enough to prove the model-only split can run, but not
+that the same process can safely host RealSense capture, preprocessing, the controller,
+logging, and transient allocations without swap or latency spikes. The current base
+bundle is also a 20-D `ee6d` arm policy and cannot establish excavator behavior.
+
+Re-run memory and power only after X01-X04 are closed, first model-only and then with the
+real camera/control stack in dry-run mode. Record PSS/RSS, system available memory, swap,
+power, thermals, completed throughput, and p50/p95/p99 latency.
+
+### Tomorrow's fix and validation order
+
+1. Synchronize the Orin benchmark checkout to `fe98810` without losing or duplicating
+   its staged audit patch.
+2. Close X01 in the exporter and split runtime; exercise it first with the 250-step
+   checkpoint as a mechanical export/deploy test.
+3. Close X02 and generate one immutable, offline-complete smoke bundle and cache.
+4. Freeze the cleaned training target described by X03 before starting a long run.
+5. Build the canonical fixture and execute X04's Spark CPU/Torch gates.
+6. Run baseline Orin parity, placement, repeatability, latency, and memory measurements.
+7. Implement and A/B the X06 device-resident path.
+8. Treat fewer denoising steps and robot-side integration as separate guarded decisions.
 
 [ainekko-hf]: https://huggingface.co/ainekko/smolvla_base_onnx
 [etars-export]: https://github.com/aifoundry-org/ETARS/blob/9ae33a75549a3385170ad968ac3f27878bf8d902/notebooks/smolVLA_export.ipynb
