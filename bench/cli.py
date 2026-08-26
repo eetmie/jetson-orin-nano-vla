@@ -259,19 +259,6 @@ def cmd_ort_split(args) -> int:
     return _finish(args, be, r)
 
 
-def cmd_ort_mono(args) -> int:
-    from .backends.ort_mono import OrtMonoBackend
-    bundle = Path(args.bundle) if args.bundle else None
-    r = Resolved(args, bundle)
-    be = OrtMonoBackend(
-        Path(args.onnx), cache_dir=args.cache_dir, precision=args.precision,
-        use_trt=not args.no_trt, bundle=bundle,
-        tokenizer=args.tokenizer or r.tokenizer, action_dim=r.action_dim,
-        drop_cuda_ep=args.drop_cuda_ep, trt_opt_level=args.trt_opt_level,
-        trt_workspace_mb=args.trt_workspace_mb)
-    return _finish(args, be, r)
-
-
 def cmd_models(args) -> int:
     print(models.describe())
     print()
@@ -415,23 +402,6 @@ def main(argv=None) -> int:
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_ort_split)
-
-    p = sub.add_parser("ort-mono",
-                       help="MONOLITHIC ONNX on ORT — the split-vs-monolith A/B")
-    p.add_argument("--onnx", required=True, help="the monolithic .onnx (+ .onnx.data)")
-    p.add_argument("--bundle", default=None, help="for stats / tokenizer / task")
-    p.add_argument("--precision", choices=["fp16", "bf16"], default="fp16")
-    p.add_argument("--no-trt", action="store_true",
-                   help="CUDA EP only: no engine build, so the 8 GB build wall never "
-                        "applies. This is the unoptimized-GPU baseline")
-    p.add_argument("--cache-dir", default=DEFAULT_CACHE)
-    p.add_argument("--trt-opt-level", type=int, default=None)
-    p.add_argument("--trt-workspace-mb", type=int, default=None)
-    p.add_argument("--drop-cuda-ep", action="store_true")
-    p.add_argument("--tokenizer", default=None)
-    _add_model(p)
-    _add_common(p)
-    p.set_defaults(func=cmd_ort_mono)
 
     p = sub.add_parser("models", help="what can be benchmarked")
     p.set_defaults(func=cmd_models)

@@ -2,8 +2,8 @@
 # Put the Orin Nano into the state every number in this repo assumes.
 #
 #   MAXN_SUPER + pinned clocks   -> no DVFS ramp, no power cap, repeatable latency
-#   swap                         -> stock 2 GB is enough for the SPLIT engine builds
-#                                   (measured); 16 GB is only for monolith attempts
+#   swap                         -> stock 2 GB is verified for the SmolVLA split;
+#                                   X-VLA should use the smaller FP16 bundle
 #   engine cache off /tmp        -> /tmp clears at boot; a rebuild is ~5 minutes
 #
 # Run once per boot (or install the systemd unit, below). Re-run `--verify` any time
@@ -35,9 +35,8 @@ sudo jetson_clocks
 # 8 GB is UNIFIED — the CPU and the GPU share it, and a TensorRT build peaks well
 # above what is free. Swap is what keeps the build from being an OOM kill.
 if ! swapon --show | grep -q .; then
-    echo "!! no swap configured. The split builds fit without it, but leave some"
-    echo "   headroom. Only the MONOLITH needs 16 GB — see"
-    echo "   spark-projects/orin-nano/system/setup-swap.sh."
+    echo "!! no swap configured. Add swap before building TensorRT engines;"
+    echo "   the stock 2 GB setup is verified for the SmolVLA split."
 fi
 
 mkdir -p "${CACHE_DIR}"

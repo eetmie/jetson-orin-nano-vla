@@ -1,112 +1,90 @@
 # jetson-orin-nano-vla
 
-Does a VLA policy fit on an **8 GB Jetson Orin Nano Super**, and what does it cost?
+A focused benchmark and deployment harness for running VLA policies on an **8 GB
+Jetson Orin Nano Super**.
 
-Two model families, three runtimes, one board, the same seeded observations fed to all of
-them — so the numbers can be compared rather than collected.
+The supported runtime matrix is deliberately small:
 
-| model | family | params | PyTorch | split ONNX |
-|---|---|---|---|---|
-| `smolvla-base` | smolvla | 450 M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`ainekko/smolvla_base_onnx`](https://huggingface.co/ainekko/smolvla_base_onnx) |
-| `xvla-base` | xvla | 880 M | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | none published — export it |
+| model | PyTorch reference | Jetson deployment |
+|---|---|---|
+| `smolvla-base` (450 M) | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | split ONNX on ONNX Runtime + TensorRT |
+| `xvla-base` (880 M) | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | split ONNX on ONNX Runtime + TensorRT |
 
-| backend | what it is |
-|---|---|
-| **`torch`** | stock PyTorch — the LeRobot policy straight off the checkpoint |
-| **`ort-split`** | the split ONNX export on ONNX Runtime + TensorRT EP (FP16) |
-| **`ort-mono`** | the *monolithic* ONNX on ORT — the split-vs-monolith A/B |
+The benchmark records latency, parity, process and system memory, CPU use, board power,
+thermals, and per-graph time. Unsplit whole-policy TensorRT builds are not supported:
+they exceed the board's unified-memory budget.
 
-Both checkpoints are Apache 2.0, so the comparison is reproducible by anyone with the
-same board. A locally fine-tuned checkpoint drops in by pointing `--checkpoint` and
-`--bundle` at it.
+## Current speeds
 
-## Why
+Latest retained measurements on the pinned Orin Nano, using in-memory observations:
 
-"It runs" is not the question. On this board the question is what a runtime *leaves
-behind*, so every run records parity against a reference, latency, per-process CPU, RAM
-resident and whole-board, and power integrated to mJ per inference. Speed with the wrong
-actions is worse than slow, so parity is a first-class metric and not a footnote.
+| path | views | p50 ms | p95 ms | Hz | status |
+|---|---:|---:|---:|---:|---|
+| SmolVLA PyTorch FP32 | 2 | 1167.93 | 1176.65 | 0.856 | numerical reference |
+| SmolVLA split FP16 | 2 | 189.89 | 190.93 | 5.248 | unmodified export |
+| SmolVLA split FP16, vision candidate | 2 | **164.66** | **165.88** | **6.044** | experimental |
+| X-VLA split FP16 | 3 | 415.94 | 418.01 | 2.40 | retained baseline; re-audit pending |
 
-**These are best-case numbers.** The benchmark feeds observations from memory: no
-cameras, no control stack, no logging, nothing else competing for the 8 GB or the six
-cores. A real deployment needs headroom on top of every figure here — how much is its
-own measurement, on its own rig.
+The SmolVLA candidate removes redundant vision NaN guards. It is repeatable and faster,
+but is not the default: its FP32-reference parity is cosine 0.9989535 and 1.566% of
+action range, outside this repo's strict 0.999 / 1% gate. See
+[`results/audit-patch-smolvla/`](results/audit-patch-smolvla/) for the signed evidence.
+
+On the current fine-tuned `kaivuriprokkis` one-IR pipeline, the model call measured
+201.94 ms p50 / 210.21 ms p95; the complete live inference loop is about 230 ms. That
+deployment measurement is useful context, but is separate from the retained synthetic
+benchmark rows above.
 
 ## Quickstart
 
 ```bash
-scripts/00_host_prep.sh                 # MAXN_SUPER, pinned clocks, persistent engine cache
-scripts/10_env_torch.sh                 # .venv-torch       (asserts torch sees the GPU)
-scripts/13_env_torch_xvla.sh            # .venv-torch-xvla  (lerobot 0.6.1, for X-VLA)
-scripts/11_env_ort.sh                   # .venv-ort         (asserts the TensorRT EP registers)
+scripts/00_host_prep.sh
+scripts/10_env_torch.sh
+scripts/13_env_torch_xvla.sh    # only for X-VLA
+scripts/11_env_ort.sh
 
-.venv-torch/bin/python -m bench selftest      # do the instruments read real numbers?
-
-scripts/fetch_models.sh smolvla-base          # weights + the split ONNX from the Hub
-MODEL=smolvla-base scripts/run_all.sh         # every backend, then docs/RESULTS.md
+.venv-torch/bin/python -m bench selftest
+scripts/fetch_models.sh smolvla-base
+MODEL=smolvla-base scripts/run_all.sh
 ```
 
-One run at a time:
+Run one backend:
 
 ```bash
-python -m bench models                        # what can be benchmarked
+python -m bench torch --model smolvla-base \
+    --checkpoint ~/bundles/smolvla-base-torch --weights float32 --iters 30
 
-python -m bench torch     --model smolvla-base --checkpoint ~/bundles/smolvla-base-torch \
-                          --weights float32 --autocast float16 --iters 100
-python -m bench ort-split --model smolvla-base --bundle ~/bundles/smolvla-base-split --views 2
-python -m bench ort-mono  --model smolvla-base --onnx exports/smolvla_base_static.onnx --no-trt
+python -m bench ort-split --model smolvla-base \
+    --bundle ~/bundles/smolvla-base-split --views 2 --iters 100
 
-python -m bench parity results --reference smolvla-base.torch
+python -m bench parity results --reference smolvla-base.torch-fp32
 python -m bench report results --out docs/RESULTS.md
 ```
 
-A locally fine-tuned policy instead of a registry entry:
+A local fine-tuned policy uses the same path:
 
 ```bash
 python -m bench ort-split --family smolvla --bundle ~/bundles/my-split-export \
     --state-dim 3 --action-dim 4 --label mine.ort-split
 ```
 
-## Docs
+## Documentation
 
-| | |
-|---|---|
-| [`01-host-setup.md`](docs/01-host-setup.md) | power mode, swap, engine cache |
-| [`02-environments.md`](docs/02-environments.md) | three venvs, and the traps that silently produce a wrong number |
-| [`03-backends.md`](docs/03-backends.md) | the models, the runtimes, cameras, why the monolith will not build here |
-| [`04-metrics.md`](docs/04-metrics.md) | what every number means and what it does not |
-| [`05-runbook.md`](docs/05-runbook.md) | the bench day, cheapest failures first |
-| [`06-optimization-backlog.md`](docs/06-optimization-backlog.md) | what to try next on the split path |
-| [`07-audit-followups.md`](docs/07-audit-followups.md) | validity findings and the Spark -> Jetson validation handoff |
-| [`RESULTS.md`](docs/RESULTS.md) | generated from `results/*.json` |
+- [Host setup](docs/01-host-setup.md): board state, swap, and engine cache
+- [Environments](docs/02-environments.md): the three isolated Python environments
+- [Backends](docs/03-backends.md): supported models, runtime contracts, and exports
+- [Metrics](docs/04-metrics.md): how results and parity are interpreted
+- [Runbook](docs/05-runbook.md): a complete benchmark pass
+- [Optimization status](docs/06-optimization-backlog.md): retained wins and open gates
+- [Audit log](docs/07-audit-followups.md): detailed findings and Spark → Jetson handoff
+- [Generated results](docs/RESULTS.md): summary of committed run JSONs
 
-## Layout
+## Scope and licence
 
-```
-bench/
-  models.py        the registry: families, HF artefacts, and the shapes a benchmark needs
-  runner.py        warmup -> idle baseline -> measured window -> one JSON per run
-  monitor.py       tegrastats parser (RAM/CPU/GPU/temp/power); psutil fallback off-board
-  procwatch.py     per-PID CPU + RSS from /proc, follows children
-  obs.py           deterministic observations: same images, state, task AND noise draw
-  parity.py        cross-backend action-chunk comparison
-  report.py        result JSONs -> the markdown tables in docs/RESULTS.md
-  vendor/          the two split runtimes, copied so the measured code is pinned
-docs/  scripts/  results/
-```
+This repository benchmarks model inference. It does not open cameras or drive a robot,
+so capture, USB, control, and logging overhead must be measured on the target system.
+TensorRT engines are built on the Jetson and are never copied between machines; ONNX
+bundles are the portable artifacts.
 
-## Scope
-
-Benchmarking and feasibility only. No robot, no camera, no control loop — observations
-come from memory so a latency number is a property of the runtime rather than of camera
-timing. Capture cost, USB bandwidth and video encode are real and are deliberately
-somebody else's measurement.
-
-TensorRT engines are hardware- and version-specific and are built on the board, never
-copied; the ONNX is the portable artefact. `bench/vendor/` holds the two split runtimes
-verbatim from the projects that deploy them, each carrying its source commit.
-
-## License
-
-This repository is **MIT** (see `LICENSE`). The models are **Apache 2.0** and stay under
-their own licence — which is why `hf/xvla-base-onnx-README.md` declares `apache-2.0`.
+Repository code is MIT. Model weights and derived exports remain under their upstream
+Apache 2.0 licences.

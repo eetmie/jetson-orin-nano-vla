@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The whole comparison for one model, in the order that fails cheapest first.
+# The supported benchmark path for one model, in the order that fails cheapest first.
 #
 #   MODEL=smolvla-base scripts/run_all.sh
 #   MODEL=xvla-base    scripts/run_all.sh
@@ -21,7 +21,15 @@ CKPT="${CKPT:-$DEST/$MODEL-torch}"
 BUNDLE="${BUNDLE:-$DEST/$MODEL-split}"
 ITERS="${ITERS:-100}"
 OBS="${OBS:-synthetic}"
-MODEL_FAMILY="$MODEL_FAMILY"
+MODEL_FAMILY="${MODEL_FAMILY:-}"
+if [[ -z "$MODEL_FAMILY" ]]; then
+    case "$MODEL" in
+        smolvla*) MODEL_FAMILY=smolvla ;;
+        xvla*)    MODEL_FAMILY=xvla ;;
+        local)    MODEL_FAMILY="${FAMILY:?set FAMILY=smolvla|xvla for a local model}" ;;
+        *) echo "cannot infer model family for $MODEL; set MODEL_FAMILY"; exit 2 ;;
+    esac
+fi
 VIEWS="${VIEWS:-}"
 if [[ -z "$VIEWS" ]]; then
     [[ "$MODEL_FAMILY" == "xvla" ]] && VIEWS=3 || VIEWS=2
@@ -39,7 +47,11 @@ fi
 
 COMMON=(--iters "$ITERS" --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}")
 
-VENV_TORCH="${VENV_TORCH:-.venv-torch}"
+if [[ "$MODEL_FAMILY" == "xvla" ]]; then
+    VENV_TORCH="${VENV_TORCH:-.venv-torch-xvla}"
+else
+    VENV_TORCH="${VENV_TORCH:-.venv-torch}"
+fi
 VENV_ORT="${VENV_ORT:-.venv-ort}"
 
 mkdir -p results
@@ -58,14 +70,8 @@ scripts/00_host_prep.sh --verify | head -20
 
 # 1. PyTorch first: no export, no engine build. If this fails, the problem is the
 #    environment rather than any backend.
-run "$VENV_TORCH" "$MODEL.torch-fp32"  torch --checkpoint "$CKPT" \
+run "$VENV_TORCH" "$MODEL.torch-fp32" torch --checkpoint "$CKPT" \
     --weights float32 --autocast off "${COMMON[@]}"
-run "$VENV_TORCH" "$MODEL.torch-amp16" torch --checkpoint "$CKPT" \
-    --weights float32 --autocast float16 "${COMMON[@]}"
-if [[ "$MODEL_FAMILY" != "xvla" ]]; then
-    run "$VENV_TORCH" "$MODEL.torch-half16" torch --checkpoint "$CKPT" \
-        --weights float16 --autocast off --patch-half-out "${COMMON[@]}"
-fi
 
 # 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
 #    for SmolVLA, ~10 for X-VLA. Later runs load from cache in seconds.
@@ -74,24 +80,11 @@ if [[ -d "$BUNDLE" ]]; then
         run "$VENV_ORT" "$MODEL.ort-split.${v}cam" ort-split --bundle "$BUNDLE" \
             --precision fp16 --views "$v" "${COMMON[@]}"
     done
-    # Optimization backlog item 1 — see docs/06.
-    if [[ "${PROJECTOR_AB:-1}" == "1" && "$MODEL_FAMILY" != "xvla" ]]; then
-        run "$VENV_ORT" "$MODEL.ort-split.proj-gpu" ort-split --bundle "$BUNDLE" \
-            --precision fp16 --projectors gpu "${COMMON[@]}"
-    fi
 else
     echo "!! no split export at $BUNDLE — skipping ort-split (docs/03 covers exporting one)"
 fi
 
-# 3. The monolith A/B — backlog item 6. Only if a monolithic export is present.
-if [[ -n "${MONO_ONNX:-}" ]]; then
-    run "$VENV_ORT" "$MODEL.mono-trt"     ort-mono --onnx "$MONO_ONNX" \
-        --bundle "$BUNDLE" "${COMMON[@]}"
-    run "$VENV_ORT" "$MODEL.mono-cuda-ep" ort-mono --onnx "$MONO_ONNX" \
-        --bundle "$BUNDLE" --no-trt "${COMMON[@]}"
-fi
-
-# 4. Sustained run, to catch thermal drift the short runs miss.
+# 3. Sustained run, to catch thermal drift the short runs miss.
 if [[ "${SUSTAINED:-1}" == "1" && -d "$BUNDLE" ]]; then
     run "$VENV_ORT" "$MODEL.ort-split.sustained" ort-split --bundle "$BUNDLE" \
         --precision fp16 --duration-s "${SUSTAINED_S:-300}" \

@@ -2,10 +2,9 @@
 
 This is the incumbent — the path already validated on this board and already driving a
 real machine (`kaivuriprokkis/lerobot_vla/smolvla_split.py`, vendored under
-`bench/vendor/` so the measured code is pinned beside its numbers). It exists because the *monolithic* SmolVLA ONNX cannot TRT-build in
-8 GB: TensorRT imports all 450M weights as FP32 working copies at once, a ~6 GB floor
-that is independent of node count. Splitting the model means each engine carries only
-its own weight slice.
+`bench/vendor/` so the measured code is pinned beside its numbers). The split keeps
+each TensorRT engine's build peak and resident weights within the board's 8 GB unified
+memory.
 
 What that costs, and why this backend is instrumented per-graph
 ---------------------------------------------------------------

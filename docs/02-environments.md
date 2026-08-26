@@ -4,7 +4,7 @@
 |---|---|---|
 | `.venv-torch` | `torch` (SmolVLA) | lerobot **0.5.1**, JetPack-matched torch |
 | `.venv-torch-xvla` | `torch` (X-VLA) | lerobot **0.6.1** + `[xvla]` |
-| `.venv-ort` | `ort-split`, `ort-mono` | onnxruntime-gpu 1.24 + system TensorRT |
+| `.venv-ort` | `ort-split` | onnxruntime-gpu 1.24 + system TensorRT |
 
 ```bash
 scripts/10_env_torch.sh        # -> .venv-torch
