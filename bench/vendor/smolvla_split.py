@@ -235,6 +235,8 @@ class SmolVLASplitPolicy:
         from transformers import AutoTokenizer
 
         split_dir = Path(split_dir)
+        if num_steps <= 0:
+            raise ValueError("num_steps must be positive")
         self.num_steps = num_steps
         self.action_dim = action_dim
         self.norm = norm or NormStats()

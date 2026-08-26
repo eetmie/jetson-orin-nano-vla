@@ -55,7 +55,7 @@ python -m bench ort-split --bundle $BUNDLE --projectors gpu --label ort-split.pr
 Implemented by rebuilding those four sessions on the heavy provider stack *after* the
 policy is constructed, so the vendored runtime stays byte-faithful. If TensorRT
 declines a graph the EP stack falls through to CUDA by itself;
-`providers_per_graph` in the result records where each one actually landed, and
+`configured_provider_priority_per_graph` records the intended first provider, and
 `projector_move_failures` records any that refused outright.
 
 A/B it against the same run with `--projectors cpu`. Watch the build peak on the first
@@ -164,9 +164,7 @@ It checks providers explicitly rather than trusting them, and every result carri
 `ran_on_gpu`. A silent CPU fallback still returns a finite, plausible action chunk —
 that is exactly the trap, and it is why these fields exist.
 
-Run it before the Tether backend: Tether's fast path is also a monolithic ONNX, so
-knowing what the monolith does on this board *independently of Tether's runtime*
-separates "Tether is slow" from "the monolith cannot build here".
+
 
 ---
 
@@ -340,12 +338,46 @@ Do **not** fuse vision+prefill: 393 MB + 644 MB = 1.04 GB of weights puts the bu
 peak near 9 GB by that same formula, and it would save one round trip on a
 once-per-inference path.
 
+## Vision NaN-guard cleanup - measured, parity still gated
+
+The Torch 2.12 two-slot export contains twelve
+`Softmax -> IsNaN -> Where -> MatMul` attention paths. For finite image inputs the
+`IsNaN` condition is always false, but the guards prevent TensorRT from selecting the
+same fast vision graph as the older public export. Create a separate, validated copy
+on the export workstation:
+
+```bash
+.venv-export/bin/python scripts/optimize_smolvla_vision.py \
+    ~/bundles/smolvla-base-split-ours2 \
+    ~/bundles/smolvla-base-split-ours2-no-nan-guard
+```
+
+The tool refuses to overwrite a destination, requires all twelve isolated patterns,
+preserves the original external tensor layout, validates the graph, and requires
+bit-identical CPU ORT output over five deterministic inputs. It also updates
+`export_info.json` and `MANIFEST.sha256` before publishing the new directory.
+
+On the pinned 8 GB Orin Nano, with two real cameras, FP16, GPU projectors and
+IOBinding, this changed only the vision stage:
+
+| graph | p50 ms | p95 ms | Hz | vision ms | VDD_IN W |
+|---|---:|---:|---:|---:|---:|
+| Torch 2.12 export | 189.89 | 190.86 | 5.248 | 91.234 | 18.13 |
+| no-NaN-guard | **164.66** | **165.81** | **6.044** | **66.232** | 17.72 |
+| no-NaN-guard repeat | **164.85** | **166.21** | **6.052** | **66.326** | 17.71 |
+
+The repeat produced bit-identical action chunks. The optimized engine also passes the
+strict comparison against the unmodified FP16 engine (0.534% of action range), but it
+still **fails** the FP32 Torch certification threshold: 1.566% of range against the
+1% gate. Keep it as a measured candidate, not a parity-certified default. Full signed
+results are in `results/audit-patch-smolvla/`.
+
 ## Warning: `get_providers()[0]` is not what ran
 
 ORT reports the session's provider *preference list*, not the provider that took the
 graph. With `--projectors gpu`, all four projectors log `No graph will run on
 TensorRT execution provider` and execute on the CUDA EP, yet the session still reports
-`TensorrtExecutionProvider` first. **`providers_per_graph` in the result JSON inherits
+`TensorrtExecutionProvider` first. **`configured_provider_priority_per_graph` in the result JSON inherits
 this bug**, so `docs/05-runbook.md`'s advice to read that field to confirm a TRT engine
 built is not sufficient. Confirm instead that an `.engine` file appeared in the cache
 directory, or watch the ORT warnings during load.

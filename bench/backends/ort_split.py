@@ -31,7 +31,8 @@ import math
 from ..obs import Observation
 from ..vendor.smolvla_split import (IMG_TOKENS, MAX_ACTION_DIM, MAX_STATE_DIM, VLM_DIM,
                                     make_att_2d_masks, resize_with_pad_uint8)
-from .base import Backend, InferResult, bundle_camera_key, load_export_info, load_stats
+from .base import (Backend, InferResult, bundle_camera_key, file_sha256,
+                   load_export_info, load_stats, tree_sha256)
 
 #: Graphs the GPU stack refused, recorded rather than raised — see _move_projectors_to_gpu.
 LOG_MOVE_FAILURES: list[str] = []
@@ -112,7 +113,10 @@ class OrtSplitBackend(Backend):
         self.tokenizer = tokenizer
         self.iobinding = iobinding
         self._info = load_export_info(self.bundle)
-        self.num_steps = num_steps or int(self._info.get("num_steps", 10))
+        self.num_steps = (num_steps if num_steps is not None
+                          else int(self._info.get("num_steps", 10)))
+        if self.num_steps <= 0:
+            raise ValueError("num_steps must be positive")
         self._moved: list[str] = []
         if drop_cuda_ep:
             # The CUDA EP holds a 3 GiB arena. Dropping it frees memory for the TRT
@@ -136,9 +140,14 @@ class OrtSplitBackend(Backend):
         from ..vendor.smolvla_split import SmolVLASplitPolicy
 
         tok = Path(self.tokenizer) if self.tokenizer else self.bundle / "tokenizer"
+        tokenizer_source = tok if tok.exists() else (self.tokenizer or self.bundle)
+        self._tokenizer_name = str(tokenizer_source)
+        self._tokenizer_sha256 = (
+            tree_sha256(Path(tokenizer_source)) if Path(tokenizer_source).exists() else None)
+        self._stats_sha256 = file_sha256(self.bundle / "stats.json")
         self.policy = SmolVLASplitPolicy(
             split_dir=self.bundle,
-            tokenizer_dir=tok if Path(tok).exists() else (self.tokenizer or self.bundle),
+            tokenizer_dir=tokenizer_source,
             cache_dir=self.cache_dir,
             precision=self.precision,
             num_steps=self.num_steps,
@@ -171,8 +180,8 @@ class OrtSplitBackend(Backend):
         Done here, by rebuilding the sessions after construction, rather than by
         editing the vendored runtime: the vendored file must stay the code that runs
         on the robot. Four extra TRT builds are added; if TRT declines a graph the EP
-        stack falls through to CUDA on its own, and `providers_per_graph` records
-        wherever each one actually landed.
+        stack falls through to CUDA on its own. Configured provider priority is
+        recorded here; actual node placement requires a separate ORT profile.
         """
         import onnxruntime as ort
         from ..vendor.smolvla_split import build_providers
@@ -188,6 +197,9 @@ class OrtSplitBackend(Backend):
                 self._moved.append(name)
             except Exception as e:      # a refused graph is a result, not a stop
                 LOG_MOVE_FAILURES.append(f"{name}: {type(e).__name__}: {e}")
+
+    def artifact_paths(self) -> dict[str, Path]:
+        return {"bundle": self.bundle}
 
     def _sample_actions_multiview(self, obs: Observation) -> np.ndarray:
         """`sample_actions` for more than one REAL camera.
@@ -280,7 +292,11 @@ class OrtSplitBackend(Backend):
             "prefix_len": getattr(p, "prefix_len", None),
             "n_cam_slots": getattr(p, "n_cam_slots", None),
             "action_dim": self.action_dim,
-            "providers_per_graph": self._providers,
+            "resize": [512, 512],
+            "tokenizer": self._tokenizer_name,
+            "tokenizer_sha256": self._tokenizer_sha256,
+            "stats_sha256": self._stats_sha256,
+            "configured_provider_priority_per_graph": self._providers,
             "graphs_on_gpu": [n for n in self._GPU_GRAPHS
                               if self._providers.get(n) == "TensorrtExecutionProvider"],
             "onnxruntime": ort.__version__,

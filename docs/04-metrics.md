@@ -66,9 +66,9 @@ four CPU graphs × 10 steps plus the Euler update. "It runs on the GPU" is a cla
 about three graphs, not about the pipeline. The `latency_breakdown_ms` fields
 `graphs_gpu`, `graphs_cpu` and `python_numpy` split it explicitly.
 
-Per-process CPU is taken from `/proc/<pid>/stat` (utime+stime deltas over wall time)
-and follows child processes, because `tether serve` puts the model in another process
-entirely.
+Per-process CPU is taken from the proc PID stat counters (user + system CPU
+deltas over wall time) and recursively follows child processes.
+
 
 ## RAM
 
@@ -125,12 +125,6 @@ action range** rather than an assumed [-1, 1]. `max_abs_diff_pct_of_range` there
 means the same thing across models: 1% is one percent of the span the reference policy
 actually commands.
 
-**The tether backend cannot be certified this way.** An HTTP server draws its own
-noise, so its chunks integrate a different ODE and only a distribution comparison is
-honest: per-dimension mean and std shifts, which catch a gross failure (wrong scale,
-saturated axis, dead dimension) but cannot prove numerical agreement. The output says
-so rather than papering over it.
-
 Why parity is a first-class metric here and not a footnote: the Orin is compute 8.7,
 FP16 is the only fast reduced precision it has, and blanket FP16 on SmolVLA is exactly
 what collapsed the SigLIP vision tower to cosine 0.805 on Blackwell — 730 constants in
@@ -142,25 +136,11 @@ wrong, this is what catches it.
 ## Fairness controls
 
 - **Same observations.** Seeded per index, so backends can be run in any order.
-- **Same preprocessing.** Resize, tokenize and MEAN_STD normalization are done by the
-  harness, identically, using the bundle's own `stats.json` and `tokenizer/` — so a
-  parity difference can only come from the runtime. Timed separately as
-  `preprocess`. The exception is `tether`, which takes a raw frame and does its own;
-  it is flagged `preprocess_owned: false`.
+- **Same preprocessing.** Resize, tokenize and normalization follow each bundle's
+  pinned runtime path, with tokenizer and stats identities included in the parity
+  signature.
 - **Same noise**, where injectable.
 - **Same denoise steps and chunk size**, read from the export bundle rather than
   assumed.
 - **Board state recorded** — `nvpmodel`, clocks, L4T, package versions, repo sha — in
   every JSON.
-
-## The transport caveat for tether
-
-`total_ms` for the tether backend is the **client roundtrip**: PNG encode, JSON, HTTP
-over loopback, decode. That is a real cost if you deploy it that way, but it is not
-the same quantity as the other backends' in-process `total`. The breakdown separates
-`encode_request`, `roundtrip` and — when the server reports one — `server`. Compare
-`server` against the others' `total` for a model-to-model figure, and use the
-roundtrip when asking what a control loop would actually see. Tether also offers a
-ZMQ transport and a ROS2 bridge; if the HTTP overhead turns out to dominate, that is
-the next thing to measure, and it is worth saying so in the writeup rather than
-quoting the roundtrip as if it were inference.

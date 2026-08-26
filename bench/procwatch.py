@@ -3,9 +3,8 @@
 The system-wide monitor answers *how much* the machine is doing; this answers *who*.
 It matters for one question in particular: the split-ONNX backend runs its text
 encoder, five projectors and the whole flow-matching denoise loop as numpy on the
-CPU, so "GPU-only" is a claim to be measured rather than assumed. The `tether`
-backend keeps the model in a separate server process, which a self-only measurement
-would miss entirely, so a PID list is taken rather than assuming `os.getpid()`.
+CPU, so "GPU-only" is a claim to be measured rather than assumed. A PID list is
+accepted so launchers and recursively spawned worker processes can be included.
 
 CPU percentages come from utime+stime deltas over wall time: 100 == one core fully
 busy, 600 == all six Orin Nano cores.
@@ -37,7 +36,7 @@ def _read_stat(pid: int) -> tuple[float, float] | None:
 
 
 def children_of(pid: int) -> list[int]:
-    """Direct children, so a `tether serve` wrapper's worker is counted too."""
+    """Direct children; ProcWatch walks this recursively."""
     try:
         kids = Path(f"/proc/{pid}/task/{pid}/children").read_text().split()
         return [int(k) for k in kids]
@@ -82,11 +81,19 @@ class ProcWatch:
             prev_cpu, prev_t = cpu, now
 
     def _all_pids(self) -> list[int]:
-        pids = list(self.pids)
+        pids = list(dict.fromkeys(self.pids))
         if self.follow_children:
-            for p in list(pids):
-                pids.extend(children_of(p))
-        return list(dict.fromkeys(pids))
+            # Walk the whole process tree. A launcher -> server -> worker chain is common
+            # and direct children alone silently omitted the process doing inference.
+            seen = set(pids)
+            pending = list(pids)
+            while pending:
+                for child in children_of(pending.pop()):
+                    if child not in seen:
+                        seen.add(child)
+                        pids.append(child)
+                        pending.append(child)
+        return pids
 
     def _snapshot(self) -> tuple[float, float]:
         cpu, _ = self._snapshot_full()

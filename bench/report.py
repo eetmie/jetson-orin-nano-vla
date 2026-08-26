@@ -51,46 +51,39 @@ def _cams(r: dict) -> str:
     return f"{views}/{slots}" if slots else str(views)
 
 
-def _ran_on(r: dict) -> str:
-    """Where the graphs ACTUALLY ran, as "<n> TRT / <n> CUDA / <n> CPU".
-
-    This column exists because a silent CPU fallback is indistinguishable from a good
-    run everywhere else in the report. A stale TensorRT engine cache -- one built
-    against a different device or driver -- is rejected at session creation and ORT
-    drops to the CPU EP without raising: the run then reports status ok, a full
-    latency distribution and a plausible action chunk, while being ~17x slower and
-    never touching the GPU. Observed here after a GPU fault invalidated the cache.
-
-    Read it against the backend's intent: an ort-split run with --projectors cpu is
-    SUPPOSED to show 3 TRT / 6 CPU (vision, prefill, decode on TRT; text, state_proj
-    and the four projectors on CPU). Zero TRT on an ort-split row means the number in
-    the p50 column is measuring the wrong thing entirely.
-    """
-    per = _g(r, "meta", "providers_per_graph", default=None)
+def _configured_eps(r: dict) -> str:
+    """Configured first-choice provider per graph, not measured node placement."""
+    per = (_g(r, "meta", "configured_provider_priority_per_graph", default=None)
+           or _g(r, "meta", "providers_per_graph", default=None))
     if not per:
         return "—"
     from collections import Counter
-    n = Counter(v.replace("ExecutionProvider", "") for v in per.values())
-    parts = [f"{n[k]} {k.replace('Tensorrt', 'TRT').replace('CUDA', 'CUDA')}"
-             for k in ("Tensorrt", "CUDA", "CPU") if n.get(k)]
-    return " / ".join(parts)
+    counts = Counter(v.replace("ExecutionProvider", "") for v in per.values())
+    parts = [f"{counts[key]} {key.replace('Tensorrt', 'TRT')}"
+             for key in ("Tensorrt", "CUDA", "CPU") if counts.get(key)]
+    suffix = " (legacy)" if "configured_provider_priority_per_graph" not in (
+        r.get("meta") or {}) else ""
+    return " / ".join(parts) + suffix
 
 
 def speed_table(runs: list[dict]) -> str:
     rows = []
     for r in runs:
         if r.get("status") != "ok":
-            rows.append([r.get("label"), "**FAILED**", *["—"] * 8])
+            rows.append([r.get("label"), "**FAILED**", *["—"] * 9])
             continue
         lat = r.get("latency_ms", {})
+        outer = r.get("infer_wall_ms") or lat
+        achieved = _g(r, "measurement", "achieved_hz", default=lat.get("hz_mean"))
         rows.append([
-            r.get("label"), "ok", _cams(r), lat.get("p50"), lat.get("p95"),
-            lat.get("max"), lat.get("hz_mean"), _ran_on(r), r.get("first_infer_ms"),
-            r.get("load_s"), lat.get("drift_q4_vs_q1_pct"),
+            r.get("label"), "ok", _cams(r), lat.get("p50"), outer.get("p50"),
+            outer.get("p95"), achieved, _configured_eps(r), r.get("first_infer_ms"),
+            r.get("load_s"), outer.get("drift_q4_vs_q1_pct"),
         ])
     return _md_table(rows, [
-        "run", "status", "cams", "p50 ms", "p95 ms", "max ms", "Hz", "graphs ran on",
-        "1st infer ms", "load s", "drift q4/q1 %"])
+        "run", "status", "cams", "backend p50 ms", "outer p50 ms", "outer p95 ms",
+        "achieved Hz", "configured EP priority", "1st infer ms", "load s",
+        "drift q4/q1 %"])
 
 
 def footprint_table(runs: list[dict]) -> str:
@@ -137,7 +130,8 @@ def breakdown_table(runs: list[dict]) -> str:
         if not b:
             continue
         rows.append([r.get("label")] + [b.get(k) for k in keys])
-    return _md_table(rows, ["run"] + [f"{k} ms" for k in keys])
+    headers = [key if key.endswith(".steps") else f"{key} ms" for key in keys]
+    return _md_table(rows, ["run"] + headers)
 
 
 def control_table(runs: list[dict]) -> str:
@@ -209,8 +203,11 @@ def build_report(paths: list[Path], prefer_ref: str | None = None) -> str:
         "",
         speed_table(runs),
         "",
-        "`1st infer` is the very first call after load — a lazy TensorRT build, a "
-        "cuDNN autotune or a CUDA context lands there. `drift` compares the last "
+        "`backend p50` is the backend-reported total; `outer p50` wraps the complete "
+        "backend call; `achieved Hz` is completed calls divided by the measured window. "
+        "Configured EP priority is not proof of actual node placement. `1st infer` is "
+        "the very first call after load — a lazy TensorRT build, a cuDNN autotune or a "
+        "CUDA context lands there. `drift` compares the last "
         "quarter of the run against the first; read it next to `tj max °C` in the "
         "footprint table. It is only meaningful on a run long enough to heat the "
         "board — see `--duration-s`.",

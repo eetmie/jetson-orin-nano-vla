@@ -5,13 +5,11 @@
 | `.venv-torch` | `torch` (SmolVLA) | lerobot **0.5.1**, JetPack-matched torch |
 | `.venv-torch-xvla` | `torch` (X-VLA) | lerobot **0.6.1** + `[xvla]` |
 | `.venv-ort` | `ort-split`, `ort-mono` | onnxruntime-gpu 1.24 + system TensorRT |
-| `.venv-tether` | `tether` | fastcrest-tether and its own torch/ORT pins |
 
 ```bash
 scripts/10_env_torch.sh        # -> .venv-torch
 scripts/13_env_torch_xvla.sh   # -> .venv-torch-xvla
 scripts/11_env_ort.sh          # -> .venv-ort
-scripts/12_env_tether.sh       # -> .venv-tether
 ```
 
 Two lerobot versions cannot share a venv, and the split is not about a feature list:
