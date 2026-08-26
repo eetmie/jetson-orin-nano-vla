@@ -79,6 +79,7 @@ python -m bench ort-split --family smolvla --bundle ~/bundles/my-split-export \
 | [`04-metrics.md`](docs/04-metrics.md) | what every number means and what it does not |
 | [`05-runbook.md`](docs/05-runbook.md) | the bench day, cheapest failures first |
 | [`06-optimization-backlog.md`](docs/06-optimization-backlog.md) | what to try next on the split path |
+| [`07-audit-followups.md`](docs/07-audit-followups.md) | validity findings and the Spark -> Jetson validation handoff |
 | [`RESULTS.md`](docs/RESULTS.md) | generated from `results/*.json` |
 
 ## Layout
