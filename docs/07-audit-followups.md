@@ -5,7 +5,7 @@ Audit date: 2026-08-26
 Audited commit: `609aef9` (`main`)
 
 Scope: benchmark correctness, reproducibility, tests, performance opportunities, and
-the `ainekko/smolvla_base_onnx` compatibility claim.
+whether `ainekko/smolvla_base_onnx` is usable as a parity reference here.
 
 This document records findings and the Spark -> Jetson validation handoff. It does not
 claim that the findings have been fixed. Existing result JSONs and `docs/RESULTS.md` are
@@ -148,7 +148,7 @@ Required resolution:
 
 Verification is a pure CPU test matrix and should not wait for hardware.
 
-### A04. The Ainekko result proves incompatibility, not export causality
+### A04. The Ainekko export did not work here, and the reason is unproven
 
 Status: **Mismatch measured; root cause unproven; needs Spark**
 
@@ -192,11 +192,17 @@ Relevant frozen identifiers:
 
 Current decision:
 
-> Treat `ainekko/smolvla_base_onnx` as incompatible and unvalidated for the repository's
-> LeRobot 0.5.1 reference. Do not describe it as intrinsically defective until it has
-> been tested against its exact export-era module and tensors.
+> `ainekko/smolvla_base_onnx` did not work for this repository. Scored against our
+> LeRobot 0.5.1 reference it disagrees with the checkpoint it is an export of, by
+> ~13% of commanded range. Their export notebook pins `lerobot==0.3.3`, so a version
+> gap between their trace and our reference is the obvious explanation — but it has
+> not been tested against its own 0.3.3-era module, so that is a guess and not a
+> finding. **It may well be perfectly correct on the software it was built for.**
+> This repository therefore uses a locally traced export, and makes no claim about
+> the public one beyond "it did not work here". YMMV.
 
-The Spark experiment that settles this is specified below.
+The Spark experiment that would settle it is specified below. Until it has been run,
+nothing in this repository should be read as saying the public export is wrong.
 
 ### A05. X-VLA camera count can be ignored or mislabeled
 
@@ -376,7 +382,7 @@ Decision rule:
 | result | conclusion |
 |---|---|
 | public ONNX matches export-era PyTorch, not 0.5.1 | version compatibility problem |
-| public ONNX fails against its exact export-era module on CPU FP32 | defective export |
+| public ONNX fails against its exact export-era module on CPU FP32 | export inconsistent with its own era; worth raising upstream |
 | CPU FP32 matches but Jetson TRT does not | runtime or precision problem |
 | local vision substitution fixes final actions | vision graph is causal |
 
