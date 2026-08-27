@@ -51,6 +51,14 @@ Reference: **smolvla-base.torch**
 
 Rows marked **NOT COMPARABLE** are not failures. A different model family or a different number of real cameras is a different observation, so a cosine against this reference would be measuring the input, not the runtime. Compare those against a reference of their own group with `--prefer-ref`.
 
+The `smolvla-base.ort` **FAIL** row is a *compatibility* result, not a verdict on the
+public export. That run used `ainekko/smolvla_base_onnx`, whose export notebook pins
+`lerobot==0.3.3`, against a LeRobot 0.5.1 PyTorch reference. A version gap between the
+trace and the reference is the obvious explanation, and it has not been tested against
+its own 0.3.3-era module — so this row says "these two do not agree with each other",
+not "that export is wrong". It may be perfectly correct on the software it was built
+for. See `07-audit-followups.md` A04. YMMV.
+
 ## Environment
 
 | run | host | L4T / kernel | torch | onnxruntime | tensorrt | repo sha |
