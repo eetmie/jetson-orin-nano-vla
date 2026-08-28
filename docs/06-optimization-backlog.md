@@ -6,7 +6,8 @@ Each optimization is kept only when its output and resource impact are measured.
 
 ## Current audited result
 
-Pinned Orin Nano, two real camera views, ten denoise steps:
+Pinned Orin Nano, both camera slots fed the synthetic procedural scene, ten denoise
+steps (`--obs synthetic`; no run in this table uses camera frames):
 
 | configuration | p50 ms | p95 ms | Hz | vision ms | CPU cores busy | result |
 |---|---:|---:|---:|---:|---:|---|
