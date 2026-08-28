@@ -25,8 +25,9 @@ step; there is no KV-cache prefill/decode seam.
 
 ## Retained Orin Nano result
 
-Pinned clocks (MAXN_SUPER), JetPack R39.2.1, three real camera views, FP16, ONNX Runtime
-1.24.0 on TensorRT 10.16.2.10 — all twelve graphs on TensorRT:
+Pinned clocks (MAXN_SUPER), JetPack R39.2.1, all three view slots fed a deterministic
+procedural scene, FP16, ONNX Runtime 1.24.0 on TensorRT 10.16.2.10 — all twelve graphs on
+TensorRT:
 
 | p50 | p95 | rate | resident |
 |---:|---:|---:|---:|
@@ -40,6 +41,10 @@ Export-time CPU parity measured cosine 0.999993 for actions. There is no on-devi
 cross-backend measurement yet: the PyTorch reference harness hits a sequence-length
 mismatch before inference. Treat the export-time figure as supporting evidence until
 that audit is complete.
+
+The latency row above also comes from the procedural observation source rather than
+camera frames — sound for timing, since the transformer does the same work whatever the
+pixels are, but it says nothing about predicted action values.
 
 Base weights are intended for runtime measurement, not robot task performance.
 
