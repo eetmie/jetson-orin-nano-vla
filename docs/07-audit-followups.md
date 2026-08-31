@@ -463,6 +463,47 @@ Code and artifact snapshot:
   Transformers 5.5.4, opset 17;
 - excavator checkpoint: only `outputs/digging/ir/checkpoints/000250` exists.
 
+Implementation update (2026-08-28):
+
+- LeRobot 0.6.1 / Transformers 5.5.4 is the matching checkpoint/export stack; the
+  earlier Torch failure was the raw config's stale 1024-token length, while the saved
+  processor and exporter both require 50 tokens.
+- X01 and X02 are closed mechanically by schema-v2 bundles: exact 3-D/4-D physical
+  features and MEAN_STD tensors, 20-D model padding, AutoActionSpace trimming, local
+  offline tokenizer tree, processor hashes, checkpoint tree hash, graph-to-checkpoint
+  binding, and pre-engine manifest verification.
+- Full 10-step local CPU FP32 parity passes at conditioning, padded 20-D model action,
+  normalized four-axis action, and physical four-axis action (all cosine 1.000000).
+- On the Orin, the fine-tuned one-camera FP16 TensorRT run is 348.81 ms p50 / 353.74 ms
+  p95 (2.87 Hz), returns 50 x 4 physical actions, and places all 12 graphs on TRT.
+  Against Jetson Torch FP32 at 2090.15 ms p50, eight exact seeded observations pass
+  with cosine_min 0.9999994 and 0.083% maximum error as a fraction of action range.
+- A fresh-process warm-cache repeat is bit-identical, with 355.87 ms p50. Evidence is
+  saved under `results/xvla-digging-contract/`.
+- Device-resident conditioning and denoiser split chaining are bit-identical. In the
+  paired 40-inference A/B they improve p50 from 355.15 to 351.70 ms (1.0%) and p95 from
+  363.23 to 354.57 ms (2.4%), so the path remains an explicit opt-in.
+- The identity-bound engine-cache manifest reduces fresh-process warm load from 62.53
+  to 25.64 seconds. It binds the cache to bundle, precision, builder options,
+  ORT/TensorRT/CUDA/L4T, hardware, and exact engine/timing-file inventory.
+- One non-headline validation inference profiled every ORT session. All 12 expected
+  split graphs emitted TensorRT node events, with no CUDA/CPU fallback node events;
+  compressed raw traces and the parsed summary are saved with the result evidence.
+- The canonical real-IR fixture contains aligned raw state and frames from held-out
+  episodes 5/15/25/35/45/55/65/75. Torch FP32, CPU ORT FP32, and two fresh Jetson
+  TensorRT FP16 processes share the exact comparison signature, input hashes, and
+  seeded noise hashes. CPU ORT reaches cosine 1.000000 / 0.021% maximum range error;
+  TensorRT reaches cosine 0.9999763 / 0.394%, and its repeats are bit-identical.
+- X06's full device-loop experiment is also complete. Fused interpolation keeps x1,
+  action, conditioning, and split intermediates on CUDA and passes parity/placement,
+  but its paired p50 is 0.4% slower, so it remains experimental.
+- X03 remains open. X04 and X05 are closed mechanically. X07 remains open: model-only TRT
+  RSS was about 6.22 GB, with only about 567 MB system RAM free and existing swap use
+  during the original baseline run.
+
+The per-finding problem statements below preserve what was observed on 2026-08-26.
+Their status lines and the implementation update above describe the current code.
+
 The earlier X-VLA runtime work is useful prior evidence, but is not a current publishable
 benchmark result. It reported action cosine `1.000000` and maximum absolute error
 `6.5e-4` for the FP32-graph bundle, and cosine `1.000000` / `7.4e-4` for the FP16-weight
@@ -474,7 +515,7 @@ comparison signature, explicit PyTorch reference, or parity verdict.
 
 Priority: **P0**
 
-Status: **Proven from checkpoint, exporter, and runtime control flow**
+Status: **Closed mechanically; real robot validation remains required**
 
 The 250-step excavator checkpoint requires a processor contract that is materially
 different from the base `ee6d` benchmark:
@@ -503,13 +544,14 @@ Required resolution:
 5. Save parity at both the normalized 20-D model boundary and the physical four-axis
    controller boundary.
 
-No fine-tuned X-VLA export is robot-ready until this finding is closed.
+This finding was the blocker that schema-v2 bundles and the physical-boundary parity
+gate now close mechanically; real robot validation remains separate.
 
 ### X02. Bundle checksums do not freeze model or tokenizer identity
 
 Priority: **P0 for parity claims; P1 for base-model experimentation**
 
-Status: **Measured on the local and Orin bundles**
+Status: **Closed for schema-v2 deployable bundles**
 
 The three current Orin bundles are internally intact: their manifests verify every
 listed file. Their provenance identifies the checkpoint only as the relative path
@@ -567,7 +609,7 @@ pre-approved X-VLA choice. X-VLA's sequence cost and task quality must be measur
 
 Priority: **P0 before publishing or deploying an export**
 
-Status: **Historical parity is encouraging; current gate is absent**
+Status: **Closed mechanically on real IR; task-quality validation remains separate**
 
 The standalone X-VLA parity script retains one seeded reference and reports excellent
 base-model parity. It does not provide the multi-observation, real-input, exact-identity
@@ -575,48 +617,50 @@ evidence now required by this repository. The historical `xvla-base.ort` result 
 before observation materialization, strict output validation, atomic results, exact
 comparison signatures, and explicit reference selection were added.
 
-Required rerun:
+Completed rerun:
 
 1. Build a canonical fixture from at least eight real excavator IR observations with
    aligned raw state, exact resized pixels, tokens, masks, domain ID, and seeded `x1`.
-2. Emit the FP32 PyTorch gold on the Spark from the exact checkpoint.
-3. Validate CPU ORT against that gold to isolate export correctness.
+2. Emit the FP32 PyTorch gold from the exact checkpoint. **Done on the Jetson:** eight
+   observations, 2079.09 ms p50, exact checkpoint and processor identity.
+3. Validate CPU ORT against that gold to isolate export correctness. **Done on the
+   Spark:** cosine minimum 1.000000 and 0.021% maximum range error.
 4. Validate Orin FP16 TRT against both, including per-observation cosine, maximum error
-   as a percentage of reference range, and the real controller axes.
+   as a percentage of reference range, and the real controller axes. **Done:** cosine
+   minimum 0.9999763 and 0.394% maximum physical-action range error.
 5. Repeat the warmed Orin run in a fresh process and require deterministic output.
-6. Save an ORT profile proving actual node placement for every heavy graph.
+   **Done:** all eight saved 50 x 4 chunks are bit-identical.
+6. Save an ORT profile proving actual node placement for every heavy graph. **Done:**
+   12/12 graphs have TensorRT node events and no CUDA/CPU fallback node events.
+
+The fixture is a replay of recorded observations, not a live camera/control test. The
+checkpoint remains the X03 smoke target, so these results certify export/runtime
+mechanics and numerical behavior only.
 
 ### X05. Direct runtime range and cache validation remain fail-open
 
 Priority: **P1**
 
-Status: **Proven; the benchmark adapter protects some but not all entry points**
+Status: **Closed**
 
-The hardened benchmark adapter rejects non-positive denoising-step overrides. The
-standalone runtime still selects steps with `override or bundle_default`: zero silently
-becomes the default, while a negative value is accepted and executes no denoising loop,
-returning a plausible postprocessed result. `run_pipeline.py` does not validate positive
-duration or step counts.
+The hardened benchmark adapter and standalone policy now reject non-positive denoising
+steps. `run_pipeline.py` also rejects non-positive duration and negative report
+intervals before loading artifacts.
 
-`prebuild_engines()` also launches one subprocess for every graph on every invocation.
-It relies on TensorRT's cache internally but has no cache manifest keyed by graph hash,
-precision, device, ORT/TRT/CUDA versions, workspace, and optimization level. A cache hit
-can therefore still cost twelve process launches, while a stale or mixed cache is not
-rejected explicitly.
+`prebuild_engines()` now writes and verifies an identity-bound cache manifest. A valid
+hit skips all twelve subprocesses; mismatched identity or missing, resized, or mixed
+engine/timing files fail closed. On the Orin, the validation phase fell from 36.80 to
+5.04 seconds and total fresh-process load fell from 62.53 to 25.64 seconds. The remaining
+five seconds are dominated by full bundle-integrity verification.
 
-Required resolution:
-
-1. Validate all direct runtime numeric arguments before loading artifacts.
-2. Add an artifact-specific engine-cache manifest and verify it before reuse.
-3. Record cold build, warm cache validation, and session-load time separately.
-4. Add CPU tests for negative/zero steps, duration, stale cache identity, and incomplete
-   bundles.
+The result metadata records cache validation/prebuild and session-load time separately.
+CPU tests cover invalid direct-runner values plus stale and mixed cache rejection.
 
 ### X06. Device residency is the first semantics-preserving performance target
 
 Priority: **P1 after parity is established**
 
-Status: **Opportunity measured from the historical stage breakdown**
+Status: **Full device loop implemented and measured; no promotion on current result**
 
 The historical 3-camera benchmark reports 415.86 ms mean backend wall time, of which
 393.693 ms is inside session calls and 22.163 ms is Python/NumPy. The denoise family
@@ -625,10 +669,30 @@ session boundaries per inference. Every ordinary `session.run()` returns an inte
 to NumPy before the next GPU session consumes it; `x_t` interpolation also runs on the
 host.
 
-IOBinding with preallocated OrtValues, device-resident conditioning and hidden states,
-and a device-side interpolation/update is therefore the first X-VLA optimization to
-profile. It changes data movement, not model semantics. Capture ORT and Nsight evidence
-before and after rather than assuming all 22 ms of unattributed wall is recoverable.
+The implemented IOBinding path keeps conditioning and three split intermediates on CUDA.
+It is bit-identical across eight exact signed observations. The paired 40-inference run
+improves p50 by 1.0% and p95 by 2.4%; session-call time falls, but IOBinding bookkeeping
+returns part of that saving to Python. It remains opt-in.
+
+The fused candidate changes the first denoiser interface from `x_t` to fixed `x1` plus
+the previous action and computes `x_t = x1*t + action*(1-t)` inside `denoise_0`. With
+IOBinding, those tensors and every split intermediate stay on CUDA across all ten steps;
+only the final action returns to the host. CPU ORT differs from the ordinary graph by at
+most 4.172e-7. Jetson TensorRT reaches cosine minimum 0.9999791 and 0.422% maximum range
+error versus Torch, repeats bit-identically, and all 12 profiled graphs have TensorRT
+node events with no fallback.
+
+It is not faster in the paired 40-call real-IR A/B:
+
+| path | p50 ms | p95 ms | achieved Hz | Python/numpy ms |
+|---|---:|---:|---:|---:|
+| partial IOBinding; host interpolation | 339.28 | 350.10 | 2.936 | 19.180 |
+| full IOBinding; fused interpolation | 340.55 | 349.77 | 2.922 | 17.577 |
+
+The 1.6 ms reduction in Python/numpy time is offset by roughly 3.2 ms more measured graph
+time. The candidate remains useful as a proven mechanism, but is not promoted. A future
+latency attempt should reduce graph launches or denoiser compute and needs trace evidence
+before another implementation A/B.
 
 Reducing denoising steps is a separate, behavior-changing experiment. Ten to five steps
 could remove roughly half of the historical 296 ms denoise cost, but it cannot be
@@ -643,30 +707,25 @@ both local X-VLA bundles found zero `IsNaN` nodes in all vision and denoise grap
 
 Priority: **P1 before robot integration**
 
-Status: **Historical model-only measurements exist; integrated headroom is unproven**
+Status: **Fresh model-only headroom is tight; integrated measurement remains open**
 
-The earlier FP16 stress run reported approximately 5.71 GB peak process RSS and a 1.47 GB
-system-available floor. That is enough to prove the model-only split can run, but not
-that the same process can safely host RealSense capture, preprocessing, the controller,
-logging, and transient allocations without swap or latency spikes. The current base
-bundle is also a 20-D `ee6d` arm policy and cannot establish excavator behavior.
+The fine-tuned model-only run used about 6.22 GB process RSS and left only about 567 MB
+of system RAM free while swap was already in use. That proves the one-camera split can
+run, but not that the same process can safely host RealSense capture, preprocessing, the
+controller, logging, and transient allocations without swap or latency spikes.
 
-Re-run memory and power only after X01-X04 are closed, first model-only and then with the
-real camera/control stack in dry-run mode. Record PSS/RSS, system available memory, swap,
-power, thermals, completed throughput, and p50/p95/p99 latency.
+Run the next measurement with the real camera/control stack in dry-run mode. Record
+PSS/RSS, system available memory, swap, power, thermals, completed throughput, and
+p50/p95/p99 latency.
 
-### Tomorrow's fix and validation order
+### Remaining fix and validation order
 
-1. Synchronize the Orin benchmark checkout to `fe98810` without losing or duplicating
-   its staged audit patch.
-2. Close X01 in the exporter and split runtime; exercise it first with the 250-step
-   checkpoint as a mechanical export/deploy test.
-3. Close X02 and generate one immutable, offline-complete smoke bundle and cache.
-4. Freeze the cleaned training target described by X03 before starting a long run.
-5. Build the canonical fixture and execute X04's Spark CPU/Torch gates.
-6. Run baseline Orin parity, placement, repeatability, latency, and memory measurements.
-7. Implement and A/B the X06 device-resident path.
-8. Treat fewer denoising steps and robot-side integration as separate guarded decisions.
+1. Preserve and synchronize the independently dirty Orin checkout; current work ran from
+   an isolated package under `/tmp`.
+2. Freeze the cleaned training target described by X03 before starting a long run.
+3. Reuse the frozen real-IR fixture when X03 produces a trained candidate checkpoint.
+4. Run X07 with the real camera/control stack in hardware-disconnected dry-run mode.
+5. Treat fewer denoising steps and any live robot test as separate guarded decisions.
 
 [ainekko-hf]: https://huggingface.co/ainekko/smolvla_base_onnx
 [etars-export]: https://github.com/aifoundry-org/ETARS/blob/9ae33a75549a3385170ad968ac3f27878bf8d902/notebooks/smolVLA_export.ipynb

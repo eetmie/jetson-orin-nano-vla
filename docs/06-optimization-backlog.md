@@ -69,10 +69,16 @@ correlation and complete robot episodes with the fine-tuned checkpoint.
 
 1. Resolve or characterize the SmolVLA FP32 parity gap before promoting the vision
    candidate.
-2. Complete the X-VLA audit with a runnable Torch reference and fresh Orin measurements.
-3. If more SmolVLA latency is needed, evaluate fusing the four projectors into decode;
+2. Do not promote X-VLA's full device loop on latency alone. Fusing interpolation into
+   `denoise_0` passes parity and placement, but the paired real-IR p50 is 340.55 ms versus
+   339.28 ms for partial IOBinding. Further work needs a trace-backed reduction in graph
+   launches or denoiser compute, not another small host-transfer change.
+3. Preserve the canonical real-IR fixture for the eventual trained X-VLA candidate.
+   The smoke checkpoint's mechanical gate now passes across Torch FP32, CPU ORT FP32,
+   and two fresh Jetson TensorRT FP16 processes; this does not establish task quality.
+4. If more SmolVLA latency is needed, evaluate fusing the four projectors into decode;
    it removes repeated launches without joining the large vision/prefill graphs.
-4. Re-run the current `kaivuriprokkis` checkpoint after robot-side updates.
+5. Re-run the current `kaivuriprokkis` checkpoint after robot-side updates.
 
 Higher TensorRT builder levels were dropped after failing within the memory budget.
 Precomputing the time embedding has only a roughly 2 ms ceiling after GPU projectors.

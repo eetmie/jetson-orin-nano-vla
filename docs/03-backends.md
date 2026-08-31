@@ -54,11 +54,32 @@ therefore the main latency lever, and it changes policy behaviour.
 The checkpoint declares three image-view slots. Bundles can limit how many views receive
 real images, but the sequence contract remains export-specific.
 
-The in-repo PyTorch X-VLA reference currently stops before inference with
-`Sequence length 1204 exceeds max_len_seq=512`; the split path uses 262 tokens. Until
-that mismatch is resolved, X-VLA's older CPU parity result is supporting evidence, not
-equivalent to the on-device cross-backend SmolVLA gate. The current audit is recorded in
+The X-VLA reference now reads the saved LeRobot processor contract instead of the raw
+config's stale 1024-token value; the matching 0.6.1 stack uses 50 language tokens.
+Schema-v2 bundles carry exact tokenizer, checkpoint, dimensions, and normalization
+identity. The 250-step digging smoke checkpoint passes full CPU FP32 parity at the
+conditioning, padded 20-D model-action, normalized 4-D, and physical 4-D boundaries,
+and its Jetson FP16 result passes the hardened gate on eight held-out recorded IR
+observations. CPU ORT FP32 reaches cosine 1.000000 / 0.021% maximum range error;
+Jetson TensorRT FP16 reaches cosine 0.9999763 / 0.394%, and repeats bit-identically in a
+fresh process. See
+[`results/xvla-digging-contract/`](../results/xvla-digging-contract/).
+The current audit is recorded in
 [`07-audit-followups.md`](07-audit-followups.md).
+
+`--xvla-iobinding` keeps the conditioning tensor and the three denoiser split
+intermediates on CUDA. The paired 40-inference Jetson A/B was bit-identical and reduced
+p50 by 1.0% and p95 by 2.4%, so it remains an explicit, measured opt-in rather than the
+headline default. With an ordinary bundle, the host still performs X-VLA's interpolation
+between denoising steps.
+
+An experimental export made with `--fuse-denoise-interpolation` changes `denoise_0` to
+consume fixed noise plus the previous action and form the exact interpolation inside the
+graph. With `--xvla-iobinding`, noise, action, conditioning, and all split intermediates
+then remain on CUDA for the entire ten-step loop. It passes real-IR Torch parity and all
+12 graphs have measured TensorRT node events, but its paired 40-call p50 is 340.55 ms
+versus 339.28 ms for partial IOBinding. Keep it experimental: removing the final host
+round-trip did not produce a material latency win on this stack.
 
 ## Getting and exporting bundles
 
@@ -78,4 +99,12 @@ scripts/export_xvla_split.sh
 
 Use FP16 X-VLA weights. The FP32 bundle exhausted the practical build budget before
 finishing the first engine; the FP16 bundle built successfully. Engine caches belong to
-the exact JetPack/TensorRT/GPU combination and remain local to the board.
+the exact JetPack/TensorRT/GPU combination and remain local to the board. X-VLA writes
+an engine-cache manifest after the first complete prebuild. Later loads verify bundle,
+precision, builder settings, ORT, TensorRT, CUDA, L4T, hardware, and the exact cached
+file inventory before skipping the twelve validation subprocesses. A stale, truncated,
+or mixed cache fails closed; use a new cache directory instead of reusing it.
+
+On a machine where `TensorrtExecutionProvider` is unavailable, the X-VLA adapter skips
+engine prebuild and can run the same graphs through CPU ORT with `--precision fp32`.
+That path is for export-correctness parity, not Jetson performance.

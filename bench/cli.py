@@ -66,7 +66,8 @@ def _add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--idle-s", type=float, default=5.0,
                    help="baseline window with the model loaded and idle")
     p.add_argument("--obs", default="synthetic",
-                   help="'synthetic' or 'frames:/path/to/dir'")
+                   help="'synthetic', 'frames:/path/to/dir', or an aligned "
+                        "'fixture:/path/to/dir'")
     p.add_argument("--seed", type=int, default=1234)
     p.add_argument("--save-chunks", type=int, default=8,
                    help="action chunks kept for the parity comparison")
@@ -83,6 +84,9 @@ class Resolved:
     def __init__(self, args, bundle: Path | None = None):
         spec = models.get(args.model) if args.model else None
         info = load_export_info(bundle) if bundle else {}
+        bundle_info = {}
+        if bundle and (bundle / "bundle.json").is_file():
+            bundle_info = json.loads((bundle / "bundle.json").read_text())
 
         self.spec = spec
         self.info = info
@@ -108,18 +112,22 @@ class Resolved:
         # `or` instead of trusting a present-but-null value.
         self.fps = args.fps if args.fps is not None else (info.get("fps") or 30)
         self.chunk_size = (args.chunk_size if args.chunk_size is not None
-                           else (info.get("chunk_size")
+                           else (info.get("chunk_size") or bundle_info.get("chunk_size")
                                  or (spec.chunk_size if spec else None) or 50))
         self.state_dim = (args.state_dim if args.state_dim is not None
-                          else ((spec.state_dim if spec else None) or 6))
+                          else (bundle_info.get("real_state_dim")
+                                or (spec.state_dim if spec else None) or 6))
         # None means "compare every column the model emits" — stricter, and correct for
         # a base checkpoint whose real action width is embodiment-dependent.
         self.action_dim = (args.action_dim if args.action_dim is not None
-                           else (spec.action_dim if spec else None))
+                           else (bundle_info.get("real_action_dim")
+                                 or (spec.action_dim if spec else None)))
         self.views = (args.views if args.views is not None
-                      else (spec.image_views if spec else 1))
+                      else (bundle_info.get("valid_views")
+                            or (spec.image_views if spec else 1)))
         self.cam_slots = (args.cam_slots if args.cam_slots is not None
-                          else (spec.cam_slots if spec else None))
+                          else (bundle_info.get("num_image_views")
+                                or (spec.cam_slots if spec else None)))
         self.tokenizer = spec.tokenizer if spec else None
         # Noise width is the model's PADDED action width, which is not the same as
         # how many columns we compare. SmolVLA emits 32 regardless of the robot's real
@@ -128,7 +136,8 @@ class Resolved:
         if args.noise_width is not None:
             self.noise_width = args.noise_width
         elif self.family == "xvla":
-            self.noise_width = (spec.action_dim if spec and spec.action_dim else 20)
+            self.noise_width = int(bundle_info.get("max_action_dim")
+                                   or (spec.action_dim if spec and spec.action_dim else 20))
         else:
             self.noise_width = int(info.get("max_action_dim", 32))
 
@@ -155,6 +164,8 @@ def _finish(args, backend, r: Resolved) -> int:
         positive["cam_slots"] = r.cam_slots
     if getattr(args, "num_steps", None) is not None:
         positive["num_steps"] = args.num_steps
+    if getattr(args, "lang_len", None) is not None:
+        positive["lang_len"] = args.lang_len
     for name, value in positive.items():
         if value <= 0:
             raise ValueError(f"{name} must be positive, got {value}")
@@ -214,11 +225,44 @@ def cmd_torch(args) -> int:
 
     if r.family == "xvla":
         from .backends.torch_xvla import TorchXVLABackend
+        bundle_contract = {}
+        if bundle is not None:
+            bundle_json = bundle / "bundle.json"
+            if not bundle_json.is_file():
+                raise ValueError(f"X-VLA split bundle is missing {bundle_json}")
+            bundle_contract = json.loads(bundle_json.read_text())
+            bundle_views = int(bundle_contract["valid_views"])
+            if r.views != bundle_views:
+                raise ValueError(
+                    f"requested {r.views} real view(s), but the reference bundle "
+                    f"declares valid_views={bundle_views}")
+            bundle_lang_len = int(bundle_contract["lang_len"])
+            if args.lang_len is not None and args.lang_len != bundle_lang_len:
+                raise ValueError(
+                    f"--lang-len {args.lang_len} conflicts with the reference bundle's "
+                    f"lang_len={bundle_lang_len}")
+        else:
+            bundle_lang_len = None
+
+        tokenizer = args.tokenizer
+        local_tokenizer = bundle / "tokenizer" if bundle is not None else None
+        if tokenizer is None and local_tokenizer is not None and local_tokenizer.is_dir():
+            tokenizer = str(local_tokenizer)
+        tokenizer = tokenizer or r.tokenizer
         be = TorchXVLABackend(
             Path(ckpt), weights=args.weights, autocast=args.autocast,
-            device=args.device, tokenizer=args.tokenizer or r.tokenizer
-            or "facebook/bart-large", num_steps=args.num_steps,
-            valid_views=r.views, compile_model=args.compile)
+            device=args.device, tokenizer=tokenizer, num_steps=args.num_steps,
+            valid_views=r.views,
+            domain_id=int(bundle_contract.get("domain_id", 0)),
+            lang_len=args.lang_len or bundle_lang_len,
+            expected_num_views=(int(bundle_contract["num_image_views"])
+                                if bundle_contract else None),
+            processor_contract=bundle_contract.get("processor_contract"),
+            expected_checkpoint_sha=(bundle_contract.get("checkpoint") or {}).get(
+                "tree_sha256"),
+            expected_tokenizer_sha=(bundle_contract.get("tokenizer") or {}).get(
+                "tree_sha256"),
+            compile_model=args.compile)
     else:
         from .backends.torch_smolvla import TorchSmolVLABackend
         be = TorchSmolVLABackend(
@@ -245,8 +289,9 @@ def cmd_ort_split(args) -> int:
         be = OrtSplitXVLABackend(
             bundle, cache_dir=args.cache_dir if args.cache_dir != DEFAULT_CACHE else None,
             precision=args.precision, num_steps=args.num_steps,
-            tokenizer=args.tokenizer or r.tokenizer, seed=args.seed,
-            valid_views=r.views)
+            tokenizer=args.tokenizer, seed=args.seed,
+            valid_views=r.views,
+            device_resident_denoise=args.xvla_iobinding)
     else:
         from .backends.ort_split import OrtSplitBackend
         be = OrtSplitBackend(
@@ -306,6 +351,8 @@ def cmd_parity(args) -> int:
             load_results([Path(path) for path in args.paths]), args.reference)
     except (ResultLoadError, ValueError) as exc:
         report = {"error": str(exc)}
+    if args.out:
+        write_result(report, Path(args.out))
     print(json.dumps(report, indent=2))
     if report.get("error") or not report.get("comparisons"):
         return 2
@@ -361,6 +408,10 @@ def main(argv=None) -> int:
                    help="SmolVLA + --weights float16: LeRobot 0.5.1 hardcodes an FP32 "
                         "cast in denoise_step. Disclosed in the run metadata.")
     p.add_argument("--num-steps", type=int, default=None)
+    p.add_argument("--lang-len", type=int, default=None,
+                   help="X-VLA language token length. Defaults to the supplied split "
+                        "bundle, then the checkpoint's policy_preprocessor.json; the "
+                        "raw config value is not a reliable processor contract")
     p.add_argument("--tokenizer", default=None)
     p.add_argument("--device", default="cuda")
     p.add_argument("--compile", action="store_true", help="wrap the model in torch.compile")
@@ -370,7 +421,7 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("ort-split", help="split ONNX export on ORT + TensorRT EP")
     p.add_argument("--bundle", default=None, help="the split export directory")
-    p.add_argument("--precision", choices=["fp16", "bf16"], default="fp16")
+    p.add_argument("--precision", choices=["fp16", "bf16", "fp32"], default="fp16")
     p.add_argument("--num-steps", type=int, default=None,
                    help="denoise steps (default: from the export)")
     p.add_argument("--cache-dir", default=DEFAULT_CACHE,
@@ -396,6 +447,9 @@ def main(argv=None) -> int:
                    help="re-feed the KV cache as numpy every denoise step, as the stock "
                         "runtime does. Slower and bit-identical; for the A/B only")
     p.set_defaults(iobinding=True)
+    p.add_argument("--xvla-iobinding", action="store_true",
+                   help="X-VLA: keep conditioning and denoiser split intermediates on "
+                        "CUDA; opt-in until the on-device parity/latency A/B is saved")
     p.add_argument("--drop-cuda-ep", action="store_true",
                    help="TRT_DROP_CUDA_EP=1: frees the 3 GiB CUDA arena for a tight build")
     p.add_argument("--tokenizer", default=None)
@@ -422,6 +476,8 @@ def main(argv=None) -> int:
     p.add_argument("paths", nargs="*", default=["results"])
     p.add_argument("--reference", required=True,
                    help="exact label of the reference run (required; parity fails closed)")
+    p.add_argument("--out", default=None,
+                   help="atomically retain the parity verdict as JSON")
     p.set_defaults(func=cmd_parity)
 
     p = sub.add_parser("env", help="print the machine fingerprint")
