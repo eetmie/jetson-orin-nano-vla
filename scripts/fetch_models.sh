@@ -2,7 +2,7 @@
 # Pull model artefacts from the Hub.
 #
 #   scripts/fetch_models.sh smolvla-base         # torch weights + the split ONNX
-#   scripts/fetch_models.sh xvla-base            # torch weights (no ONNX published)
+#   scripts/fetch_models.sh xvla-base            # torch weights + the split ONNX
 #
 # Uses the `hf` CLI rather than snapshot_download: large safetensors have stalled here
 # — process alive, file not growing, no exception raised, so the library's own retry
@@ -17,11 +17,11 @@ MODEL="${1:?usage: fetch_models.sh <smolvla-base|xvla-base>}"
 case "$MODEL" in
   smolvla-base)
     TORCH_REPO="lerobot/smolvla_base"
-    SPLIT_REPO="ainekko/smolvla_base_onnx"   # the only public split SmolVLA ONNX
+    SPLIT_REPO="eetmie/smolvla-base-onnx"
     ;;
   xvla-base)
     TORCH_REPO="lerobot/xvla-base"
-    SPLIT_REPO=""                            # none published — export it, see docs/03
+    SPLIT_REPO="eetmie/xvla-base-onnx"
     ;;
   *) echo "unknown model $MODEL"; exit 1 ;;
 esac
@@ -30,17 +30,12 @@ mkdir -p "$DEST"
 echo ">> $TORCH_REPO -> $DEST/$MODEL-torch"
 hf download "$TORCH_REPO" --local-dir "$DEST/$MODEL-torch"
 
-if [[ -n "$SPLIT_REPO" ]]; then
-    echo ">> $SPLIT_REPO -> $DEST/$MODEL-split"
-    hf download "$SPLIT_REPO" --local-dir "$DEST/$MODEL-split"
-else
-    echo ">> no published split ONNX for $MODEL — export it (docs/03-backends.md)"
-fi
+echo ">> $SPLIT_REPO -> $DEST/$MODEL-split"
+hf download "$SPLIT_REPO" --local-dir "$DEST/$MODEL-split"
 
 echo
 echo "done. Point the benchmark at them:"
 echo "  python -m bench torch     --model $MODEL --checkpoint $DEST/$MODEL-torch"
-[[ -n "$SPLIT_REPO" ]] && \
 echo "  python -m bench ort-split --model $MODEL --bundle     $DEST/$MODEL-split"
 
 # Fallback for a stalling download of one big file:

@@ -1,8 +1,8 @@
 """Backend: stock PyTorch — LeRobot's `SmolVLAPolicy`, straight off the checkpoint.
 
-The control baseline. No ONNX, no TensorRT, no export step: load the fine-tuned
-checkpoint the way the training repo does and call the model. Everything the other
-backends buy has to be paid for against this number.
+The control baseline. No ONNX, no TensorRT, no export step: load the upstream base
+checkpoint and call the model. Everything the deployment backend buys is measured
+against this number.
 
 Entry point
 -----------
@@ -14,34 +14,9 @@ harness's shared preprocessing and MEAN_STD stats apply unchanged. Going through
 `select_action` instead would fold LeRobot's preprocessor pipeline and an action
 queue into the measurement — useful to know, but a different question.
 
-Precision — and why there are two FP16 runs, not one
-----------------------------------------------------
-The Orin Nano is compute 8.7: `platform_has_fast_fp16 = True`,
-`platform_has_fast_bf16 = n/a`. FP16 is the only fast reduced precision the board
-has, so "the PyTorch baseline" has to mean an FP16 PyTorch baseline. There are two
-different things that can mean, and they are not interchangeable:
-
-  `--weights float32 --autocast float16`
-      Mixed precision the way LeRobot itself runs it (`use_amp: true` in the
-      checkpoint's own train_config). Matmuls run in FP16, master weights stay FP32.
-      This is *the* default-PyTorch path and the honest baseline.
-
-  `--weights float16`
-      A hard cast of the weights. Halves resident memory, which on an 8 GB board is
-      the whole argument for doing it — but **LeRobot 0.5.1 does not support it**:
-      `modeling_smolvla.py` hardcodes `suffix_out.to(dtype=torch.float32)` inside the
-      denoise step, so `action_out_proj` gets an FP32 activation against FP16 weights
-      and the call dies with "mat1 and mat2 must have the same dtype". Pass
-      `--patch-half-out` to wrap that one projection so it casts its input to its own
-      dtype. It is a deliberate, single-line deviation from stock LeRobot, recorded in
-      `meta()` as `patched_half_out: true` — a fair benchmark can measure a patched
-      path as long as it says so.
-
-Either way, watch parity. SmolVLA trains in BF16, and putting the *whole* graph in
-FP16 is precisely what overflowed the SigLIP vision tower on Blackwell (cosine 0.805,
-730 constants past FP16's exponent range). The TensorRT path avoids that by keeping
-norms in FP32 and letting rejected ops fall back; a blanket cast does not. If FP16
-torch collapses here, that is a result — `bench parity` is what catches it.
+The public recipe fixes this reference to stock FP32. The deployment comparison fixes
+the matching split ONNX bundle to FP16; parity checks whether that runtime change
+preserves the base model's outputs.
 """
 
 from __future__ import annotations

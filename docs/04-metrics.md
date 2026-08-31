@@ -60,11 +60,11 @@ six Orin Nano cores is gone**, and the robot control stack cannot have it. It is
 reported for both the idle and the load window, so the difference is what inference
 itself takes rather than what merely sitting there costs.
 
-This is where the backends genuinely differ. The split-ONNX path runs six of its nine
-graphs on the CPU execution provider and does the entire flow-matching loop in numpy —
-four CPU graphs × 10 steps plus the Euler update. "It runs on the GPU" is a claim
-about three graphs, not about the pipeline. The `latency_breakdown_ms` fields
-`graphs_gpu`, `graphs_cpu` and `python_numpy` split it explicitly.
+This is where the backends genuinely differ. The retained SmolVLA base run places
+seven graphs on TensorRT and two on CPU; X-VLA places all twelve on TensorRT. Both
+still have Python orchestration around the denoising loop. The
+`latency_breakdown_ms` fields `graphs_gpu`, `graphs_cpu`, and `python_numpy`
+show the measured split explicitly.
 
 Per-process CPU is taken from the proc PID stat counters (user + system CPU
 deltas over wall time) and recursively follows child processes.

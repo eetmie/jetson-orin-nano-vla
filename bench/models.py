@@ -1,4 +1,4 @@
-"""What can be benchmarked: model families, their public artefacts, and their shapes.
+"""What can be benchmarked: model families, their base artefacts, and their shapes.
 
 The repo is about *what a VLA costs on this board*, not about any one policy. A model
 is therefore a small spec — where its PyTorch weights live, where its split ONNX export
@@ -20,10 +20,8 @@ Two families are wired up.
            update here yields plausible-looking garbage, which is exactly why the two
            families get separate runtimes rather than a shared "denoise loop".
 
-Base weights produce **meaningless actions** — they were never fine-tuned on any robot
-here. That is fine for latency, memory, CPU and power, which is what the base entries
-are for, and it is why parity is always measured against another runtime of the *same*
-weights rather than against any notion of task success.
+Base weights are not task-specific robot policies. They are used here only for latency,
+memory, CPU, power, and same-weight runtime parity.
 """
 
 from __future__ import annotations
@@ -69,9 +67,9 @@ REGISTRY: dict[str, ModelSpec] = {
         label="SmolVLA 450M (base)",
         params_m=450.0,
         torch_repo="lerobot/smolvla_base",
-        # The only public split ONNX of SmolVLA: the same nine graphs this repo's
-        # split backend expects. Base weights, two camera slots (prefix 177).
-        split_repo="ainekko/smolvla_base_onnx",
+        # Verified base export used for the retained Orin Nano result: nine graphs,
+        # two camera slots, 177-token prefix.
+        split_repo="eetmie/smolvla-base-onnx",
         # lerobot/smolvla_base ships NO tokenizer files. The vocab-exact one is the
         # VLM's own — a mismatched tokenizer means different token ids, a different
         # language embedding, and a policy conditioned on something it never saw.
@@ -96,9 +94,9 @@ REGISTRY: dict[str, ModelSpec] = {
         label="X-VLA 0.9B (base)",
         params_m=879.7,
         torch_repo="lerobot/xvla-base",
-        # No public ONNX export exists. Produce one with the split exporter — see
-        # docs/03-backends.md. Apache 2.0, so the export is redistributable.
-        split_repo=None,
+        # Verified base export used for the retained Orin Nano result: twelve graphs,
+        # three image views and the full ten-step denoising loop.
+        split_repo="eetmie/xvla-base-onnx",
         tokenizer="facebook/bart-large",
         task="pick up the cube and place it in the box",
         chunk_size=30,
@@ -111,7 +109,8 @@ REGISTRY: dict[str, ModelSpec] = {
         notes="ee6d 20-dim action space, 3 declared image views. Feed only the real "
               "cameras: padded views are zeroed by the runtime and never need a "
               "forward pass, so one camera means a batch-1 vision engine.",
-        extras={"action_mode": "ee6d", "num_image_views": 3, "requires_lerobot": "0.6.1"},
+        extras={"action_mode": "ee6d", "num_image_views": 3, "lang_len": 50,
+                "requires_lerobot": "0.6.1"},
     ),
 }
 
@@ -119,9 +118,8 @@ REGISTRY: dict[str, ModelSpec] = {
 def get(key: str) -> ModelSpec:
     if key in REGISTRY:
         return REGISTRY[key]
-    raise KeyError(f"unknown model {key!r}. Known: {', '.join(sorted(REGISTRY))}. "
-                   f"For anything else pass --checkpoint / --bundle directly and set "
-                   f"--family.")
+    raise KeyError(
+        f"unknown model {key!r}. Known: {', '.join(sorted(REGISTRY))}.")
 
 
 def describe() -> str:

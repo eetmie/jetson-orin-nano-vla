@@ -8,7 +8,7 @@ on a sandbox. Point the benchmark at real frames when comparing what the runtime
 actually predict.
 
     python -m bench.tools.extract_frames \\
-        --video ~/datasets/masi_digging_clean_ir/videos/.../cam1/episode_000000.mp4 \\
+        --video ~/datasets/example/videos/camera/episode_000000.mp4 \\
         --out frames/ --count 30 --stride 10
 
 Reads the mp4 directly with OpenCV, so it needs neither lerobot nor torchcodec.

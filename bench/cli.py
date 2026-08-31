@@ -2,9 +2,8 @@
 
 A run is a **model** crossed with a **backend**. `--model` pulls defaults out of the
 registry (`bench/models.py`): where the weights live, where a split ONNX export lives,
-which tokenizer, and the shapes needed to build an input. Any of it can be overridden
-by passing the path directly, which is how a locally fine-tuned checkpoint is
-benchmarked without touching the registry.
+which tokenizer, and the shapes needed to build an input. This repository intentionally
+registers only the two public base checkpoints.
 """
 
 from __future__ import annotations
@@ -29,29 +28,13 @@ DEFAULT_CACHE = str(Path.home() / ".cache" / "jetson-orin-nano-vla" / "trt")
 # ── shared arguments ─────────────────────────────────────────────────────────
 
 def _add_model(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--model", default=None,
-                   help=f"registry key ({', '.join(sorted(models.REGISTRY))}); "
-                        f"supplies defaults that explicit paths override")
-    p.add_argument("--family", choices=["smolvla", "xvla"], default=None,
-                   help="required when benchmarking a path with no --model")
+    p.add_argument("--model", required=True, choices=sorted(models.REGISTRY),
+                   help="base model to benchmark; explicit artifact paths may override "
+                        "its download locations")
     p.add_argument("--task", default=None,
-                   help="instruction (default: the model's, or the bundle's "
-                        "export_info.json)")
-    p.add_argument("--state-dim", type=int, default=None)
-    p.add_argument("--action-dim", type=int, default=None,
-                   help="action columns to compare; default is the model's full width")
+                   help="instruction (default: the model's)")
     p.add_argument("--views", type=int, default=None,
-                   help="number of REAL cameras to feed")
-    p.add_argument("--cam-slots", type=int, default=None,
-                   help="camera slots the export was built with. An unused slot still "
-                        "occupies its tokens in the prefix, so PyTorch pads to this "
-                        "count to stay comparable with the ONNX path")
-    p.add_argument("--chunk-size", type=int, default=None)
-    p.add_argument("--noise-width", type=int, default=None,
-                   help="padded action width the graph expects (SmolVLA 32, X-VLA 20); "
-                        "only set this if the default is wrong for a custom export")
-    p.add_argument("--fps", type=int, default=None,
-                   help="dataset fps for the control-loop figures")
+                   help="number of camera views (default: the base bundle contract)")
 
 
 def _add_common(p: argparse.ArgumentParser) -> None:
@@ -66,8 +49,7 @@ def _add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--idle-s", type=float, default=5.0,
                    help="baseline window with the model loaded and idle")
     p.add_argument("--obs", default="synthetic",
-                   help="'synthetic', 'frames:/path/to/dir', or an aligned "
-                        "'fixture:/path/to/dir'")
+                   help="'synthetic' or 'frames:/path/to/dir'")
     p.add_argument("--seed", type=int, default=1234)
     p.add_argument("--save-chunks", type=int, default=8,
                    help="action chunks kept for the parity comparison")
@@ -82,69 +64,35 @@ class Resolved:
     """Model defaults merged with whatever the command line overrode."""
 
     def __init__(self, args, bundle: Path | None = None):
-        spec = models.get(args.model) if args.model else None
+        spec = models.get(args.model)
         info = load_export_info(bundle) if bundle else {}
-        bundle_info = {}
-        if bundle and (bundle / "bundle.json").is_file():
-            bundle_info = json.loads((bundle / "bundle.json").read_text())
 
         self.spec = spec
         self.info = info
-        if args.family and spec and args.family != spec.family:
-            raise ValueError(
-                f"--family {args.family!r} conflicts with --model {spec.key!r} "
-                f"(family {spec.family!r})")
-        self.family = args.family or (spec.family if spec else None)
-        if not self.family:
-            sys.exit("cannot tell which model family this is: pass --model or --family.")
-
-        self.task = args.task or info.get("task") or (spec.task if spec else None)
+        self.family = spec.family
+        self.task = args.task or info.get("task") or spec.task
         if not self.task:
             sys.exit(
-                "no task string. Pass --task, use --model, or point at a bundle whose "
-                "export_info.json carries one. The policy conditions on the language "
-                "embedding, so the wrong phrasing is a silently out-of-distribution run.")
+                "no task string. Pass --task or use the base model default. "
+                "The policy conditions on the language embedding, so the wrong "
+                "phrasing is a silently out-of-distribution run.")
 
-        # `or`, not a .get default: export_info.json records fps as an explicit null
-        # when the exporter could not resolve it (a base checkpoint has no training
-        # dataset to read it from), and .get("fps", 30) returns that None rather than
-        # the default -- the key exists. Same reason chunk_size below is chained with
-        # `or` instead of trusting a present-but-null value.
-        self.fps = args.fps if args.fps is not None else (info.get("fps") or 30)
-        self.chunk_size = (args.chunk_size if args.chunk_size is not None
-                           else (info.get("chunk_size") or bundle_info.get("chunk_size")
-                                 or (spec.chunk_size if spec else None) or 50))
-        self.state_dim = (args.state_dim if args.state_dim is not None
-                          else (bundle_info.get("real_state_dim")
-                                or (spec.state_dim if spec else None) or 6))
-        # None means "compare every column the model emits" — stricter, and correct for
-        # a base checkpoint whose real action width is embodiment-dependent.
-        self.action_dim = (args.action_dim if args.action_dim is not None
-                           else (bundle_info.get("real_action_dim")
-                                 or (spec.action_dim if spec else None)))
-        self.views = (args.views if args.views is not None
-                      else (bundle_info.get("valid_views")
-                            or (spec.image_views if spec else 1)))
-        self.cam_slots = (args.cam_slots if args.cam_slots is not None
-                          else (bundle_info.get("num_image_views")
-                                or (spec.cam_slots if spec else None)))
-        self.tokenizer = spec.tokenizer if spec else None
-        # Noise width is the model's PADDED action width, which is not the same as
-        # how many columns we compare. SmolVLA emits 32 regardless of the robot's real
-        # action dim (the rest is padding); X-VLA emits its real width. Getting this
-        # from --action-dim would hand the graph a wrongly-shaped noise tensor.
-        if args.noise_width is not None:
-            self.noise_width = args.noise_width
-        elif self.family == "xvla":
-            self.noise_width = int(bundle_info.get("max_action_dim")
-                                   or (spec.action_dim if spec and spec.action_dim else 20))
-        else:
-            self.noise_width = int(info.get("max_action_dim", 32))
+        self.fps = info.get("fps") or 30
+        self.chunk_size = info.get("chunk_size") or spec.chunk_size or 50
+        self.state_dim = spec.state_dim or 6
+        self.action_dim = spec.action_dim
+        self.views = args.views if args.views is not None else spec.image_views
+        self.cam_slots = spec.cam_slots
+        self.tokenizer = spec.tokenizer
+        self.noise_width = (
+            spec.action_dim or 20 if self.family == "xvla"
+            else int(info.get("max_action_dim", 32))
+        )
 
     def label(self, args, backend_name: str) -> str:
         if args.label:
             return args.label
-        model = args.model or "local"
+        model = args.model
         return f"{backend_name}.{model}"
 
 
@@ -164,8 +112,6 @@ def _finish(args, backend, r: Resolved) -> int:
         positive["cam_slots"] = r.cam_slots
     if getattr(args, "num_steps", None) is not None:
         positive["num_steps"] = args.num_steps
-    if getattr(args, "lang_len", None) is not None:
-        positive["lang_len"] = args.lang_len
     for name, value in positive.items():
         if value <= 0:
             raise ValueError(f"{name} must be positive, got {value}")
@@ -215,9 +161,9 @@ def cmd_torch(args) -> int:
     bundle = Path(args.bundle) if args.bundle else None
     r = Resolved(args, bundle)
 
-    ckpt = args.checkpoint or (r.spec.torch_repo if r.spec else None)
+    ckpt = args.checkpoint or r.spec.torch_repo
     if not ckpt:
-        sys.exit("no checkpoint: pass --checkpoint or --model.")
+        sys.exit("no checkpoint: pass --checkpoint.")
     if not Path(ckpt).exists():
         print(f"[torch] {ckpt} is not a local path — treating it as a Hugging Face id. "
               f"`python -m bench fetch --model {args.model}` downloads it first if you "
@@ -225,52 +171,18 @@ def cmd_torch(args) -> int:
 
     if r.family == "xvla":
         from .backends.torch_xvla import TorchXVLABackend
-        bundle_contract = {}
-        if bundle is not None:
-            bundle_json = bundle / "bundle.json"
-            if not bundle_json.is_file():
-                raise ValueError(f"X-VLA split bundle is missing {bundle_json}")
-            bundle_contract = json.loads(bundle_json.read_text())
-            bundle_views = int(bundle_contract["valid_views"])
-            if r.views != bundle_views:
-                raise ValueError(
-                    f"requested {r.views} real view(s), but the reference bundle "
-                    f"declares valid_views={bundle_views}")
-            bundle_lang_len = int(bundle_contract["lang_len"])
-            if args.lang_len is not None and args.lang_len != bundle_lang_len:
-                raise ValueError(
-                    f"--lang-len {args.lang_len} conflicts with the reference bundle's "
-                    f"lang_len={bundle_lang_len}")
-        else:
-            bundle_lang_len = None
-
-        tokenizer = args.tokenizer
-        local_tokenizer = bundle / "tokenizer" if bundle is not None else None
-        if tokenizer is None and local_tokenizer is not None and local_tokenizer.is_dir():
-            tokenizer = str(local_tokenizer)
-        tokenizer = tokenizer or r.tokenizer
         be = TorchXVLABackend(
-            Path(ckpt), weights=args.weights, autocast=args.autocast,
-            device=args.device, tokenizer=tokenizer, num_steps=args.num_steps,
-            valid_views=r.views,
-            domain_id=int(bundle_contract.get("domain_id", 0)),
-            lang_len=args.lang_len or bundle_lang_len,
-            expected_num_views=(int(bundle_contract["num_image_views"])
-                                if bundle_contract else None),
-            processor_contract=bundle_contract.get("processor_contract"),
-            expected_checkpoint_sha=(bundle_contract.get("checkpoint") or {}).get(
-                "tree_sha256"),
-            expected_tokenizer_sha=(bundle_contract.get("tokenizer") or {}).get(
-                "tree_sha256"),
-            compile_model=args.compile)
+            Path(ckpt), weights="float32", autocast="off", device="cuda",
+            tokenizer=r.tokenizer or "facebook/bart-large", num_steps=None,
+            valid_views=r.views, lang_len=r.spec.extras.get("lang_len"),
+            compile_model=False)
     else:
         from .backends.torch_smolvla import TorchSmolVLABackend
         be = TorchSmolVLABackend(
-            Path(ckpt), bundle=bundle, weights=args.weights, autocast=args.autocast,
-            device=args.device, action_dim=r.action_dim or 32,
-            tokenizer_dir=args.tokenizer,
-            compile_model=args.compile, patch_half_out=args.patch_half_out,
-            cam_slots=r.cam_slots, num_steps=args.num_steps)
+            Path(ckpt), bundle=bundle, weights="float32", autocast="off",
+            device="cuda", action_dim=r.action_dim or 32, tokenizer_dir=None,
+            compile_model=False, patch_half_out=False,
+            cam_slots=r.cam_slots, num_steps=None)
     return _finish(args, be, r)
 
 
@@ -278,7 +190,7 @@ def cmd_ort_split(args) -> int:
     bundle = Path(args.bundle) if args.bundle else None
     r = Resolved(args, bundle)
     if bundle is None:
-        if r.spec and r.spec.split_repo:
+        if r.spec.split_repo:
             sys.exit(f"--bundle not given. Fetch the split export first:\n"
                      f"  python -m bench fetch --model {args.model} --what split\n"
                      f"then pass --bundle <that path>.")
@@ -288,19 +200,16 @@ def cmd_ort_split(args) -> int:
         from .backends.ort_split_xvla import OrtSplitXVLABackend
         be = OrtSplitXVLABackend(
             bundle, cache_dir=args.cache_dir if args.cache_dir != DEFAULT_CACHE else None,
-            precision=args.precision, num_steps=args.num_steps,
-            tokenizer=args.tokenizer, seed=args.seed,
-            valid_views=r.views,
-            device_resident_denoise=args.xvla_iobinding)
+            precision="fp16", num_steps=None,
+            tokenizer=r.tokenizer, seed=args.seed, valid_views=r.views)
     else:
         from .backends.ort_split import OrtSplitBackend
         be = OrtSplitBackend(
-            bundle, cache_dir=args.cache_dir, precision=args.precision,
-            num_steps=args.num_steps, action_dim=r.action_dim or 32,
-            drop_cuda_ep=args.drop_cuda_ep, seed=args.seed,
-            projectors=args.projectors, trt_opt_level=args.trt_opt_level,
-            trt_workspace_mb=args.trt_workspace_mb,
-            tokenizer=args.tokenizer, iobinding=args.iobinding)
+            bundle, cache_dir=args.cache_dir, precision="fp16",
+            num_steps=None, action_dim=r.action_dim or 32,
+            drop_cuda_ep=False, seed=args.seed, projectors="gpu",
+            trt_opt_level=None, trt_workspace_mb=None,
+            tokenizer=None, iobinding=True)
     return _finish(args, be, r)
 
 
@@ -351,8 +260,6 @@ def cmd_parity(args) -> int:
             load_results([Path(path) for path in args.paths]), args.reference)
     except (ResultLoadError, ValueError) as exc:
         report = {"error": str(exc)}
-    if args.out:
-        write_result(report, Path(args.out))
     print(json.dumps(report, indent=2))
     if report.get("error") or not report.get("comparisons"):
         return 2
@@ -398,61 +305,14 @@ def main(argv=None) -> int:
                    help="local pretrained_model dir, or an HF id (default: the model's)")
     p.add_argument("--bundle", default=None,
                    help="split export bundle, for stats.json / tokenizer / task")
-    p.add_argument("--weights", choices=["float32", "float16", "bfloat16"],
-                   default="float32",
-                   help="dtype the weights are held in (float32 is stock LeRobot)")
-    p.add_argument("--autocast", choices=["off", "float16", "bfloat16"], default="off",
-                   help="torch.autocast for the forward pass; float16 is the "
-                        "mixed-precision path LeRobot itself trains with")
-    p.add_argument("--patch-half-out", action="store_true",
-                   help="SmolVLA + --weights float16: LeRobot 0.5.1 hardcodes an FP32 "
-                        "cast in denoise_step. Disclosed in the run metadata.")
-    p.add_argument("--num-steps", type=int, default=None)
-    p.add_argument("--lang-len", type=int, default=None,
-                   help="X-VLA language token length. Defaults to the supplied split "
-                        "bundle, then the checkpoint's policy_preprocessor.json; the "
-                        "raw config value is not a reliable processor contract")
-    p.add_argument("--tokenizer", default=None)
-    p.add_argument("--device", default="cuda")
-    p.add_argument("--compile", action="store_true", help="wrap the model in torch.compile")
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_torch)
 
     p = sub.add_parser("ort-split", help="split ONNX export on ORT + TensorRT EP")
     p.add_argument("--bundle", default=None, help="the split export directory")
-    p.add_argument("--precision", choices=["fp16", "bf16", "fp32"], default="fp16")
-    p.add_argument("--num-steps", type=int, default=None,
-                   help="denoise steps (default: from the export)")
     p.add_argument("--cache-dir", default=DEFAULT_CACHE,
-                   help="TRT engine cache — keep it OFF /tmp, which clears at boot")
-    # Default gpu, not cpu. Both are bit-identical in output (cosine 1.0000000, max abs
-    # diff 0.000e+00), and gpu is 226 -> 169 ms while giving back 1.9 of six CPU cores.
-    # Leaving the slow one as the default meant the headline number described a
-    # configuration nobody would deploy. --projectors cpu still reproduces the stock
-    # runtime for the A/B.
-    p.add_argument("--projectors", choices=["cpu", "gpu"], default="gpu",
-                   help="SmolVLA: where the four per-step projectors run. 'gpu' is the "
-                        "default and is bit-identical to 'cpu', which reproduces the "
-                        "stock runtime")
-    p.add_argument("--trt-opt-level", type=int, default=None,
-                   help="TensorRT builder optimization level (stock here is 2; TRT's "
-                        "own default is 3). Clear the engine cache to force a rebuild")
-    p.add_argument("--trt-workspace-mb", type=int, default=None,
-                   help="per-tactic TRT scratch (stock here is 512)")
-    # On by default for the same reason: bit-identical output, ~24%% off wall. The stock
-    # loop re-feeds 32 KV tensors (7.2 MB) as numpy on every denoise step -- 72 MB of
-    # host->device copies per inference for data that is constant after prefill.
-    p.add_argument("--no-iobinding", dest="iobinding", action="store_false",
-                   help="re-feed the KV cache as numpy every denoise step, as the stock "
-                        "runtime does. Slower and bit-identical; for the A/B only")
-    p.set_defaults(iobinding=True)
-    p.add_argument("--xvla-iobinding", action="store_true",
-                   help="X-VLA: keep conditioning and denoiser split intermediates on "
-                        "CUDA; opt-in until the on-device parity/latency A/B is saved")
-    p.add_argument("--drop-cuda-ep", action="store_true",
-                   help="TRT_DROP_CUDA_EP=1: frees the 3 GiB CUDA arena for a tight build")
-    p.add_argument("--tokenizer", default=None)
+                   help="persistent TensorRT engine cache")
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_ort_split)
@@ -461,7 +321,7 @@ def main(argv=None) -> int:
     p.set_defaults(func=cmd_models)
 
     p = sub.add_parser("fetch", help="download a model's artefacts from Hugging Face")
-    p.add_argument("--model", required=True)
+    p.add_argument("--model", required=True, choices=sorted(models.REGISTRY))
     p.add_argument("--what", choices=["torch", "split", "both"], default="both")
     p.add_argument("--dest", default=None, help="default ~/bundles")
     p.set_defaults(func=cmd_fetch)
@@ -476,8 +336,6 @@ def main(argv=None) -> int:
     p.add_argument("paths", nargs="*", default=["results"])
     p.add_argument("--reference", required=True,
                    help="exact label of the reference run (required; parity fails closed)")
-    p.add_argument("--out", default=None,
-                   help="atomically retain the parity verdict as JSON")
     p.set_defaults(func=cmd_parity)
 
     p = sub.add_parser("env", help="print the machine fingerprint")
