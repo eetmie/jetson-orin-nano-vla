@@ -8,10 +8,6 @@ Orin Nano Super**. The repository intentionally supports only these models:
 | SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
 | X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
 
-The two split repositories are currently private and require `hf auth login`; the same
-links will work without authentication when they are made public. Their bundle metadata
-and graph manifests have been checked against the runtime contracts in this repository.
-
 ## Measured fit
 
 Retained base-model runs use pinned MAXN_SUPER clocks and deterministic synthetic
