@@ -82,7 +82,7 @@ fi
 
 echo; echo "== report =="
 "${VENV_TORCH}/bin/python" -m bench report results \
-    --reference "$MODEL.torch-fp32" --out docs/RESULTS.md 2>/dev/null \
+    --out docs/RESULTS.md 2>/dev/null \
   || python3 -m bench report results \
-    --reference "$MODEL.torch-fp32" --out docs/RESULTS.md
+    --out docs/RESULTS.md
 echo "wrote docs/RESULTS.md"

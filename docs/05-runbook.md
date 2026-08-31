@@ -73,13 +73,11 @@ M=smolvla-base
 
 For X-VLA, use `.venv-torch-xvla` and `--views 3`.
 
-## 6. Compare and report
+## 6. Generate the report
 
 ```bash
-python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \\
-    --reference smolvla-base.torch
 python -m bench report results --out docs/RESULTS.md
 ```
 
 Every result JSON records latency, memory, CPU, power, thermals, board state, runtime
-versions, and enough saved actions for a like-for-like parity check.
+versions, and representative saved action chunks.

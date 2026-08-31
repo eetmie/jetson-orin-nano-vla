@@ -245,7 +245,7 @@ def cmd_fetch(args) -> int:
 
 
 def cmd_report(args) -> int:
-    md = build_report([Path(p) for p in args.paths], prefer_ref=args.reference)
+    md = build_report([Path(p) for p in args.paths])
     if args.out:
         Path(args.out).write_text(md)
         print(f"wrote {args.out}")
@@ -329,7 +329,6 @@ def main(argv=None) -> int:
     p = sub.add_parser("report", help="run JSONs -> markdown tables")
     p.add_argument("paths", nargs="*", default=["results"])
     p.add_argument("--out", default=None)
-    p.add_argument("--reference", default=None, help="label to use as parity reference")
     p.set_defaults(func=cmd_report)
 
     p = sub.add_parser("parity", help="compare saved action chunks across runs")
