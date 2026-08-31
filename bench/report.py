@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from .parity import load_results, parity_report
+from .parity import load_results
 
 
 def _g(d: dict, *path, default=None):
@@ -134,60 +133,33 @@ def breakdown_table(runs: list[dict]) -> str:
     return _md_table(rows, ["run"] + headers)
 
 
-def control_table(runs: list[dict]) -> str:
-    rows = []
+def control_summary(runs: list[dict]) -> str:
+    entries = []
+    rates = set()
     for r in runs:
         c = r.get("control")
-        if not c:
+        if not c or r.get("status") != "ok":
             continue
-        rows.append([r.get("label"), c.get("fps"), c.get("chunk_size"),
-                     c.get("steps_consumed_per_inference_mean"),
-                     c.get("steps_consumed_per_inference_p95"),
-                     c.get("chunk_headroom_x")])
-    if not rows:
+        fps = c.get("fps")
+        chunk = c.get("chunk_size")
+        consumed = c.get("steps_consumed_per_inference_mean")
+        if not all(isinstance(v, (int, float)) for v in (fps, chunk, consumed)):
+            continue
+        rates.add(float(fps))
+        remaining = float(chunk) - float(consumed)
+        margin = (f"{remaining:.1f} steps remain" if remaining >= 0 else
+                  f"it overruns by {-remaining:.1f} steps")
+        entries.append(
+            f"`{r.get('label')}` spans {float(consumed):.1f} of its "
+            f"{float(chunk):g}-step action chunk ({margin})")
+    if not entries:
         return "_(no control-loop figures recorded)_"
-    return _md_table(rows, ["run", "fps", "chunk", "steps used (mean)",
-                            "steps used (p95)", "headroom ×"])
+    rate = next(iter(rates)) if len(rates) == 1 else None
+    prefix = f"At a {rate:g} Hz control rate, " if rate is not None else ""
+    return prefix + "; ".join(entries) + "."
 
 
-def parity_table(runs: list[dict], prefer_ref: str | None = None) -> str:
-    rep = parity_report(runs, prefer_ref)
-    if "error" in rep:
-        return f"_{rep['error']}_"
-    rows = []
-    for c in rep["comparisons"]:
-        rows.append([c.get("candidate"), c.get("verdict"), c.get("mode"),
-                     c.get("cosine_min"), c.get("max_abs_diff"),
-                     c.get("max_abs_diff_pct_of_range"),
-                     c.get("max_dim_mean_shift")])
-    for c in rep.get("not_comparable", []):
-        rows.append([c["candidate"], c["verdict"], c["mode"], "—", "—", "—", "—"])
-    head = f"Reference: **{rep['reference']}**\n\n"
-    tail = ""
-    if rep.get("not_comparable"):
-        tail = ("\n\nRows marked **NOT COMPARABLE** are not failures. A different model "
-                "family or a different number of real cameras is a different "
-                "observation, so a cosine against this reference would be measuring "
-                "the input, not the runtime. Compare those against a reference of "
-                "their own group with `--prefer-ref`.")
-    return head + _md_table(rows, [
-        "candidate", "verdict", "mode", "cosine min", "max abs diff",
-        "% of range", "max dim mean shift"]) + tail
-
-
-def env_table(runs: list[dict]) -> str:
-    rows = []
-    for r in runs:
-        e = r.get("env", {})
-        pkg = e.get("packages", {})
-        rows.append([r.get("label"), e.get("hostname"), e.get("l4t") or e.get("kernel"),
-                     pkg.get("torch"), pkg.get("onnxruntime"), pkg.get("tensorrt"),
-                     e.get("git_sha")])
-    return _md_table(rows, ["run", "host", "L4T / kernel", "torch", "onnxruntime",
-                            "tensorrt", "repo sha"])
-
-
-def build_report(paths: list[Path], prefer_ref: str | None = None) -> str:
+def build_report(paths: list[Path]) -> str:
     runs = load_results(paths)
     runs.sort(key=lambda r: (r.get("status") != "ok", r.get("label") or ""))
     if not runs:
@@ -229,22 +201,9 @@ def build_report(paths: list[Path], prefer_ref: str | None = None) -> str:
         "",
         breakdown_table(runs),
         "",
-        "## What it means for the control loop",
+        "## Control-rate fit",
         "",
-        control_table(runs),
-        "",
-        "SmolVLA emits a chunk of actions authored at the dataset fps. The controller "
-        "plays them while the next inference runs, so `steps used` is how much of the "
-        "chunk is consumed per replan and `headroom ×` is how much plan is left over. "
-        "Below 1× the plan runs dry before the next one lands.",
-        "",
-        "## Parity",
-        "",
-        parity_table(runs, prefer_ref),
-        "",
-        "## Environment",
-        "",
-        env_table(runs),
+        control_summary(runs),
         "",
     ]
     failed = [r for r in runs if r.get("status") != "ok"]

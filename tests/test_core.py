@@ -14,6 +14,7 @@ from bench.backends.base import Backend, InferResult
 from bench.obs import Observation
 from bench.parity import (ResultLoadError, attach_comparison_signature, compare,
                           cosine, load_results, parity_report)
+from bench.report import control_summary
 from bench.runner import latency_stats, run_benchmark, write_result
 
 
@@ -67,6 +68,20 @@ class StatisticsTests(unittest.TestCase):
     def test_empty_latency_rejected(self):
         with self.assertRaises(ValueError):
             latency_stats([])
+
+    def test_control_summary_explains_30hz_headroom(self):
+        summary = control_summary([{
+            "label": "smolvla-base.ort",
+            "status": "ok",
+            "control": {
+                "fps": 30,
+                "chunk_size": 50,
+                "steps_consumed_per_inference_mean": 5.72,
+            },
+        }])
+        self.assertIn("At a 30 Hz control rate", summary)
+        self.assertIn("5.7 of its 50-step action chunk", summary)
+        self.assertIn("44.3 steps remain", summary)
 
 
 class ParityTests(unittest.TestCase):
