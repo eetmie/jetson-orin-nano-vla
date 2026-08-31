@@ -14,5 +14,5 @@ does not work on this board is a result — do not delete it.
 
 ```bash
 python -m bench report results --out docs/RESULTS.md
-python -m bench parity results
+python -m bench parity results --reference smolvla-base.torch
 ```

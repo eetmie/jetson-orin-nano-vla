@@ -1,20 +1,15 @@
 """Backend: the split 9-graph ONNX export on ONNX Runtime + TensorRT EP (FP16).
 
-This is the incumbent — the path already validated on this board and already driving a
-real machine (`kaivuriprokkis/lerobot_vla/smolvla_split.py`, vendored under
-`bench/vendor/` so the measured code is pinned beside its numbers). The split keeps
+This is the validated SmolVLA base deployment path. Its runtime is vendored under
+`bench/vendor/` so the measured code is pinned beside its numbers. The split keeps
 each TensorRT engine's build peak and resident weights within the board's 8 GB unified
 memory.
 
 What that costs, and why this backend is instrumented per-graph
 ---------------------------------------------------------------
-Three graphs run on TensorRT (vision, expert-prefill, expert-decode). The other six —
-the text encoder and five projectors — run on the **CPU** execution provider, and the
-flow-matching denoise loop itself is numpy in Python: for every one of the 10 steps it
-runs action_in, time_in, time_out and action_out on the CPU and does the Euler update
-in numpy. On a board where the whole point is to leave CPU headroom for the robot
-control stack, that is exactly the thing to measure rather than assume. So each ORT
-session is wrapped in a timer and the per-graph split is reported alongside the total.
+The retained base run places seven graphs on TensorRT and two on CPU. The flow-matching
+loop still runs in Python, so every ORT session is timed and the graph/host split is
+reported alongside the total instead of inferring placement from provider priority.
 """
 
 from __future__ import annotations
@@ -74,7 +69,7 @@ class _TimedSession:
 
 
 #: Attribute name -> ONNX file, for the graphs the stock runtime puts on the CPU EP.
-#: Needed to re-create them on the GPU stack under `--projectors gpu`.
+#: Re-created on the GPU stack by the fixed base deployment recipe.
 _CPU_GRAPH_FILES = {
     "text": "smolvlm_text.onnx",
     "state_proj": "state_projector.onnx",

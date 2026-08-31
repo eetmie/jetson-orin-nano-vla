@@ -143,6 +143,15 @@ def compare(ref: dict, cand: dict) -> dict:
     """One explicitly selected reference run against one candidate run."""
     out = {"reference": ref.get("label"), "candidate": cand.get("label")}
 
+    ref_family = (ref.get("model") or {}).get("family")
+    cand_family = (cand.get("model") or {}).get("family")
+    if ref_family and cand_family and ref_family != cand_family:
+        return {
+            **out,
+            "verdict": "NOT COMPARABLE",
+            "reason": f"model family {ref_family} vs {cand_family}",
+        }
+
     ref_sig, ref_error = _identity(ref)
     cand_sig, cand_error = _identity(cand)
     if ref_error or cand_error:

@@ -29,7 +29,6 @@ projections, their positional-embedding slice and the soft prompts do not depend
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import time
@@ -49,8 +48,7 @@ class OrtSplitXVLABackend(Backend):
     def __init__(self, split_dir: Path, cache_dir: str | None = None,
                  precision: str = "fp16", num_steps: int | None = None,
                  tokenizer: str | None = None, seed: int = 0,
-                 valid_views: int | None = None,
-                 device_resident_denoise: bool = False):
+                 valid_views: int | None = None):
         self.split_dir = Path(split_dir)
         # Twelve engines are a long build to repeat and /tmp clears at boot, so the
         # cache defaults next to the graphs rather than under /tmp.
@@ -62,23 +60,13 @@ class OrtSplitXVLABackend(Backend):
         self.tokenizer = tokenizer
         self.seed = seed
         self.valid_views = valid_views
-        self.device_resident_denoise = bool(device_resident_denoise)
         self.policy = None
         self._sink: dict = {}
 
     def load(self) -> None:
-        import onnxruntime as ort
-
         from ..vendor.xvla_split_ort import XVLASplitPolicy, prebuild_engines
 
-        from ..vendor.xvla_bundle_contract import tree_sha256 as contract_tree_sha256
-        from ..vendor.xvla_bundle_contract import verify_bundle
-
-        bundle = verify_bundle(self.split_dir, verify_manifest=False)
-        processor_contract = bundle.get("processor_contract")
-        self._processor_contract_sha256 = (hashlib.sha256(json.dumps(
-            processor_contract, sort_keys=True, separators=(",", ":")
-        ).encode()).hexdigest() if processor_contract else None)
+        bundle = json.loads((self.split_dir / "bundle.json").read_text())
         self.bundle_valid_views = int(bundle["valid_views"])
         self.bundle_num_views = int(bundle["num_image_views"])
         if self.valid_views is None:
@@ -87,43 +75,20 @@ class OrtSplitXVLABackend(Backend):
             raise ValueError(
                 f"requested {self.valid_views} real view(s), but bundle declares "
                 f"valid_views={self.bundle_valid_views}; use a separately exported bundle")
-        if int(bundle.get("schema_version") or 1) >= 2:
-            tokenizer_path = (Path(self.tokenizer) if self.tokenizer
-                              else self.split_dir / bundle["tokenizer"]["path"])
-            self._tokenizer_name = str(tokenizer_path)
-            self._tokenizer_sha256 = contract_tree_sha256(tokenizer_path)
-            if self._tokenizer_sha256 != bundle["tokenizer"]["tree_sha256"]:
-                raise ValueError("tokenizer override does not match bundle identity")
-        else:
-            tokenizer_source = self.tokenizer or "facebook/bart-large"
-            self._tokenizer_name = str(tokenizer_source)
-            tokenizer_path = Path(tokenizer_source)
-            self._tokenizer_sha256 = (
-                tree_sha256(tokenizer_path) if tokenizer_path.exists() else None)
+        tokenizer_source = self.tokenizer or "facebook/bart-large"
+        self._tokenizer_name = str(tokenizer_source)
+        tokenizer_path = Path(tokenizer_source)
+        self._tokenizer_sha256 = (
+            tree_sha256(tokenizer_path) if tokenizer_path.exists() else None)
 
-        # One subprocess per graph when TensorRT is available. Not an optimization:
-        # two engines building or resident in one process was enough to OOM 8 GB
-        # during the SmolVLA work. CPU-only ORT is also a useful export-correctness
-        # reference and has no engines to prebuild or cache.
-        prebuild_t0 = time.perf_counter()
-        if "TensorrtExecutionProvider" in ort.get_available_providers():
-            self._engine_cache_validation = prebuild_engines(
-                self.split_dir, self.cache_dir, self.precision)
-        else:
-            self._engine_cache_validation = {
-                "status": "not_applicable",
-                "reason": "TensorrtExecutionProvider is unavailable",
-                "n_files": 0,
-            }
-        self._engine_prebuild_s = time.perf_counter() - prebuild_t0
+        # One subprocess per graph. Not an optimization: two engines building or
+        # resident in one process was enough to OOM 8 GB during the SmolVLA work.
+        prebuild_engines(self.split_dir, self.cache_dir, self.precision)
 
-        session_load_t0 = time.perf_counter()
         self.policy = XVLASplitPolicy(
             split_dir=self.split_dir, cache_dir=self.cache_dir,
             precision=self.precision, tokenizer_dir=self.tokenizer,
-            num_denoising_steps=self.num_steps, seed=self.seed,
-            device_resident_denoise=self.device_resident_denoise)
-        self._session_load_s = time.perf_counter() - session_load_t0
+            num_denoising_steps=self.num_steps, seed=self.seed)
 
         # The split families are lists of sessions; label each by family + position so
         # the report shows which stage of a chain is expensive, not just the total.
@@ -153,12 +118,9 @@ class OrtSplitXVLABackend(Backend):
             "split_dir": str(self.split_dir),
             "precision": self.precision,
             "num_steps": p.steps,
-            "denoise_input_mode": p.denoise_input_mode,
             "chunk_size": p.chunk_size,
-            "action_dim": p.real_action_dim or p.action_dim,
-            "max_action_dim": p.action_dim,
+            "action_dim": p.action_dim,
             "state_dim": p.state_dim,
-            "max_state_dim": p.model_state_dim,
             "num_views": p.num_views,
             "requested_views": self.valid_views,
             "bundle_valid_views": self.bundle_valid_views,
@@ -167,33 +129,18 @@ class OrtSplitXVLABackend(Backend):
             "resize": [224, 224],
             "tokenizer": self._tokenizer_name,
             "tokenizer_sha256": self._tokenizer_sha256,
-            "stats_sha256": self._processor_contract_sha256,
             "tokens_per_view": p.tokens_per_view,
             "lang_len": p.lang_len,
             "hidden_size": p.hidden,
             "action_mode": p.bundle.get("action_mode"),
-            "checkpoint_tree_sha256": (p.bundle.get("checkpoint") or {}).get(
-                "tree_sha256"),
-            "physical_boundary_complete": bool(
-                (p.processor_contract or {}).get("physical_boundary_complete")),
             "n_graphs": len(self._providers),
             "n_graphs_on_trt": n_trt,
             "configured_provider_priority_per_graph": self._providers,
             "onnxruntime": ort.__version__,
             "engine_cache": self.cache_dir,
-            "engine_cache_validation": self._engine_cache_validation,
-            "engine_prebuild_s": round(self._engine_prebuild_s, 3),
-            "session_load_s": round(self._session_load_s, 3),
             "kv_cache": False,
             "kv_cache_note": "impossible — bidirectional policy transformer, "
                              "conditioning attends to action tokens and changes per step",
-            "device_resident_denoise": self.device_resident_denoise,
-            "iobinding_scope": (
-                "x1, action, conditioning, and denoise split intermediates"
-                if (self.device_resident_denoise
-                    and p.denoise_input_mode == "fused_interpolation") else
-                "conditioning plus denoise split intermediates"
-                if self.device_resident_denoise else "disabled"),
         }
 
     def infer(self, obs: Observation) -> InferResult:

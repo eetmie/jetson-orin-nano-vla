@@ -84,9 +84,6 @@ pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"
 
 ## Version pins that matter
 
-`transformers==5.3.0` and `lerobot==0.5.1` match what the DGX Spark trained and
-exported with. The tokenizer especially: a mismatched tokenizer means different token
-ids, which means a different language embedding, which means the policy is
-conditioned on something it was never fine-tuned on. The harness sidesteps most of
-this by loading the tokenizer *from the export bundle* for both the torch and the ORT
-backend, so the two are provably fed the same tokens.
+SmolVLA uses LeRobot 0.5.1 and X-VLA uses LeRobot 0.6.1 because those are the layouts
+their verified base exports target. Tokenizer identity and sequence length are part of
+each bundle contract; changing either means the runtimes are no longer comparable.

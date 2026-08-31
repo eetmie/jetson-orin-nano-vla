@@ -20,14 +20,10 @@ Sources
               are meaningless (but still comparable across backends).
 `frames:DIR`  cycle real .png/.jpg frames. Use for anything where the action values
               matter. `tools/extract_frames.py` dumps these from a LeRobot dataset.
-`fixture:DIR` immutable aligned images + raw state from recorded episodes. Use for
-              hardened real-input parity; `fixture.json` carries source identities.
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -165,106 +161,6 @@ class FrameDirObs(ObsSource):
                 "views": self.n_views, "seed": self.seed}
 
 
-def _tree_sha256(root: Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        relative = path.relative_to(root).as_posix().encode()
-        digest.update(len(relative).to_bytes(4, "big"))
-        digest.update(relative)
-        digest.update(path.stat().st_size.to_bytes(8, "big"))
-        with path.open("rb") as stream:
-            for block in iter(lambda: stream.read(1 << 20), b""):
-                digest.update(block)
-    return digest.hexdigest()
-
-
-class FixtureObs(ObsSource):
-    """Replay immutable aligned recorded images and raw robot state."""
-
-    def __init__(self, directory: str | Path, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.dir = Path(directory)
-        metadata_path = self.dir / "fixture.json"
-        try:
-            self.metadata = json.loads(metadata_path.read_text())
-        except (OSError, json.JSONDecodeError) as exc:
-            raise ValueError(f"invalid observation fixture {metadata_path}: {exc}") from exc
-        if self.metadata.get("schema_version") != 1:
-            raise ValueError("observation fixture schema_version must be 1")
-        if self.metadata.get("task") != self.task:
-            raise ValueError(
-                f"fixture task {self.metadata.get('task')!r} does not match "
-                f"requested task {self.task!r}")
-        if int(self.metadata.get("state_dim") or 0) != self.state_dim:
-            raise ValueError(
-                f"fixture state_dim={self.metadata.get('state_dim')} does not match "
-                f"requested state_dim={self.state_dim}")
-        if int(self.metadata.get("views") or 0) != self.n_views:
-            raise ValueError(
-                f"fixture views={self.metadata.get('views')} does not match "
-                f"requested views={self.n_views}")
-        self.records = self.metadata.get("records") or []
-        if not self.records:
-            raise ValueError("observation fixture contains no records")
-        self._cache: dict[tuple[int, int], np.ndarray] = {}
-        self.fixture_sha256 = _tree_sha256(self.dir)
-
-    def _load(self, record_index: int, view: int) -> np.ndarray:
-        key = (record_index, view)
-        if key not in self._cache:
-            relative = Path(self.records[record_index]["images"][view]["path"])
-            path = (self.dir / relative).resolve()
-            try:
-                path.relative_to(self.dir.resolve())
-            except ValueError as exc:
-                raise ValueError(f"fixture image escapes its root: {relative}") from exc
-            import cv2
-            image = cv2.imread(str(path), cv2.IMREAD_COLOR)
-            if image is None:
-                raise ValueError(f"could not decode fixture image {path}")
-            image = np.ascontiguousarray(image[:, :, ::-1])
-            digest = hashlib.sha256(image.tobytes()).hexdigest()
-            expected = self.records[record_index]["images"][view]["array_sha256"]
-            if digest != expected:
-                raise ValueError(f"fixture image array hash mismatch: {path}")
-            self._cache[key] = image
-        return self._cache[key]
-
-    def __getitem__(self, index: int) -> Observation:
-        record_index = index % len(self.records)
-        record = self.records[record_index]
-        state = np.asarray(record["state"], dtype=np.float32)
-        if state.shape != (self.state_dim,):
-            raise ValueError(
-                f"fixture record state shape {state.shape} != {(self.state_dim,)}")
-        state_digest = hashlib.sha256(state.tobytes()).hexdigest()
-        if state_digest != record["state_sha256"]:
-            raise ValueError(f"fixture state hash mismatch in record {record_index}")
-        images = [self._load(record_index, view) for view in range(self.n_views)]
-        return Observation(index, images, state, self.task, self._noise(index))
-
-    def describe(self) -> dict:
-        return {
-            "kind": "fixture",
-            "dir": str(self.dir),
-            "fixture_sha256": self.fixture_sha256,
-            "n_records": len(self.records),
-            "hw": self.metadata.get("image_hw"),
-            "views": self.n_views,
-            "state_dim": self.state_dim,
-            "seed": self.seed,
-            "source_dataset": self.metadata.get("source_dataset"),
-            "record_ids": [
-                {
-                    "episode_index": record.get("episode_index"),
-                    "frame_index": record.get("frame_index"),
-                    "dataset_index": record.get("dataset_index"),
-                }
-                for record in self.records
-            ],
-        }
-
-
 def make_obs(spec: str, task: str, chunk_size: int, state_dim: int,
              max_action_dim: int = 32, seed: int = 1234,
              n_views: int = 1) -> ObsSource:
@@ -275,9 +171,4 @@ def make_obs(spec: str, task: str, chunk_size: int, state_dim: int,
     if spec.startswith("frames:"):
         return FrameDirObs(spec.split(":", 1)[1], task, chunk_size, state_dim,
                            max_action_dim, seed, n_views=n_views)
-    if spec.startswith("fixture:"):
-        return FixtureObs(spec.split(":", 1)[1], task, chunk_size, state_dim,
-                          max_action_dim, seed, n_views=n_views)
-    raise ValueError(
-        f"unknown obs spec {spec!r} "
-        "(want 'synthetic', 'frames:DIR', or 'fixture:DIR')")
+    raise ValueError(f"unknown obs spec {spec!r} (want 'synthetic' or 'frames:DIR')")

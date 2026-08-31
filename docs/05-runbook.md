@@ -1,111 +1,85 @@
-# 5. Benchmark runbook
+# 5. Base-model benchmark runbook
 
-Run the cheapest checks first. Keep one model process active at a time because CPU and
-GPU share the same 8 GB.
+Run one model process at a time because CPU and GPU share the same 8 GB memory pool.
 
-## 1. Fetch or copy matching artifacts
-
-```bash
-scripts/fetch_models.sh smolvla-base
-scripts/fetch_models.sh xvla-base    # checkpoint only
-```
-
-For a fine-tuned policy, copy `pretrained_model/` and its split export. Confirm
-`export_info.json`, tokenizer, statistics, and checkpoint identify the same training
-artifact. Do not copy optimizer state or TensorRT engines.
-
-## 2. Prepare and verify the board
+## 1. Prepare the board
 
 ```bash
 scripts/00_host_prep.sh
 scripts/00_host_prep.sh --verify
 ```
 
-The expected state is MAXN_SUPER, pinned CPU/GPU/EMC clocks, working swap, and a
-persistent engine cache. Close memory-heavy applications before a cold build.
+The expected state is MAXN_SUPER with pinned CPU, GPU, and EMC clocks, working swap,
+and a persistent TensorRT engine cache.
 
-## 3. Build the environments
+## 2. Build the environments
+
+For SmolVLA:
 
 ```bash
 scripts/10_env_torch.sh
-scripts/13_env_torch_xvla.sh    # X-VLA only
 scripts/11_env_ort.sh
 ```
 
-Then prove the monitor is collecting real Jetson data:
+For X-VLA:
+
+```bash
+scripts/13_env_torch_xvla.sh
+scripts/11_env_ort.sh
+```
+
+Verify the measurement plumbing before trusting a result:
 
 ```bash
 .venv-torch/bin/python -m bench selftest --seconds 4
 ```
 
-Expect `TegrastatsMonitor` and populated power/GPU fields.
-
-## 4. Record the Torch reference
+## 3. Download one base model
 
 ```bash
-M=smolvla-base
-CKPT=~/bundles/$M-torch
-BUNDLE=~/bundles/$M-split
-
-.venv-torch/bin/python -m bench torch --model "$M" --checkpoint "$CKPT" \
-    --weights float32 --autocast off --iters 30 --label "$M.torch-fp32"
+hf auth login  # required only while eetmie/* is private
+scripts/fetch_models.sh smolvla-base
+# or:
+scripts/fetch_models.sh xvla-base
 ```
 
-For X-VLA use `.venv-torch-xvla`. If the reference cannot run, record the failure and
-do not claim on-device elementwise parity.
-
-## 5. Run the split deployment path
-
-The first invocation builds engines serially and can take several minutes. Later runs
-reuse the persistent cache.
-
-```bash
-.venv-ort/bin/python -m bench ort-split --model "$M" --bundle "$BUNDLE" \
-    --precision fp16 --views 2 --iters 100 --label "$M.ort-split"
-```
-
-For X-VLA, use the view count baked into the bundle. Confirm heavy graphs produced
-`.engine` files; provider priority alone does not prove TensorRT executed the graph.
-
-For a thermal run:
-
-```bash
-.venv-ort/bin/python -m bench ort-split --model "$M" --bundle "$BUNDLE" \
-    --precision fp16 --views 2 --duration-s 300 --label "$M.ort-split.sustained"
-```
-
-Read latency drift and peak junction temperature together.
-
-## 6. Check parity and generate the report
-
-```bash
-.venv-torch/bin/python -m bench parity results --reference "$M.torch-fp32"
-.venv-torch/bin/python -m bench report results --out docs/RESULTS.md
-```
-
-A finite action is not enough. Check the signed cosine, maximum absolute difference,
-percentage of action range, observation fingerprint, noise fingerprint, and bundle
-identity. Commit result JSONs with the generated summary.
-
-The complete supported matrix is:
+## 4. Run the complete recipe
 
 ```bash
 MODEL=smolvla-base scripts/run_all.sh
 MODEL=xvla-base scripts/run_all.sh
 ```
 
-## Real observations
+The script records a PyTorch FP32 reference, the split ONNX FP16 deployment, and a
+sustained thermal run when the required environments and artifacts are present. Set
+`SUSTAINED=0` to skip the five-minute sustained pass.
 
-Synthetic inputs are suitable for timing and resource measurements. Use recorded frames
-when action differences matter, and feed exactly the same frames to every backend:
+The default observation is deterministic and in memory, so no camera or robot hardware
+is needed.
+
+## 5. Run one backend
 
 ```bash
-python -m bench.tools.extract_frames --video <episode.mp4> \
-    --out frames/ --count 30 --stride 10
+M=smolvla-base
 
-python -m bench ort-split --model "$M" --bundle "$BUNDLE" \
-    --obs frames:frames/ --label "$M.real-frames"
+.venv-torch/bin/python -m bench torch \
+    --model "$M" --checkpoint ~/bundles/$M-torch \
+    --iters 30
+
+.venv-ort/bin/python -m bench ort-split \
+    --model "$M" --bundle ~/bundles/$M-split \
+    --views 2 --iters 100
 ```
 
-Camera capture, USB, control, and logging remain outside this harness and must be timed
-in the robot process.
+For X-VLA, use `.venv-torch-xvla` and `--views 3`.
+
+## 6. Compare and report
+
+```bash
+python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \\
+    --reference smolvla-base.torch
+python -m bench report results --out docs/RESULTS.md
+```
+
+Every result JSON records latency, memory, CPU, power, thermals, board state, runtime
+versions, and enough saved actions for a like-for-like parity check.

@@ -1,11 +1,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# VENDORED from kaivuriprokkis @ df54f3c — lerobot_vla/smolvla_split.py
+# VENDORED split-engine SmolVLA runtime.
 #
-# This is the split-engine SmolVLA runtime that actually drives the MASI
-# excavator: the 9-graph ONNX export run through ONNX Runtime with the TensorRT
-# execution provider, flow-matching denoise loop in numpy. It is copied here
-# rather than imported so this benchmark repo stands alone, and so the exact code
-# that produced a number is pinned next to that number.
+# The nine-graph ONNX export runs through ONNX Runtime with the TensorRT execution
+# provider and a flow-matching denoise loop in NumPy. It is copied here rather than
+# imported so the benchmark stands alone and the measured code stays pinned beside
+# its result.
 #
 # ONLY MODIFICATION vs the original: the engine-prebuild subprocess invokes this
 # module as `bench.vendor.smolvla_split` instead of `lerobot_vla.smolvla_split`
@@ -17,8 +16,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 """SmolVLA split-engine inference — ONNX Runtime + TensorRT EP, numpy only.
 
-Runs the 9-graph split export (see spark-projects/orin-nano/smolvla-runtime/
-exports/ainekko_base_split) with the flow-matching denoise loop in Python:
+Runs the verified nine-graph SmolVLA base export with the flow-matching denoise loop
+in Python:
 
     vision (x per camera) + text + state_proj  ->  prefix embeddings [1,177,960]
     expert_prefill (once)                      ->  KV cache
@@ -31,10 +30,9 @@ that killed the monolithic export (notes/findings.md, 2026-06-16/17).
 
 Orchestration mirrors github.com/aifoundry-org/ETARS modeling_smolvla_ort.py,
 checked against lerobot 0.5.1 modeling_smolvla.py. The prefix length is read
-from the prefill graph at load time — it depends on how many camera slots the
-bundle was exported with (ainekko base: 2 slots -> 177 = 2x64 + 48 lang + 1
-state; our single-camera excavator export: 1 slot -> 113). Chunk 50; padded
-action dim 32.
+from the prefill graph at load time. The base bundle has two camera slots:
+177 = 2×64 image tokens + 48 language tokens + 1 state token. The action chunk is
+50 and the padded action width is 32.
 
 Heavy graphs (vision / prefill / decode) run on the TensorRT EP with an
 on-disk engine cache; tiny projectors and the text embedding run on CPU.
@@ -56,19 +54,14 @@ LOG = logging.getLogger("smolvla_split")
 VLM_DIM = 960
 EXPERT_DIM = 720
 IMG_TOKENS = 64
-# Camera slots (and with them the prefix length) are baked into the prefill
-# graph at export time and DIFFER between bundles: the ainekko base export has
-# 2 slots (prefix 64+64+48+1 = 177), our fine-tuned excavator export has 1
-# (64+48+1 = 113). The real value is read from the graph in __init__;
-# this is only the fallback when the graph axis is dynamic.
+# Camera slots and prefix length are baked into the prefill graph. The verified base
+# bundle has two slots (64+64+48+1 = 177). The real value is read from the graph;
+# this constant is only the fallback when the graph axis is dynamic.
 DEFAULT_NUM_CAM_SLOTS = 2
 LANG_LEN = 48
-# The action chunk length is baked into the expert-decode graph at export time and
-# DIFFERS between bundles: lerobot/smolvla_base and every excavator export so far use
-# 50, but a bundle trained with --policy.chunk_size=12 or 30 carries that instead. The
-# real value is read from the graph in __init__; this is only the fallback when the
-# graph axis is dynamic. Feeding a 50-step suffix to a 12-step graph is a shape error,
-# and feeding 12 to a 50-step graph would silently under-drive the action head.
+# The action chunk length is baked into the expert-decode graph. The verified base
+# bundle uses 50; the graph remains the authority and this is only a dynamic-axis
+# fallback.
 DEFAULT_CHUNK_SIZE = 50
 MAX_ACTION_DIM = 32
 MAX_STATE_DIM = 32
@@ -271,9 +264,8 @@ class SmolVLASplitPolicy:
                             if i.name.startswith("past_key_"))
         LOG.info("decode expects %d KV layers", self.n_layers)
 
-        # Ask the prefill for its KV outputs BY NAME. Output order differs
-        # between bundles (ainekko base emits a leading vlm_output_embeds, our
-        # excavator export emits only the 32 KV tensors); names are stable.
+        # Ask the prefill for its KV outputs by name. Names are stable even when an
+        # exporter changes output ordering.
         self._prefill_kv_names = [
             name for i in range(self.n_layers)
             for name in (f"present_key_{i}", f"present_value_{i}")]
@@ -333,10 +325,8 @@ class SmolVLASplitPolicy:
     def _run_single(sess, value: np.ndarray) -> np.ndarray:
         """Run a single-input graph, feeding by the graph's DECLARED input name.
 
-        Tensor names differ between export generations (ainekko base: 'time' /
-        'action'; our exporter: 'action_time' / 'expert_out' / 'hidden'), but
-        every one of these graphs takes exactly one input of identical shape,
-        so binding by declared name works for all bundles.
+        Exporter versions use different tensor names, but each projector graph takes one
+        input of the same shape, so binding by its declared name is stable.
         """
         return sess.run(None, {sess.get_inputs()[0].name: value})[0]
 

@@ -1,100 +1,83 @@
 # jetson-orin-nano-vla
 
-A focused benchmark and deployment harness for running VLA policies on an **8 GB
-Jetson Orin Nano Super**.
+Recipes and measurements for running two public base VLA models on an **8 GB Jetson
+Orin Nano Super**. The repository intentionally supports only these models:
 
-The supported runtime matrix is deliberately small:
-
-| model | PyTorch reference | Jetson deployment |
+| model | upstream checkpoint | split ONNX bundle |
 |---|---|---|
-| `smolvla-base` (450 M) | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | split ONNX on ONNX Runtime + TensorRT |
-| `xvla-base` (880 M) | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | split ONNX on ONNX Runtime + TensorRT |
+| SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
+| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
 
-The benchmark records latency, parity, process and system memory, CPU use, board power,
-thermals, and per-graph time. Unsplit whole-policy TensorRT builds are not supported:
-they exceed the board's unified-memory budget.
+The two split repositories are currently private and require `hf auth login`; the same
+links will work without authentication when they are made public. Their bundle metadata
+and graph manifests have been checked against the runtime contracts in this repository.
 
-## Current speeds
+## Measured fit
 
-Latest retained measurements on the pinned Orin Nano, using in-memory observations:
+Retained base-model runs use pinned MAXN_SUPER clocks and deterministic synthetic
+observations. They measure inference cost, not robot-task quality.
 
-| path | views | p50 ms | p95 ms | Hz | status |
-|---|---:|---:|---:|---:|---|
-| SmolVLA PyTorch FP32 | 2 | 1167.93 | 1176.65 | 0.856 | numerical reference |
-| SmolVLA split FP16 | 2 | 189.89 | 190.93 | 5.248 | unmodified export |
-| SmolVLA split FP16, vision candidate | 2 | **164.66** | **165.88** | **6.044** | experimental |
-| X-VLA split FP16 | 3 | 415.94 | 418.01 | 2.40 | retained base baseline |
-| X-VLA digging smoke split FP16 | 1 | **348.81** | **353.74** | **2.87** | parity + placement PASS |
-| X-VLA digging smoke, real IR fixture | 1 | 359.92 | 365.97 | 2.79 | real-input parity PASS |
+| model / runtime | views | p50 | p95 | rate |
+|---|---:|---:|---:|---:|
+| SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz |
+| SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
+| X-VLA split ONNX FP16 | 3 | 415.94 ms | 418.01 ms | 2.40 Hz |
 
-The fine-tuned X-VLA rows are a mechanical deployment of the 250-step smoke checkpoint,
-not a task-quality claim. On eight held-out recorded IR observations, TensorRT is 5.8×
-faster than its Jetson PyTorch FP32 reference and passes the physical-action gate; see
-[`results/xvla-digging-contract/`](results/xvla-digging-contract/).
-A fresh TensorRT process is bit-identical. CPU ORT FP32 also passes against Torch, and
-one non-headline ORT profile confirms measured TensorRT execution for all 12 split graphs
-with no CUDA/CPU fallback node events.
+Both ONNX bundles fit because the large policies are split into independently built
+TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
+budget. Full memory, power, CPU, thermal, and per-graph measurements are in
+[the generated results](docs/RESULTS.md).
 
-The SmolVLA candidate removes redundant vision NaN guards. It is repeatable and faster,
-but is not the default: its FP32-reference parity is cosine 0.9989535 and 1.566% of
-action range, outside this repo's strict 0.999 / 1% gate. See
-[`results/audit-patch-smolvla/`](results/audit-patch-smolvla/) for the signed evidence.
-
-On the current fine-tuned `kaivuriprokkis` one-IR pipeline, the model call measured
-201.94 ms p50 / 210.21 ms p95; the complete live inference loop is about 230 ms. That
-deployment measurement is useful context, but is separate from the retained synthetic
-benchmark rows above.
-
-## Quickstart
+## Run SmolVLA base
 
 ```bash
 scripts/00_host_prep.sh
 scripts/10_env_torch.sh
-scripts/13_env_torch_xvla.sh    # only for X-VLA
 scripts/11_env_ort.sh
-
-.venv-torch/bin/python -m bench selftest
 scripts/fetch_models.sh smolvla-base
+
 MODEL=smolvla-base scripts/run_all.sh
 ```
 
-Run one backend:
+## Run X-VLA base
 
 ```bash
-python -m bench torch --model smolvla-base \
-    --checkpoint ~/bundles/smolvla-base-torch --weights float32 --iters 30
+scripts/00_host_prep.sh
+scripts/13_env_torch_xvla.sh
+scripts/11_env_ort.sh
+scripts/fetch_models.sh xvla-base
 
-python -m bench ort-split --model smolvla-base \
-    --bundle ~/bundles/smolvla-base-split --views 2 --iters 100
-
-python -m bench parity results --reference smolvla-base.torch-fp32
-python -m bench report results --out docs/RESULTS.md
+MODEL=xvla-base scripts/run_all.sh
 ```
 
-A local fine-tuned policy uses the same path:
+The first ONNX run builds TensorRT engines serially and takes several minutes. Later
+runs reuse the persistent cache. No camera is required: the benchmark defaults to
+deterministic in-memory observations.
+
+Run only the deployment path with:
 
 ```bash
-python -m bench ort-split --family smolvla --bundle ~/bundles/my-split-export \
-    --state-dim 3 --action-dim 4 --label mine.ort-split
+.venv-ort/bin/python -m bench ort-split \
+    --model smolvla-base \
+    --bundle ~/bundles/smolvla-base-split \
+    --iters 100
 ```
 
 ## Documentation
 
-- [Host setup](docs/01-host-setup.md): board state, swap, and engine cache
-- [Environments](docs/02-environments.md): the three isolated Python environments
-- [Backends](docs/03-backends.md): supported models, runtime contracts, and exports
-- [Metrics](docs/04-metrics.md): how results and parity are interpreted
-- [Runbook](docs/05-runbook.md): a complete benchmark pass
-- [Optimization status](docs/06-optimization-backlog.md): retained wins and open gates
-- [Audit log](docs/07-audit-followups.md): detailed findings and Spark → Jetson handoff
-- [Generated results](docs/RESULTS.md): summary of committed run JSONs
+- [Host setup](docs/01-host-setup.md)
+- [Python environments](docs/02-environments.md)
+- [Model and runtime contracts](docs/03-backends.md)
+- [Metric definitions](docs/04-metrics.md)
+- [Benchmark runbook](docs/05-runbook.md)
+- [Base-model results](docs/RESULTS.md)
 
-## Scope and licence
+## Scope
 
-This repository benchmarks model inference. It does not open cameras or drive a robot,
-so capture, USB, control, and logging overhead must be measured on the target system.
-TensorRT engines are built on the Jetson and are never copied between machines; ONNX
-bundles are the portable artifacts.
+This repository downloads, runs, and compares the two base checkpoints. It does not
+contain training, fine-tuning, robot control, camera capture, task-specific checkpoints,
+or experimental model variants. TensorRT engines are built on the Jetson and are never
+copied between machines; the ONNX bundles are the portable artifacts.
 
-Repository code is MIT. Model weights and derived exports remain under their upstream
-Apache 2.0 licences.
+Repository code is MIT. Model weights and derived exports retain their upstream
+Apache-2.0 licenses.
