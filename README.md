@@ -23,7 +23,17 @@ Latest retained measurements on the pinned Orin Nano, using in-memory observatio
 | SmolVLA PyTorch FP32 | 2 | 1167.93 | 1176.65 | 0.856 | numerical reference |
 | SmolVLA split FP16 | 2 | 189.89 | 190.93 | 5.248 | unmodified export |
 | SmolVLA split FP16, vision candidate | 2 | **164.66** | **165.88** | **6.044** | experimental |
-| X-VLA split FP16 | 3 | 415.94 | 418.01 | 2.40 | retained baseline; re-audit pending |
+| X-VLA split FP16 | 3 | 415.94 | 418.01 | 2.40 | retained base baseline |
+| X-VLA digging smoke split FP16 | 1 | **348.81** | **353.74** | **2.87** | parity + placement PASS |
+| X-VLA digging smoke, real IR fixture | 1 | 359.92 | 365.97 | 2.79 | real-input parity PASS |
+
+The fine-tuned X-VLA rows are a mechanical deployment of the 250-step smoke checkpoint,
+not a task-quality claim. On eight held-out recorded IR observations, TensorRT is 5.8×
+faster than its Jetson PyTorch FP32 reference and passes the physical-action gate; see
+[`results/xvla-digging-contract/`](results/xvla-digging-contract/).
+A fresh TensorRT process is bit-identical. CPU ORT FP32 also passes against Torch, and
+one non-headline ORT profile confirms measured TensorRT execution for all 12 split graphs
+with no CUDA/CPU fallback node events.
 
 The SmolVLA candidate removes redundant vision NaN guards. It is repeatable and faster,
 but is not the default: its FP32-reference parity is cosine 0.9989535 and 1.566% of

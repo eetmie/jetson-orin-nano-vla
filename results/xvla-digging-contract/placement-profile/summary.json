@@ -1,0 +1,297 @@
+{
+  "action_shape": [
+    50,
+    4
+  ],
+  "bundle": "/home/joel/bundles/xvla-digging-000250-contract",
+  "bundle_checkpoint_tree_sha256": "1d8991494a24b209cea3b500e5098b7a49c19768e9937f1531dd28ae90702260",
+  "cache": {
+    "manifest": "/home/joel/.cache/jetson-orin-nano-vla/trt/xvla-digging-000250-contract-fp16/xvla_engine_cache_manifest.json",
+    "n_files": 13,
+    "status": "hit"
+  },
+  "configured_provider_priority": {
+    "cond": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "denoise_0": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "denoise_1": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "denoise_2": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "denoise_3": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "text_encoder_0": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "text_encoder_1": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "text_encoder_2": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "vision_0": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "vision_1": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "vision_2": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "vision_3": [
+      "TensorrtExecutionProvider",
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "environment": {
+    "hostname": "localhost.localdomain",
+    "kernel": "6.8.12-1021-tegra",
+    "machine": "aarch64",
+    "onnxruntime": "1.24.0"
+  },
+  "infer_ms_with_profiling": 609.065,
+  "load": {
+    "cache_validation_s": 4.809,
+    "session_creation_s": 23.464
+  },
+  "num_steps": 10,
+  "per_graph": {
+    "cond": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 2.567,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_17087690241631510080_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "denoise_0": {
+      "event_count": 32,
+      "node_event_count": 10,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 77.515,
+          "event_count": 10,
+          "ops": {
+            "TRTKernel_graph_main_graph_10559908243597652118_0": 10
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "denoise_1": {
+      "event_count": 32,
+      "node_event_count": 10,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 76.258,
+          "event_count": 10,
+          "ops": {
+            "TRTKernel_graph_main_graph_7007716717426761609_0": 10
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "denoise_2": {
+      "event_count": 32,
+      "node_event_count": 10,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 76.336,
+          "event_count": 10,
+          "ops": {
+            "TRTKernel_graph_main_graph_8662004350012450541_0": 10
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "denoise_3": {
+      "event_count": 32,
+      "node_event_count": 10,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 76.227,
+          "event_count": 10,
+          "ops": {
+            "TRTKernel_graph_main_graph_18199878169770142659_0": 10
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "text_encoder_0": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 6.555,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_12816736147958107946_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "text_encoder_1": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 5.002,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_10441669221466827530_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "text_encoder_2": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 1.839,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_12582497381983305641_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "vision_0": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 53.815,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_2212030812924336662_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "vision_1": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 21.602,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_15733031875646982023_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "vision_2": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 16.001,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_6311573954510219423_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    },
+    "vision_3": {
+      "event_count": 5,
+      "node_event_count": 1,
+      "providers": {
+        "TensorrtExecutionProvider": {
+          "duration_ms": 11.464,
+          "event_count": 1,
+          "ops": {
+            "TRTKernel_graph_main_graph_11564699819336825699_0": 1
+          },
+          "unique_node_count": 1
+        }
+      },
+      "unassigned_node_event_count": 0
+    }
+  },
+  "placement": {
+    "expected_graphs": 12,
+    "fallbacks": {},
+    "graphs_with_trt_nodes": 12,
+    "graphs_without_trt_nodes": [],
+    "missing_profiles": [],
+    "profiled_graphs": 12,
+    "status": "pass"
+  },
+  "precision": "fp16",
+  "raw_profiles": {
+    "cond": "raw/cond.json.gz",
+    "denoise_0": "raw/denoise_0.json.gz",
+    "denoise_1": "raw/denoise_1.json.gz",
+    "denoise_2": "raw/denoise_2.json.gz",
+    "denoise_3": "raw/denoise_3.json.gz",
+    "text_encoder_0": "raw/text_encoder_0.json.gz",
+    "text_encoder_1": "raw/text_encoder_1.json.gz",
+    "text_encoder_2": "raw/text_encoder_2.json.gz",
+    "vision_0": "raw/vision_0.json.gz",
+    "vision_1": "raw/vision_1.json.gz",
+    "vision_2": "raw/vision_2.json.gz",
+    "vision_3": "raw/vision_3.json.gz"
+  },
+  "scope": "single synthetic validation inference; not a latency headline",
+  "seed": 1234,
+  "status": "ok",
+  "task": "move the sand to the container"
+}

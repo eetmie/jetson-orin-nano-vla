@@ -1,0 +1,84 @@
+{
+  "reference": "xvla-digging-000250.torch-fp32-real-ir",
+  "reference_file": "results/xvla-digging-contract/torch-fp32-real-ir.json",
+  "comparisons": [
+    {
+      "reference": "xvla-digging-000250.torch-fp32-real-ir",
+      "candidate": "xvla-digging-000250.ort-cpu-fp32-real-ir",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0003103,
+      "mean_abs_diff": 2.043e-05,
+      "reference_action_range": 1.4731,
+      "max_abs_diff_pct_of_range": 0.021,
+      "first_action_max_abs_diff": 0.0001705,
+      "verdict": "PASS"
+    },
+    {
+      "reference": "xvla-digging-000250.torch-fp32-real-ir",
+      "candidate": "xvla-digging-000250.ort-fp16-real-ir",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 0.9999763,
+      "cosine_mean": 0.9999944,
+      "max_abs_diff": 0.005809,
+      "mean_abs_diff": 0.0006798,
+      "reference_action_range": 1.4731,
+      "max_abs_diff_pct_of_range": 0.394,
+      "first_action_max_abs_diff": 0.004876,
+      "verdict": "PASS"
+    },
+    {
+      "reference": "xvla-digging-000250.torch-fp32-real-ir",
+      "candidate": "xvla-digging-000250.ort-fp16-real-ir-repeat",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 0.9999763,
+      "cosine_mean": 0.9999944,
+      "max_abs_diff": 0.005809,
+      "mean_abs_diff": 0.0006798,
+      "reference_action_range": 1.4731,
+      "max_abs_diff_pct_of_range": 0.394,
+      "first_action_max_abs_diff": 0.004876,
+      "verdict": "PASS"
+    }
+  ]
+}

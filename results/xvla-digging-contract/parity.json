@@ -1,0 +1,58 @@
+{
+  "reference": "xvla-digging-000250.torch-fp32-contract-1cam",
+  "reference_file": "results/xvla-digging-contract/torch-fp32.json",
+  "comparisons": [
+    {
+      "reference": "xvla-digging-000250.torch-fp32-contract-1cam",
+      "candidate": "xvla-digging-000250.ort-fp16-contract-1cam",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 0.9999994,
+      "cosine_mean": 0.9999998,
+      "max_abs_diff": 0.001221,
+      "mean_abs_diff": 0.0001857,
+      "reference_action_range": 1.4665,
+      "max_abs_diff_pct_of_range": 0.083,
+      "first_action_max_abs_diff": 0.0006933,
+      "verdict": "PASS"
+    },
+    {
+      "reference": "xvla-digging-000250.torch-fp32-contract-1cam",
+      "candidate": "xvla-digging-000250.ort-fp16-contract-1cam-repeat",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 0.9999994,
+      "cosine_mean": 0.9999998,
+      "max_abs_diff": 0.001221,
+      "mean_abs_diff": 0.0001857,
+      "reference_action_range": 1.4665,
+      "max_abs_diff_pct_of_range": 0.083,
+      "first_action_max_abs_diff": 0.0006933,
+      "verdict": "PASS"
+    }
+  ]
+}

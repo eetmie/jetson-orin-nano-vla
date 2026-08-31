@@ -70,8 +70,10 @@ scripts/00_host_prep.sh --verify | head -20
 
 # 1. PyTorch first: no export, no engine build. If this fails, the problem is the
 #    environment rather than any backend.
+TORCH_BUNDLE_ARGS=()
+[[ -d "$BUNDLE" ]] && TORCH_BUNDLE_ARGS+=(--bundle "$BUNDLE")
 run "$VENV_TORCH" "$MODEL.torch-fp32" torch --checkpoint "$CKPT" \
-    --weights float32 --autocast off "${COMMON[@]}"
+    --weights float32 --autocast off "${TORCH_BUNDLE_ARGS[@]}" "${COMMON[@]}"
 
 # 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
 #    for SmolVLA, ~10 for X-VLA. Later runs load from cache in seconds.
