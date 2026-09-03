@@ -20,7 +20,7 @@ They measure inference cost, not robot-task quality.
 | SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz |
 | SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
 | X-VLA split ONNX FP16 | 3 | 415.94 ms | 418.01 ms | 2.40 Hz |
-| EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.24 ms | 295.95 ms | 3.44 Hz |
+| EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.08 ms | 3.46 Hz |
 
 The split bundles fit because the large policies are divided into independently built
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
