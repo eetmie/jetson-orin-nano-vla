@@ -58,7 +58,8 @@ class Observation:
 class ObsSource:
     def __init__(self, task: str, chunk_size: int, state_dim: int,
                  max_action_dim: int = 32, seed: int = 1234,
-                 state_scale: float = 20.0, n_views: int = 1):
+                 state_scale: float = 20.0, n_views: int = 1,
+                 noise_distribution: str = "normal"):
         self.task = task
         self.chunk_size = chunk_size
         self.state_dim = state_dim
@@ -66,6 +67,9 @@ class ObsSource:
         self.seed = seed
         self.state_scale = state_scale
         self.n_views = n_views
+        if noise_distribution not in {"normal", "uniform"}:
+            raise ValueError(f"unknown noise distribution {noise_distribution!r}")
+        self.noise_distribution = noise_distribution
 
     def _rng(self, index: int) -> np.random.Generator:
         # Per-index seeding, so obs[i] does not depend on how many were drawn before
@@ -79,8 +83,10 @@ class ObsSource:
     def _noise(self, index: int) -> np.ndarray:
         # Own generator so the noise draw is unaffected by image/state generation.
         r = np.random.default_rng([self.seed, index, 991])
-        return r.standard_normal(
-            (1, self.chunk_size, self.max_action_dim)).astype(np.float32)
+        shape = (1, self.chunk_size, self.max_action_dim)
+        if self.noise_distribution == "uniform":
+            return r.uniform(-1.0, 1.0, shape).astype(np.float32)
+        return r.standard_normal(shape).astype(np.float32)
 
     def __getitem__(self, index: int) -> Observation:
         raise NotImplementedError
@@ -122,7 +128,7 @@ class SyntheticObs(ObsSource):
 
     def describe(self) -> dict:
         return {"kind": "synthetic", "hw": [self.h, self.w], "views": self.n_views,
-                "seed": self.seed,
+                "seed": self.seed, "noise_distribution": self.noise_distribution,
                 "note": "procedural scene; action VALUES are not physically meaningful"}
 
 
@@ -158,17 +164,19 @@ class FrameDirObs(ObsSource):
 
     def describe(self) -> dict:
         return {"kind": "frames", "dir": str(self.dir), "n_files": len(self.files),
-                "views": self.n_views, "seed": self.seed}
+                "views": self.n_views, "seed": self.seed,
+                "noise_distribution": self.noise_distribution}
 
 
 def make_obs(spec: str, task: str, chunk_size: int, state_dim: int,
              max_action_dim: int = 32, seed: int = 1234,
-             n_views: int = 1) -> ObsSource:
+             n_views: int = 1, noise_distribution: str = "normal") -> ObsSource:
     """`synthetic` or `frames:/path/to/dir`."""
     if spec == "synthetic":
         return SyntheticObs(task, chunk_size, state_dim, max_action_dim, seed,
-                            n_views=n_views)
+                            n_views=n_views, noise_distribution=noise_distribution)
     if spec.startswith("frames:"):
         return FrameDirObs(spec.split(":", 1)[1], task, chunk_size, state_dim,
-                           max_action_dim, seed, n_views=n_views)
+                           max_action_dim, seed, n_views=n_views,
+                           noise_distribution=noise_distribution)
     raise ValueError(f"unknown obs spec {spec!r} (want 'synthetic' or 'frames:DIR')")

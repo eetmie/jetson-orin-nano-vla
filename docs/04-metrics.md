@@ -61,8 +61,9 @@ reported for both the idle and the load window, so the difference is what infere
 itself takes rather than what merely sitting there costs.
 
 This is where the backends genuinely differ. The retained SmolVLA base run places
-seven graphs on TensorRT and two on CPU; X-VLA places all twelve on TensorRT. Both
-still have Python orchestration around the denoising loop. The
+seven graphs on TensorRT and two on CPU; X-VLA places all twelve on TensorRT.
+EVO1 places ten compute graphs on TensorRT and its FP32 token embedding on CPU.
+All three still have Python orchestration around the denoising loop. The
 `latency_breakdown_ms` fields `graphs_gpu`, `graphs_cpu`, and `python_numpy`
 show the measured split explicitly.
 
@@ -110,6 +111,12 @@ backend is frugal.
 Speed is only interesting if the actions survive. Because every backend is fed the
 same seeded observation **and the same flow-matching noise draw**, action chunks line
 up element by element and cosine means what it looks like it means.
+
+SmolVLA and X-VLA use deterministic normal draws; EVO1 uses its native uniform
+`[-1, 1]` initial noise. EVO1 has no deployable PyTorch reference in this repository,
+so its checksummed bundle embeds a native LeRobot 0.6.1 fixture. The EVO1 backend
+validates stored graph boundaries and the complete raw-observation action path during
+load, and fails before measurement if gated cosine is below 0.999.
 
 | verdict | when |
 |---|---|

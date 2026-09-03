@@ -53,8 +53,11 @@ class Backend:
 # ── bundle plumbing ──────────────────────────────────────────────────────────
 
 def load_export_info(bundle: Path) -> dict:
-    f = bundle / "export_info.json"
-    return json.loads(f.read_text()) if f.exists() else {}
+    for name in ("export_info.json", "bundle.json"):
+        path = bundle / name
+        if path.exists():
+            return json.loads(path.read_text())
+    return {}
 
 
 def file_sha256(path: Path) -> str | None:
