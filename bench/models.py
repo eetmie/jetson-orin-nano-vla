@@ -8,7 +8,7 @@ itself at load time, because the artefact is the authority: chunk length and cam
 slot count are baked into the exported graphs and differ between exports of the same
 model.
 
-Two families are wired up.
+Two deployable base families and one EVO1 bootstrap profile are wired up.
 
 `smolvla`  450 M. Vision + text + a Gemma-ish expert, prefilled once into a KV cache,
            then a flow-matching decode loop of `num_steps` Euler updates.
@@ -19,6 +19,10 @@ Two families are wired up.
            fixed noise draw against the current action estimate. Porting SmolVLA's
            update here yields plausible-looking garbage, which is exactly why the two
            families get separate runtimes rather than a shared "denoise loop".
+`evo1`     775 M in the current bootstrap export. InternVL3 vision/language stages feed
+           a cached action context and a 32-step Euler flow loop. The present action
+           head is deterministic random initialization, so it is an infrastructure
+           benchmark only and is explicitly rejected for robot control.
 
 Base weights are not task-specific robot policies. They are used here only for latency,
 memory, CPU, power, and same-weight runtime parity.
@@ -33,7 +37,7 @@ from pathlib import Path
 @dataclass
 class ModelSpec:
     key: str
-    family: str                       # "smolvla" | "xvla"
+    family: str                       # "smolvla" | "xvla" | "evo1"
     label: str
     params_m: float
 
@@ -52,6 +56,7 @@ class ModelSpec:
     #: an unused slot still occupies its image tokens in the prefix, so PyTorch has to
     #: pad to the same count or the two runtimes compute different-length sequences.
     cam_slots: int | None = None
+    noise_distribution: str = "normal"
 
     notes: str = ""
     extras: dict = field(default_factory=dict)
@@ -111,6 +116,31 @@ REGISTRY: dict[str, ModelSpec] = {
               "forward pass, so one camera means a batch-1 vision engine.",
         extras={"action_mode": "ee6d", "num_image_views": 3, "lang_len": 50,
                 "requires_lerobot": "0.6.1"},
+    ),
+    "evo1-bootstrap": ModelSpec(
+        key="evo1-bootstrap",
+        family="evo1",
+        label="EVO1 775M (nondeployable bootstrap)",
+        params_m=775.2,
+        torch_repo=None,
+        split_repo=None,
+        tokenizer="bundle",
+        task="move sand to the container",
+        chunk_size=50,
+        num_steps=32,
+        state_dim=24,
+        action_dim=24,
+        image_views=1,
+        cam_slots=1,
+        noise_distribution="uniform",
+        notes="Infrastructure benchmark only: deterministic random action head; never "
+              "use its actions to control a robot.",
+        extras={
+            "deployable": False,
+            "requires_lerobot": "0.6.1",
+            "vlm_base": "OpenGVLab/InternVL3-1B-hf",
+            "vlm_revision": "014c0583a0d4bedf29fbe2dbff4f865eb998e171",
+        },
     ),
 }
 

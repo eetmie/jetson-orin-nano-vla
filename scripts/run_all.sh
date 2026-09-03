@@ -3,9 +3,11 @@
 #
 #   MODEL=smolvla-base scripts/run_all.sh
 #   MODEL=xvla-base    scripts/run_all.sh
+#   MODEL=evo1-bootstrap BUNDLE=/path/to/bundle scripts/run_all.sh
 #
 # VIEWS must match the selected export bundle. Camera count is static for X-VLA and
-# camera slots change SmolVLA sequence shape, so cross-view sweeps need separate bundles.
+# EVO1, while camera slots change SmolVLA sequence shape. Cross-view sweeps need
+# separate bundles.
 #
 # Each backend runs in its own venv (they cannot share one — see docs/02). Every run
 # writes results/<label>.json and the script keeps going if one fails, because "this
@@ -22,11 +24,16 @@ OBS="${OBS:-synthetic}"
 case "$MODEL" in
     smolvla-base) MODEL_FAMILY=smolvla ;;
     xvla-base)    MODEL_FAMILY=xvla ;;
-    *) echo "MODEL must be smolvla-base or xvla-base"; exit 2 ;;
+    evo1-bootstrap) MODEL_FAMILY=evo1 ;;
+    *) echo "MODEL must be smolvla-base, xvla-base, or evo1-bootstrap"; exit 2 ;;
 esac
 VIEWS="${VIEWS:-}"
 if [[ -z "$VIEWS" ]]; then
-    [[ "$MODEL_FAMILY" == "xvla" ]] && VIEWS=3 || VIEWS=2
+    case "$MODEL_FAMILY" in
+        xvla) VIEWS=3 ;;
+        evo1) VIEWS=1 ;;
+        *) VIEWS=2 ;;
+    esac
 fi
 
 MODEL_ARGS=(--model "$MODEL")
@@ -36,6 +43,8 @@ COMMON=(--iters "$ITERS" --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}")
 
 if [[ "$MODEL_FAMILY" == "xvla" ]]; then
     VENV_TORCH="${VENV_TORCH:-.venv-torch-xvla}"
+elif [[ "$MODEL_FAMILY" == "evo1" ]]; then
+    VENV_TORCH="${VENV_TORCH:-.venv-ort}"
 else
     VENV_TORCH="${VENV_TORCH:-.venv-torch}"
 fi
@@ -57,10 +66,14 @@ scripts/00_host_prep.sh --verify | head -20
 
 # 1. PyTorch first: no export, no engine build. If this fails, the problem is the
 #    environment rather than any backend.
-TORCH_BUNDLE_ARGS=()
-[[ -d "$BUNDLE" ]] && TORCH_BUNDLE_ARGS+=(--bundle "$BUNDLE")
-run "$VENV_TORCH" "$MODEL.torch-fp32" torch --checkpoint "$CKPT" \
-    "${TORCH_BUNDLE_ARGS[@]}" "${COMMON[@]}"
+if [[ "$MODEL_FAMILY" == "evo1" ]]; then
+    echo "== PyTorch skipped: EVO1 is validated by the bundle native fixture =="
+else
+    TORCH_BUNDLE_ARGS=()
+    [[ -d "$BUNDLE" ]] && TORCH_BUNDLE_ARGS+=(--bundle "$BUNDLE")
+    run "$VENV_TORCH" "$MODEL.torch-fp32" torch --checkpoint "$CKPT" \
+        "${TORCH_BUNDLE_ARGS[@]}" "${COMMON[@]}"
+fi
 
 # 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
 #    for SmolVLA, ~10 for X-VLA. Later runs load from cache in seconds.
@@ -69,6 +82,8 @@ if [[ -d "$BUNDLE" ]]; then
         run "$VENV_ORT" "$MODEL.ort-split.${v}cam" ort-split --bundle "$BUNDLE" \
             --views "$v" "${COMMON[@]}"
     done
+elif [[ "$MODEL_FAMILY" == "evo1" ]]; then
+    echo "!! no EVO1 bundle at $BUNDLE — export/copy it from spark-projects"
 else
     echo "!! no split bundle at $BUNDLE — run scripts/fetch_models.sh $MODEL"
 fi

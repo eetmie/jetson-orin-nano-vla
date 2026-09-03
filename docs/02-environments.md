@@ -4,7 +4,7 @@
 |---|---|---|
 | `.venv-torch` | `torch` (SmolVLA) | lerobot **0.5.1**, JetPack-matched torch |
 | `.venv-torch-xvla` | `torch` (X-VLA) | lerobot **0.6.1** + `[xvla]` |
-| `.venv-ort` | `ort-split` | onnxruntime-gpu 1.24 + system TensorRT |
+| `.venv-ort` | `ort-split` (SmolVLA, X-VLA, EVO1) | onnxruntime-gpu 1.24 + system TensorRT |
 
 ```bash
 scripts/10_env_torch.sh        # -> .venv-torch
@@ -18,7 +18,8 @@ the X-VLA export tooling only works against the layout 0.6.1 ships (see
 trained and exported with. Do not trust the version string to tell you which layout you
 have — an install reporting `0.5.1` on this machine carries an `xvla` policy with a
 *vendored* Florence2, which is not what 0.6.1 has. Check the module, not the number.
-Only the **ONNX** backends are version-agnostic; they never import lerobot.
+The EVO1 native fixture was emitted with LeRobot 0.6.1. All **ONNX** backends
+are version-agnostic at runtime; they never import lerobot.
 
 They are separate because all three want to own torch and onnxruntime, and on this
 board those are exactly the two wheels that are painful to reinstall. One shared venv
@@ -84,6 +85,7 @@ pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"
 
 ## Version pins that matter
 
-SmolVLA uses LeRobot 0.5.1 and X-VLA uses LeRobot 0.6.1 because those are the layouts
-their verified base exports target. Tokenizer identity and sequence length are part of
+SmolVLA uses LeRobot 0.5.1; X-VLA and the EVO1 export workflow use LeRobot 0.6.1
+because those are the layouts their verified base exports target. Tokenizer identity and
+sequence length are part of
 each bundle contract; changing either means the runtimes are no longer comparable.

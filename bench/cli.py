@@ -2,8 +2,8 @@
 
 A run is a **model** crossed with a **backend**. `--model` pulls defaults out of the
 registry (`bench/models.py`): where the weights live, where a split ONNX export lives,
-which tokenizer, and the shapes needed to build an input. This repository intentionally
-registers only the two public base checkpoints.
+which tokenizer, and the shapes needed to build an input. This repository registers
+two public base checkpoints and one nondeployable EVO1 infrastructure bootstrap.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ DEFAULT_CACHE = str(Path.home() / ".cache" / "jetson-orin-nano-vla" / "trt")
 
 def _add_model(p: argparse.ArgumentParser) -> None:
     p.add_argument("--model", required=True, choices=sorted(models.REGISTRY),
-                   help="base model to benchmark; explicit artifact paths may override "
+                   help="model profile to benchmark; explicit artifact paths may override "
                         "its download locations")
     p.add_argument("--task", default=None,
                    help="instruction (default: the model's)")
@@ -84,10 +84,8 @@ class Resolved:
         self.views = args.views if args.views is not None else spec.image_views
         self.cam_slots = spec.cam_slots
         self.tokenizer = spec.tokenizer
-        self.noise_width = (
-            spec.action_dim or 20 if self.family == "xvla"
-            else int(info.get("max_action_dim", 32))
-        )
+        self.noise_width = spec.action_dim or int(info.get("max_action_dim", 32))
+        self.noise_distribution = spec.noise_distribution
 
     def label(self, args, backend_name: str) -> str:
         if args.label:
@@ -124,7 +122,8 @@ def _finish(args, backend, r: Resolved) -> int:
             f"views ({r.views}) exceeds the export camera slots ({r.cam_slots})")
 
     obs = make_obs(args.obs, r.task, r.chunk_size, r.state_dim,
-                   max_action_dim=r.noise_width, seed=args.seed, n_views=r.views)
+                   max_action_dim=r.noise_width, seed=args.seed, n_views=r.views,
+                   noise_distribution=r.noise_distribution)
     label = r.label(args, backend.name)
     result = run_benchmark(
         backend, obs, iters=args.iters, warmup=args.warmup, idle_s=args.idle_s,
@@ -133,7 +132,12 @@ def _finish(args, backend, r: Resolved) -> int:
         label=label, notes=args.notes, obs_ring_size=args.obs_ring_size)
     result["model"] = {"key": args.model, "family": r.family, "task": r.task,
                        "views": r.views, "cam_slots": r.cam_slots,
-                       "state_dim": r.state_dim, "action_dim": r.action_dim}
+                       "state_dim": r.state_dim, "action_dim": r.action_dim,
+                       "deployable": r.spec.extras.get("deployable", True)}
+    fixture_parity = result.get("meta", {}).get("fixture_parity")
+    if fixture_parity:
+        result["validity"]["parity"] = (
+            "pass" if fixture_parity.get("status") == "PASS" else "fail")
     paths = backend.artifact_paths()
     if paths:
         result["artifacts"] = artifact_manifest(paths)
@@ -160,6 +164,12 @@ def _finish(args, backend, r: Resolved) -> int:
 def cmd_torch(args) -> int:
     bundle = Path(args.bundle) if args.bundle else None
     r = Resolved(args, bundle)
+
+    if r.family == "evo1":
+        sys.exit(
+            "evo1-bootstrap has no Jetson PyTorch backend; its native LeRobot fixture "
+            "is embedded in the split bundle for parity validation"
+        )
 
     ckpt = args.checkpoint or r.spec.torch_repo
     if not ckpt:
@@ -196,17 +206,22 @@ def cmd_ort_split(args) -> int:
                      f"then pass --bundle <that path>.")
         sys.exit("--bundle is required: the split ONNX export directory.")
 
-    if r.family == "xvla":
+    if r.family == "evo1":
+        from .backends.ort_split_evo1 import OrtSplitEvo1Backend
+        be = OrtSplitEvo1Backend(
+            bundle, cache_dir=args.cache_dir, precision="fp16",
+            num_steps=args.num_steps)
+    elif r.family == "xvla":
         from .backends.ort_split_xvla import OrtSplitXVLABackend
         be = OrtSplitXVLABackend(
             bundle, cache_dir=args.cache_dir if args.cache_dir != DEFAULT_CACHE else None,
-            precision="fp16", num_steps=None,
+            precision="fp16", num_steps=args.num_steps,
             tokenizer=r.tokenizer, seed=args.seed, valid_views=r.views)
     else:
         from .backends.ort_split import OrtSplitBackend
         be = OrtSplitBackend(
             bundle, cache_dir=args.cache_dir, precision="fp16",
-            num_steps=None, action_dim=r.action_dim or 32,
+            num_steps=args.num_steps, action_dim=r.action_dim or 32,
             drop_cuda_ep=False, seed=args.seed, projectors="gpu",
             trt_opt_level=None, trt_workspace_mb=None,
             tokenizer=None, iobinding=True)
@@ -222,6 +237,7 @@ def cmd_models(args) -> int:
         print(f"  chunk/steps  : {s.chunk_size} / {s.num_steps}")
         print(f"  state/action : {s.state_dim} / {s.action_dim or 'full padded width'}")
         print(f"  tokenizer    : {s.tokenizer}")
+        print(f"  noise        : {s.noise_distribution}")
         if s.notes:
             print(f"  note         : {s.notes}")
         print()
@@ -232,6 +248,7 @@ def cmd_fetch(args) -> int:
     spec = models.get(args.model)
     cache = Path(args.dest).expanduser() if args.dest else Path.home() / "bundles"
     want = ["torch", "split"] if args.what == "both" else [args.what]
+    fetched = 0
     for kind in want:
         repo = spec.torch_repo if kind == "torch" else spec.split_repo
         if not repo:
@@ -241,7 +258,8 @@ def cmd_fetch(args) -> int:
         print(f"fetching {kind}: {repo}")
         path = models.fetch(repo, subdir=f"{spec.key}-{kind}", cache=cache)
         print(f"  -> {path}")
-    return 0
+        fetched += 1
+    return 0 if fetched else 2
 
 
 def cmd_report(args) -> int:
@@ -313,6 +331,8 @@ def main(argv=None) -> int:
     p.add_argument("--bundle", default=None, help="the split export directory")
     p.add_argument("--cache-dir", default=DEFAULT_CACHE,
                    help="persistent TensorRT engine cache")
+    p.add_argument("--num-steps", type=int, default=None,
+                   help="override the bundle flow/denoising steps")
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_ort_split)
