@@ -206,8 +206,11 @@ def run_benchmark(backend: Backend, obs: ObsSource, *, iters: int = 100,
         "config": {"iters": iters, "warmup": warmup, "idle_s": idle_s,
                    "duration_s": duration_s, "fps": fps,
                    "obs_ring_size": obs_ring_size},
+        # No "parity" key: a bare pass/not_checked never said what it was compared
+        # against. Parity is reported as measured values instead -- pairwise in
+        # `bench report`, per-boundary in meta.fixture_parity.
         "validity": {"execution": "not_run", "instrumentation": "not_checked",
-                     "placement": "not_checked", "parity": "not_checked"},
+                     "placement": "not_checked"},
     }
 
     if iters <= 0:

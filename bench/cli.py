@@ -134,10 +134,6 @@ def _finish(args, backend, r: Resolved) -> int:
                        "views": r.views, "cam_slots": r.cam_slots,
                        "state_dim": r.state_dim, "action_dim": r.action_dim,
                        "deployable": r.spec.extras.get("deployable", True)}
-    fixture_parity = result.get("meta", {}).get("fixture_parity")
-    if fixture_parity:
-        result["validity"]["parity"] = (
-            "pass" if fixture_parity.get("status") == "PASS" else "fail")
     paths = backend.artifact_paths()
     if paths:
         result["artifacts"] = artifact_manifest(paths)
