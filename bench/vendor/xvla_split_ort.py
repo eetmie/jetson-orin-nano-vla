@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# VENDORED from spark-projects @ d342afa — xvla-spark-finetune/split_ort.py
+# VENDORED from spark-projects @ d342afa — vla-onnx/xvla/split_ort.py
 # (was orin-nano/xvla-runtime/xvla_runtime/split_ort.py when copied; that folder was dissolved)
 #
 # The X-VLA split-engine runtime: twelve exported graphs run through ONNX Runtime

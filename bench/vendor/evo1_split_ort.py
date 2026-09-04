@@ -1,4 +1,4 @@
-# VENDORED from spark-projects @ 54f247c — evo1-spark-finetune (export side);
+# VENDORED from spark-projects @ 54f247c — vla-onnx/evo1 (export side);
 # the orin-nano/evo1-runtime/ source folder has since been dissolved, and this file is now
 # the maintained copy of that runtime.
 #
