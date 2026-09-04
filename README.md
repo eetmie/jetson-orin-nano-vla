@@ -19,7 +19,8 @@ They measure inference cost, not robot-task quality.
 |---|---:|---:|---:|---:|
 | SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz |
 | SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
-| X-VLA split ONNX FP16 | 3 | 415.94 ms | 418.01 ms | 2.40 Hz |
+| X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz |
+| X-VLA split ONNX FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz |
 | EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.08 ms | 3.46 Hz |
 
 The split bundles fit because the large policies are divided into independently built
@@ -47,9 +48,9 @@ commands. That keeps the number comparable across policies with different action
 
 The measured values are in [the results](docs/RESULTS.md#parity). The short version: the
 converted models reproduce their reference actions to **cosine 0.9993 or better, and
-within 0.49 % of the action range on the executed action**. Later steps in a long chunk
-drift further, so a deployment that runs the whole horizon open-loop should look at the
-full-chunk figure there too.
+within 0.49 % of the action range on the executed action** — X-VLA to 0.04 %. Later steps
+in a long chunk drift further, so a deployment that runs the whole horizon open-loop
+should look at the full-chunk figure there too.
 
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
@@ -57,10 +58,9 @@ python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.
 ```
 
 It exits nonzero on a miss, and refuses any pair whose observations or injected noise
-differ rather than reporting a cosine against a sequence the reference never saw. X-VLA
-has no PyTorch counterpart run on this board yet, so it has no cross-backend value;
-EVO1 has no deployable PyTorch reference at all and is checked against a native fixture
-carried inside its bundle, which fails closed during load.
+differ rather than reporting a cosine against a sequence the reference never saw. EVO1 is
+the one model with no deployable PyTorch reference at all, so it is checked against a
+native fixture carried inside its bundle, which fails closed during load.
 
 ## Run SmolVLA base
 
