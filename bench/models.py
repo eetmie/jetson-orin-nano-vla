@@ -142,6 +142,91 @@ REGISTRY: dict[str, ModelSpec] = {
             "vlm_revision": "014c0583a0d4bedf29fbe2dbff4f865eb998e171",
         },
     ),
+    "evo1-libero": ModelSpec(
+        key="evo1-libero",
+        family="evo1",
+        label="EVO1 775M (LIBERO)",
+        params_m=775.2,
+        # The LeRobot-format LIBERO checkpoint, and the reason this entry exists: it
+        # replaces evo1-bootstrap's randomly initialized action head with trained
+        # weights, so an EVO1 number here finally means something about a policy
+        # rather than only about the plumbing.
+        #
+        # NOT MINT-SJTU/Evo1_LIBERO. That repository ships the author's DeepSpeed
+        # checkpoint -- mp_rank_00_model_states.pt plus norm_stats.json, no
+        # model.safetensors and no processor configs -- so it is not loadable as a
+        # LeRobot PreTrainedPolicy and cannot be exported by this pipeline without a
+        # conversion step that does not exist yet. Same for every MINT-SJTU Evo1_* and
+        # EVO-Depth-* artifact.
+        torch_repo="zuoxingdong/evo1_libero",
+        split_repo=None,
+        tokenizer="bundle",
+        task="pick up the black bowl and place it on the plate",
+        chunk_size=50,
+        num_steps=32,
+        # The checkpoint declares max_state_dim/max_action_dim 24 and pads into them:
+        # LIBERO itself is 8-dim state and 7-dim action. The padded width is what both
+        # runtimes must agree on, so it is what is recorded here.
+        state_dim=24,
+        action_dim=24,
+        # config.json input_features names two cameras, observation.images.image and
+        # .image2, against an architectural max_views of 3. Two is what was trained.
+        image_views=2,
+        cam_slots=2,
+        noise_distribution="uniform",
+        notes="Trained LIBERO policy, unlike evo1-bootstrap. Actions are meaningful "
+              "for LIBERO's own embodiment only.",
+        extras={
+            "deployable": True,
+            "requires_lerobot": "0.6.1",
+            "vlm_base": "OpenGVLab/InternVL3-1B-hf",
+            "vlm_revision": "014c0583a0d4bedf29fbe2dbff4f865eb998e171",
+            "trained_on": "lerobot/libero",
+        },
+    ),
+    "evo-depth-libero": ModelSpec(
+        key="evo-depth-libero",
+        family="evo1",
+        label="EVO-Depth (LIBERO) — no LeRobot-format weights published",
+        params_m=775.2,
+        # Registered so it is a known target rather than a thing to rediscover, but it
+        # CANNOT BE RUN TODAY and no amount of pipeline work changes that on its own.
+        # Every published EVO-Depth artifact is the author's DeepSpeed format:
+        #   MINT-SJTU/EVO-Depth-LIBERO     four sub-checkpoints (libero_10, _goal,
+        #                                  _object, _spatial), each mp_rank_00_model_
+        #                                  states.pt + norm_stats.json
+        #   MINT-SJTU/EVO-Depth-MetaWorld  same shape
+        #   MINT-SJTU/EVO-Depth-Arena      same shape
+        #   liujiting/Evo-depth            README only, no weights at all
+        # There is no model.safetensors and no policy_preprocessor.json anywhere, so
+        # Evo1Policy.from_pretrained has nothing to load. Unblocking it needs a
+        # DeepSpeed -> LeRobot conversion, and a depth observation contract that this
+        # repository's synthetic RGB observations do not currently produce.
+        torch_repo=None,
+        split_repo=None,
+        tokenizer="bundle",
+        task="pick up the black bowl and place it on the plate",
+        chunk_size=50,
+        num_steps=32,
+        state_dim=24,
+        action_dim=24,
+        image_views=2,
+        cam_slots=2,
+        noise_distribution="uniform",
+        notes="BLOCKED: no LeRobot-format checkpoint exists. Needs a DeepSpeed "
+              "conversion and a depth observation channel before it can be measured.",
+        extras={
+            "deployable": False,
+            "blocked": "no LeRobot-format weights published; DeepSpeed author format "
+                       "only, and depth observations are not implemented",
+            "requires_lerobot": "0.6.1",
+            "candidate_repos": [
+                "MINT-SJTU/EVO-Depth-LIBERO",
+                "MINT-SJTU/EVO-Depth-MetaWorld",
+                "MINT-SJTU/EVO-Depth-Arena",
+            ],
+        },
+    ),
 }
 
 
