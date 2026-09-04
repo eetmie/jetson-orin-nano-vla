@@ -116,6 +116,22 @@ python bench/tools/memory_probe.py --split-dir ~/bundles/xvla-base-split
 `build_probe.py` is what produced the sizing rule the X-VLA split follows; `memory_probe.py`
 decomposes resident memory once a bundle exists.
 
+### The build is what runs you out of memory, not the running model
+
+Measured on this board with the X-VLA FP16 bundle (12 engines, 875 M params), same probe,
+the only difference being whether the TensorRT engine cache was already populated:
+
+| | resident | available after | cost per FP32 weight byte |
+|---|---:|---:|---|
+| cold — building the 12 engines | 6.51 GB (peak 7.09) | **0.57 GB** | 1.85x |
+| warm — engines cached | 4.86 GB | 2.47 GB | 1.38x |
+
+X-VLA *runs* with 2.5 GB to spare. Building its engines from cold, on a 7.4 GB board,
+leaves ~0.5 GB — so a cold first run that competes with anything else (a browser, a stale
+runtime, a camera pipeline) is what gets OOM-killed, and it will look like the model
+does not fit when the model is not the problem. Build the engines once, on an otherwise
+idle board, and keep the cache.
+
 ## Measurement tooling
 
 `tegrastats` ships with L4T and is the only source that reports RAM, per-core CPU, GPU
