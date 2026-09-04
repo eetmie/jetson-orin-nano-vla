@@ -72,39 +72,57 @@ systemctl status jetson-perf.service      # believe this, not the absence of an 
 
 A warm reboot may not clear an ACR failure — power-cycle the board.
 
-## Swap — leave it at the stock 2 GB
+## Swap — 4 GB, and build on a freshly booted headless board
 
-The 8 GB is unified memory: model weights, TensorRT build scratch, desktop applications
-and the runtime all compete for one pool. Swap absorbs the build peak.
+The 8 GB is unified memory: model weights, TensorRT build scratch, the desktop if you are
+running one, and the runtime all compete for one pool. The single heaviest thing in this
+repo is cold-building X-VLA's twelve FP16 engines, and it decides the swap size.
 
-**Do not reconfigure it.** JetPack's `nvfb-swapfile.service` creates a 2 GB `/swapfile`
-(`fallocate -l 2G`), and that is enough for everything in this repo. Measured on this
-board, cold-building X-VLA's twelve FP16 engines — the heaviest thing here — peak swap
-use was **1.81 GB**. It fits, with roughly 10% to spare. SmolVLA's split peaks around
-437 MB.
+**Raise the stock 2 GB swapfile to 4 GB. Do not bother going higher.**
 
-A bigger swapfile does not help. The same build was run on a 16 GB swapfile and never
-touched more than 1.81 GB of it; what it ran out of was *physical* headroom, which swap
-cannot give back.
+```bash
+sudo swapoff /swapfile && sudo rm /swapfile
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile     # /etc/fstab already points at it
+```
+
+JetPack ships 2 GB via `nvfb-swapfile.service` (`fallocate -l 2G`, first boot only, so it
+does not recreate the file if you replace it).
+
+### Why 4 GB — the same build, four times
+
+| swap | board state | peak swap used | min RAM free | result |
+|---:|---|---:|---:|---|
+| 2 GB | fresh boot, headless | 825 MB | 158 MB | **failed** on the last engine |
+| 4 GB | fresh boot, headless | 867 MB | 200 MB | succeeded |
+| 16 GB | fresh boot | 1812 MB | 65 MB | succeeded |
+| 16 GB | already loaded | 1467 MB | 114 MB | **failed** on the last engine |
+
+Note what the failures are *not*: neither exhausted its swap. The 2 GB run failed with
+1.2 GB of its swapfile still free. The allocations that fail are `NvMap` — GPU memory,
+which is physically backed and cannot be paged out — and the kernel's willingness to grant
+them tracks *total* swap, not swap in use. That is why 2 GB fails and 4 GB works while
+both use under 900 MB, and why 16 GB buys nothing over 4 GB.
+
+### Build headless, on a freshly booted board
+
+Board state matters as much as swap: the 16 GB run failed when the board had been working
+beforehand and succeeded after a reboot. Every cold build here ran the machine to within
+~200 MB of its ceiling.
+
+- run headless (`systemctl get-default` should say `multi-user.target`)
+- reboot first, then build, before anything else is resident
+- **if a build fails, reboot and try again** — that is the fix, not a bigger swapfile
+
+X-VLA and EVO1 are the two that need this; SmolVLA's three-graph split is far lighter and
+peaks around 437 MB of swap. X-VLA's FP32 bundle does not complete its first engine at
+all — use the FP16 bundle.
 
 ### The build is what runs you out of memory, not the running model
 
-Same X-VLA FP16 bundle, same probe, the only variable being the board's state:
-
-| | outcome | peak swap | min available RAM |
-|---|---|---:|---:|
-| cold build, board already loaded | **failed** on engine 12 | 1.47 GB | 114 MB |
-| cold build, freshly rebooted | succeeded | 1.81 GB | 65 MB |
-| running, engines cached | — | — | 2.47 GB |
-
-Both cold builds ran the board to within ~100 MB of its ceiling; the difference between
-success and an OOM was whether anything else was resident. Once cached, the same model
-sits 2.5 GB clear.
-
-So: **build the engines once, on an idle board, right after a reboot.** An OOM here reads
-as "X-VLA does not fit", and that is the wrong conclusion — it fits, its cold build is
-what does not. Keep the cache (see below) and the problem does not recur. X-VLA's FP32
-bundle does not complete its first engine at all on this board; use the FP16 bundle.
+Once the engines are cached, X-VLA loads to 6.4 GB and sits with ~2.5 GB free at idle;
+building them peaks at 7.0-7.4 GB. So an OOM here means "build the cache on an idle
+board", not "X-VLA does not fit". Keep the cache (see below) and it does not recur.
 
 ## Engine cache off /tmp
 
