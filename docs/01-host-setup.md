@@ -72,23 +72,39 @@ systemctl status jetson-perf.service      # believe this, not the absence of an 
 
 A warm reboot may not clear an ACR failure — power-cycle the board.
 
-## Swap and build memory
+## Swap — leave it at the stock 2 GB
 
-The 8 GB is unified memory: model weights, TensorRT build scratch, desktop applications,
-and the runtime all compete for the same pool.
+The 8 GB is unified memory: model weights, TensorRT build scratch, desktop applications
+and the runtime all compete for one pool. Swap absorbs the build peak.
 
-SmolVLA's split export was cold-built successfully with the stock 2 GB swapfile; swap
-use peaked around 437 MB. X-VLA's FP32 bundle did not complete its first engine, while
-the smaller FP16 bundle built successfully. Use the FP16 X-VLA bundle, keep swap
-enabled, and close memory-heavy applications before building. Larger swap can provide
-failure headroom, but it does not make an oversized engine a supported deployment path.
+**Do not reconfigure it.** JetPack's `nvfb-swapfile.service` creates a 2 GB `/swapfile`
+(`fallocate -l 2G`), and that is enough for everything in this repo. Measured on this
+board, cold-building X-VLA's twelve FP16 engines — the heaviest thing here — peak swap
+use was **1.81 GB**. It fits, with roughly 10% to spare. SmolVLA's split peaks around
+437 MB.
 
-`scripts/setup-swap.sh` creates a single persistent swapfile (default 16 GB) that survives
-reboot. X-VLA's twelve-engine build needs it; SmolVLA's three-engine split does not.
+A bigger swapfile does not help. The same build was run on a 16 GB swapfile and never
+touched more than 1.81 GB of it; what it ran out of was *physical* headroom, which swap
+cannot give back.
 
-```bash
-sudo ./scripts/setup-swap.sh
-```
+### The build is what runs you out of memory, not the running model
+
+Same X-VLA FP16 bundle, same probe, the only variable being the board's state:
+
+| | outcome | peak swap | min available RAM |
+|---|---|---:|---:|
+| cold build, board already loaded | **failed** on engine 12 | 1.47 GB | 114 MB |
+| cold build, freshly rebooted | succeeded | 1.81 GB | 65 MB |
+| running, engines cached | — | — | 2.47 GB |
+
+Both cold builds ran the board to within ~100 MB of its ceiling; the difference between
+success and an OOM was whether anything else was resident. Once cached, the same model
+sits 2.5 GB clear.
+
+So: **build the engines once, on an idle board, right after a reboot.** An OOM here reads
+as "X-VLA does not fit", and that is the wrong conclusion — it fits, its cold build is
+what does not. Keep the cache (see below) and the problem does not recur. X-VLA's FP32
+bundle does not complete its first engine at all on this board; use the FP16 bundle.
 
 ## Engine cache off /tmp
 
@@ -115,22 +131,6 @@ python bench/tools/memory_probe.py --split-dir ~/bundles/xvla-base-split
 
 `build_probe.py` is what produced the sizing rule the X-VLA split follows; `memory_probe.py`
 decomposes resident memory once a bundle exists.
-
-### The build is what runs you out of memory, not the running model
-
-Measured on this board with the X-VLA FP16 bundle (12 engines, 875 M params), same probe,
-the only difference being whether the TensorRT engine cache was already populated:
-
-| | resident | available after | cost per FP32 weight byte |
-|---|---:|---:|---|
-| cold — building the 12 engines | 6.51 GB (peak 7.09) | **0.57 GB** | 1.85x |
-| warm — engines cached | 4.86 GB | 2.47 GB | 1.38x |
-
-X-VLA *runs* with 2.5 GB to spare. Building its engines from cold, on a 7.4 GB board,
-leaves ~0.5 GB — so a cold first run that competes with anything else (a browser, a stale
-runtime, a camera pipeline) is what gets OOM-killed, and it will look like the model
-does not fit when the model is not the problem. Build the engines once, on an otherwise
-idle board, and keep the cache.
 
 ## Measurement tooling
 
