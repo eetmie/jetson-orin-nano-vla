@@ -1,5 +1,6 @@
-# VENDORED from spark-projects @ 54f247c —
-# orin-nano/evo1-runtime/evo1_runtime/split_ort.py
+# VENDORED from spark-projects @ 54f247c — evo1-spark-finetune (export side);
+# the orin-nano/evo1-runtime/ source folder has since been dissolved, and this file is now
+# the maintained copy of that runtime.
 #
 # This repository-side copy adds deterministic image/prompt preprocessing for the
 # benchmark Observation contract. The graph layout, provider settings, serial engine
