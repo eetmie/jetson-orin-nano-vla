@@ -138,14 +138,22 @@ def main() -> None:
     ap.add_argument("--config", default="baseline", choices=sorted(CONFIGS))
     ap.add_argument("--compare", action="store_true",
                     help="run every config, one subprocess each")
-    ap.add_argument("--out", type=Path, default=REPO / "results" / "memory_probe_results.json")
+    ap.add_argument("--out", type=Path, default=REPO / "results" / "memory_probe_results.json",
+                    help="where the result JSON is written (both single-config and --compare)")
     args = ap.parse_args()
 
     cache_dir = args.cache_dir or str(args.split_dir / "trt_cache")
 
     if not args.compare:
         res = run_config(args.config, args.split_dir, cache_dir, args.precision)
+        # The MEMPROBE_RESULT line is how the --compare parent reads a child, so it
+        # stays on stdout. But this path is also the one a person runs directly, and
+        # it used to accept --out, do fifteen minutes of engine building, print the
+        # numbers and write nothing.
         print("MEMPROBE_RESULT " + json.dumps(res))
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps([res], indent=2))
+        print(f"wrote {args.out}")
         return
 
     results = []
