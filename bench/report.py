@@ -75,13 +75,12 @@ def validity_table(runs: list[dict]) -> str:
             validity.get("execution"),
             validity.get("instrumentation"),
             validity.get("placement"),
-            validity.get("parity"),
             validity.get("provenance"),
             "yes" if deployable else "**no**",
         ])
     return _md_table(rows, [
-        "run", "execution", "instrumentation", "placement", "parity",
-        "provenance", "deployable",
+        "run", "execution", "instrumentation", "placement", "provenance",
+        "deployable",
     ])
 
 
@@ -261,9 +260,9 @@ def build_report(paths: list[Path]) -> str:
         "",
         validity_table(runs),
         "",
-        "Parity is a numerical gate, while configured EP priority is not measured "
-        "node placement. A nondeployable result is infrastructure evidence only and "
-        "must not control a robot.",
+        "Configured EP priority is not measured node placement. A nondeployable "
+        "result is infrastructure evidence only and must not control a robot. Parity "
+        "is not a column here: see the measured values below.",
         "",
         "## Parity",
         "",
