@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .parity import load_results
+from .parity import compare, load_results
 
 
 def _g(d: dict, *path, default=None):
@@ -179,11 +179,77 @@ def control_summary(runs: list[dict]) -> str:
     return prefix + "; ".join(entries) + "."
 
 
+def parity_table(runs: list[dict]) -> str:
+    """Measured agreement between runs that saw identical inputs.
+
+    Values only, no verdict. The thresholds are a deployment decision that depends on
+    the robot and the action space, so they are stated once in the README and applied
+    by `python -m bench parity`; a generated summary that also rendered PASS/FAIL would
+    turn one judgement call into two places to keep in sync.
+
+    Pairs are formed by `compare`, which refuses anything whose comparison signature
+    differs -- different policy, different observations, different injected noise. A
+    rejected pair is not a weak comparison, it is not a comparison, so it is left out
+    rather than printed with a caveat. PyTorch is preferred as the reference when a
+    torch run is present: it is the unquantised side, so the differences read as the
+    cost of the conversion.
+    """
+    def is_torch(r: dict) -> bool:
+        return str(r.get("backend") or "").startswith("torch")
+
+    ok = [r for r in runs if r.get("status") == "ok"]
+    rows, seen = [], set()
+    for ref in sorted(ok, key=lambda r: (not is_torch(r), r.get("label") or "")):
+        for cand in ok:
+            if cand is ref:
+                continue
+            key = frozenset((ref.get("label"), cand.get("label")))
+            if key in seen:
+                continue
+            result = compare(ref, cand)
+            if not str(result.get("mode", "")).startswith("elementwise"):
+                continue          # identity mismatch, or noise that was not injectable
+            seen.add(key)
+            rows.append([
+                result.get("reference"), result.get("candidate"),
+                result.get("n_observations"), result.get("cosine_min"),
+                result.get("cosine_mean"), result.get("max_abs_diff"),
+                result.get("reference_action_range"),
+                result.get("max_abs_diff_pct_of_range"),
+                result.get("first_action_max_abs_diff"),
+            ])
+    if not rows:
+        return "_(no two runs share a comparable observation and noise identity)_"
+    return _md_table(rows, [
+        "reference", "candidate", "obs", "cosine min", "cosine mean", "max abs diff",
+        "ref action range", "max abs diff % of range", "1st action max abs diff"])
+
+
+def fixture_parity_table(runs: list[dict]) -> str:
+    """Per-run parity against a fixture shipped inside the bundle.
+
+    Different in kind from the pairwise table: this one needs no second run, is checked
+    during load, and fails closed before the benchmark starts.
+    """
+    rows = []
+    for r in runs:
+        reports = _g(r, "meta", "fixture_parity", "reports", default=None)
+        if not reports:
+            continue
+        for name, values in reports.items():
+            rows.append([r.get("label"), name, round(values.get("cosine"), 7),
+                         float(f"{values.get('max_abs'):.4g}"),
+                         float(f"{values.get('mean_abs'):.4g}")])
+    if not rows:
+        return ""
+    return _md_table(rows, ["run", "boundary", "cosine", "max abs", "mean abs"])
+
 def build_report(paths: list[Path]) -> str:
     runs = load_results(paths)
     runs.sort(key=lambda r: (r.get("status") != "ok", r.get("label") or ""))
     if not runs:
         return "_no result JSONs found_"
+    fixture = fixture_parity_table(runs)
 
     parts = [
         "# Results",
@@ -199,6 +265,30 @@ def build_report(paths: list[Path]) -> str:
         "node placement. A nondeployable result is infrastructure evidence only and "
         "must not control a robot.",
         "",
+        "## Parity",
+        "",
+        "Measured agreement between runs that were handed the identical seeded "
+        "observations and the identical injected noise, so the action chunks line up "
+        "element by element. Values only: the thresholds live in the README, and "
+        "`python -m bench parity --reference <label>` applies them and exits nonzero "
+        "on a miss.",
+        "",
+        parity_table(runs),
+        "",
+        "`max abs diff` is over the whole action chunk; `1st action max abs diff` is "
+        "the same measure on just the first step, which is the one a control loop "
+        "actually executes before the next inference lands. Where the two differ by a "
+        "lot, the disagreement is concentrated late in the horizon and the executed "
+        "action is the better guide. A difference is normalised against the "
+        "reference's own observed action range rather than an assumed [-1, 1], because "
+        "these policies do not share an action space.",
+        "",
+    ] + ([
+        "Parity against a fixture carried inside the bundle, verified during load:",
+        "",
+        fixture,
+        "",
+    ] if fixture else []) + [
         "## Speed",
         "",
         speed_table(runs),
