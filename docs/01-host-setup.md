@@ -59,6 +59,19 @@ A systemd unit that runs `jetson_clocks` at boot will fail on a board in that st
 and stay failed, which is worth knowing before concluding the platform cannot pin
 clocks: check `systemctl status` for the unit before believing it.
 
+`scripts/jetson-perf.sh` is written for exactly this: it checks the GPU devfreq node,
+names the ACR diagnosis when the node is missing, and verifies `min == max` rather than
+trusting the exit code of `jetson_clocks`. Install it to run at every boot:
+
+```bash
+sudo install -m 755 scripts/jetson-perf.sh /usr/local/sbin/jetson-perf.sh
+sudo cp scripts/jetson-perf.service /etc/systemd/system/jetson-perf.service
+sudo systemctl enable --now jetson-perf.service
+systemctl status jetson-perf.service      # believe this, not the absence of an error
+```
+
+A warm reboot may not clear an ACR failure — power-cycle the board.
+
 ## Swap and build memory
 
 The 8 GB is unified memory: model weights, TensorRT build scratch, desktop applications,
@@ -69,6 +82,13 @@ use peaked around 437 MB. X-VLA's FP32 bundle did not complete its first engine,
 the smaller FP16 bundle built successfully. Use the FP16 X-VLA bundle, keep swap
 enabled, and close memory-heavy applications before building. Larger swap can provide
 failure headroom, but it does not make an oversized engine a supported deployment path.
+
+`scripts/setup-swap.sh` creates a single persistent swapfile (default 16 GB) that survives
+reboot. X-VLA's twelve-engine build needs it; SmolVLA's three-engine split does not.
+
+```bash
+sudo ./scripts/setup-swap.sh
+```
 
 ## Engine cache off /tmp
 
@@ -82,6 +102,19 @@ The memory is shared, so a browser or an editor eats directly into what TensorRT
 use. Stopping the desktop entirely buys little here — idle GNOME measured only ~110 MB
 on this board, not the ~800 MB the Jetson AI Lab notes assume — but an open
 application is a different matter. Run one thing at a time.
+
+## Will a given graph build? — the probes
+
+Before splitting a new model, measure rather than guess. On this board the TensorRT build
+peak tracks the weight slice an engine carries:
+
+```bash
+python bench/tools/build_probe.py --blocks 4 8 12     # build-memory curve, no checkpoint needed
+python bench/tools/memory_probe.py --split-dir ~/bundles/xvla-base-split
+```
+
+`build_probe.py` is what produced the sizing rule the X-VLA split follows; `memory_probe.py`
+decomposes resident memory once a bundle exists.
 
 ## Measurement tooling
 

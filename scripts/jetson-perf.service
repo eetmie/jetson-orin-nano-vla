@@ -1,0 +1,27 @@
+# Persistent MAXN_SUPER + pinned clocks at every boot.
+#
+# Install:
+#   sudo install -m 755 scripts/jetson-perf.sh /usr/local/sbin/jetson-perf.sh
+#   sudo cp scripts/jetson-perf.service /etc/systemd/system/jetson-perf.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jetson-perf.service
+#
+# The work is in jetson-perf.sh, not in ExecStart lines, because the thing that has to
+# happen here is a CHECK: `jetson_clocks` exits non-zero on a board whose GPU never
+# initialised, and the old unit ran it bare and failed silently at every boot. If this
+# unit is failed, read `systemctl status jetson-perf` -- it now says which case you are
+# in rather than leaving you to infer it from a misleading error string.
+[Unit]
+Description=Orin Nano: MAXN_SUPER power mode + pinned clocks
+After=nvpmodel.service
+# The GPU devfreq node appears late; without this the unit can lose a race with the
+# nvgpu driver on a board that is otherwise perfectly healthy.
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/jetson-perf.sh
+
+[Install]
+WantedBy=multi-user.target
