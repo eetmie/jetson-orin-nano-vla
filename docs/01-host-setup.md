@@ -89,20 +89,33 @@ sudo mkswap /swapfile && sudo swapon /swapfile     # /etc/fstab already points a
 JetPack ships 2 GB via `nvfb-swapfile.service` (`fallocate -l 2G`, first boot only, so it
 does not recreate the file if you replace it).
 
-### Why 4 GB — the same build, four times
+### Why 4 GB — measured
+
+4 GB, rebooted before each run, headless — **3/3**:
+
+| run | peak swap used | peak RAM | min RAM free | result |
+|---|---:|---:|---:|---|
+| 1 | 1132 MB | 7404 MB | 141 MB | pass |
+| 2 | **1964 MB** | 7466 MB | 78 MB | pass |
+| 3 | **1951 MB** | 7447 MB | 98 MB | pass |
+
+Two of the three drew more swap than a stock 2 GB file even holds, which is the clearest
+argument against leaving it at 2 GB. Peak swap also varies by ~800 MB run to run for an
+identical build, so headroom matters more than any single measurement.
+
+Other configurations, one run each:
 
 | swap | board state | peak swap used | min RAM free | result |
 |---:|---|---:|---:|---|
-| 2 GB | fresh boot, headless | 825 MB | 158 MB | **failed** on the last engine |
-| 4 GB | fresh boot, headless | 867 MB | 200 MB | succeeded |
-| 16 GB | fresh boot | 1812 MB | 65 MB | succeeded |
+| 2 GB | fresh, headless | 825 MB | 158 MB | **failed** on the last engine |
+| 16 GB | fresh | 1812 MB | 65 MB | passed |
 | 16 GB | already loaded | 1467 MB | 114 MB | **failed** on the last engine |
 
-Note what the failures are *not*: neither exhausted its swap. The 2 GB run failed with
-1.2 GB of its swapfile still free. The allocations that fail are `NvMap` — GPU memory,
-which is physically backed and cannot be paged out — and the kernel's willingness to grant
-them tracks *total* swap, not swap in use. That is why 2 GB fails and 4 GB works while
-both use under 900 MB, and why 16 GB buys nothing over 4 GB.
+Note what the 2 GB failure is *not*: it did not exhaust its swap — it failed with 1.2 GB
+of the swapfile still free. The allocations that fail are `NvMap` (GPU memory: physically
+backed, never paged out) with `error 12`/ENOMEM, and the kernel's willingness to grant
+them tracks *total* swap rather than swap in use. So a 2 GB file can fail while under half
+full. 16 GB buys nothing over 4 GB.
 
 ### Build headless, on a freshly booted board
 
