@@ -178,26 +178,20 @@ def control_summary(runs: list[dict]) -> str:
     return prefix + "; ".join(entries) + "."
 
 
-def parity_table(runs: list[dict]) -> str:
-    """Measured agreement between runs that saw identical inputs.
+def _parity_pairs(runs: list[dict]) -> list[dict]:
+    """Every run pair `compare` accepts.
 
-    Values only, no verdict. The thresholds are a deployment decision that depends on
-    the robot and the action space, so they are stated once in the README and applied
-    by `python -m bench parity`; a generated summary that also rendered PASS/FAIL would
-    turn one judgement call into two places to keep in sync.
-
-    Pairs are formed by `compare`, which refuses anything whose comparison signature
-    differs -- different policy, different observations, different injected noise. A
-    rejected pair is not a weak comparison, it is not a comparison, so it is left out
-    rather than printed with a caveat. PyTorch is preferred as the reference when a
-    torch run is present: it is the unquantised side, so the differences read as the
-    cost of the conversion.
+    `compare` refuses anything whose comparison signature differs -- different policy,
+    different observations, different injected noise -- so a rejected pair is dropped
+    rather than reported with a caveat. PyTorch is preferred as the reference where a
+    torch run exists: it is the unquantised side, so the difference reads as the cost
+    of the conversion.
     """
     def is_torch(r: dict) -> bool:
         return str(r.get("backend") or "").startswith("torch")
 
     ok = [r for r in runs if r.get("status") == "ok"]
-    rows, seen = [], set()
+    out, seen = [], set()
     for ref in sorted(ok, key=lambda r: (not is_torch(r), r.get("label") or "")):
         for cand in ok:
             if cand is ref:
@@ -207,48 +201,96 @@ def parity_table(runs: list[dict]) -> str:
                 continue
             result = compare(ref, cand)
             if not str(result.get("mode", "")).startswith("elementwise"):
-                continue          # identity mismatch, or noise that was not injectable
+                continue
             seen.add(key)
-            rows.append([
-                result.get("reference"), result.get("candidate"),
-                result.get("n_observations"), result.get("cosine_min"),
-                result.get("cosine_mean"), result.get("max_abs_diff"),
-                result.get("reference_action_range"),
-                result.get("max_abs_diff_pct_of_range"),
-                result.get("first_action_max_abs_diff"),
-            ])
-    if not rows:
-        return "_(no two runs share a comparable observation and noise identity)_"
-    return _md_table(rows, [
-        "reference", "candidate", "obs", "cosine min", "cosine mean", "max abs diff",
-        "ref action range", "max abs diff % of range", "1st action max abs diff"])
+            out.append(result)
+    return out
 
 
-def fixture_parity_table(runs: list[dict]) -> str:
-    """Per-run parity against a fixture shipped inside the bundle.
+def parity_table(runs: list[dict], pairs: list[dict]) -> str:
+    """One row per model: does the deployed export still produce the reference actions?
 
-    Different in kind from the pairwise table: this one needs no second run, is checked
-    during load, and fails closed before the benchmark starts.
+    Deliberately one line each. The per-boundary and per-pair detail is in the run
+    JSONs for anyone who needs it; what belongs in a summary is whether the converted
+    model can be used. The reported difference is on the FIRST action of the chunk,
+    because that is the one a control loop executes before the next inference lands.
     """
-    rows = []
+    by_label = {r.get("label"): r for r in runs}
+    order, models = [], {}
     for r in runs:
-        reports = _g(r, "meta", "fixture_parity", "reports", default=None)
-        if not reports:
+        key = _g(r, "model", "key", default=None) or r.get("label")
+        if key not in models:
+            order.append(key)
+            models[key] = []
+        models[key].append(r)
+
+    rows = []
+    for key in order:
+        row = None
+        for pair in pairs:
+            cand = by_label.get(pair["candidate"], {})
+            if _g(cand, "model", "key", default=None) != key:
+                continue
+            ref = by_label.get(pair["reference"], {})
+            dtype = _g(ref, "meta", "weights_dtype", default="") or ""
+            span = pair.get("reference_action_range") or 1.0
+            first = pair.get("first_action_max_abs_diff")
+            row = [key, f"PyTorch {dtype} on this board".rstrip(),
+                   pair.get("cosine_min"), first,
+                   round(float(first) / float(span) * 100, 2)]
+            break
+        if row is None:
+            # No PyTorch run to compare against, so fall back to the fixture the bundle
+            # carries. Only the action boundary is summarised: it is the policy output,
+            # and the intermediate boundaries are in the run JSON.
+            for r in models[key]:
+                action = _g(r, "meta", "fixture_parity", "reports", "action",
+                            default=None)
+                if action:
+                    row = [key, "native fixture inside the bundle",
+                           round(action["cosine"], 7),
+                           float(f"{action['max_abs']:.3g}"), None]
+                    break
+        if row is None:
+            row = [key, "not measured on this board", None, None, None]
+        rows.append(row)
+    return _md_table(rows, [
+        "model", "checked against", "cosine",
+        "max abs diff, executed action", "% of action range"])
+
+
+def _full_chunk_note(runs: list[dict], pairs: list[dict]) -> str:
+    """Say how much worse the full chunk is than its first action, from the data.
+
+    Written as a sentence rather than a column because it is a caveat on the table
+    above, and because hardcoding the figure into generated prose is exactly the drift
+    this file exists to avoid.
+    """
+    by_label = {r.get("label"): r for r in runs}
+    worst = []
+    for pair in pairs:
+        whole = pair.get("max_abs_diff_pct_of_range")
+        span = pair.get("reference_action_range") or 1.0
+        first = float(pair.get("first_action_max_abs_diff") or 0.0) / float(span) * 100
+        if whole is None or whole <= first * 1.5:
             continue
-        for name, values in reports.items():
-            rows.append([r.get("label"), name, round(values.get("cosine"), 7),
-                         float(f"{values.get('max_abs'):.4g}"),
-                         float(f"{values.get('mean_abs'):.4g}")])
-    if not rows:
+        key = _g(by_label.get(pair["candidate"], {}), "model", "key",
+                 default=pair["candidate"])
+        chunk = _g(by_label.get(pair["candidate"], {}), "meta", "chunk_size",
+                   default=None)
+        worst.append(f"{key}'s worst step over the full "
+                     f"{f'{chunk:g}' if chunk else 'chunk'} is {whole:g}% of range")
+    if not worst:
         return ""
-    return _md_table(rows, ["run", "boundary", "cosine", "max abs", "mean abs"])
+    return "Later steps in a long chunk drift further: " + "; ".join(worst) + ". "
+
 
 def build_report(paths: list[Path]) -> str:
     runs = load_results(paths)
     runs.sort(key=lambda r: (r.get("status") != "ok", r.get("label") or ""))
     if not runs:
         return "_no result JSONs found_"
-    fixture = fixture_parity_table(runs)
+    pairs = _parity_pairs(runs)
 
     parts = [
         "# Results",
@@ -266,28 +308,19 @@ def build_report(paths: list[Path]) -> str:
         "",
         "## Parity",
         "",
-        "Measured agreement between runs that were handed the identical seeded "
-        "observations and the identical injected noise, so the action chunks line up "
-        "element by element. Values only: the thresholds live in the README, and "
-        "`python -m bench parity --reference <label>` applies them and exits nonzero "
-        "on a miss.",
+        "Does the converted model still produce the reference actions? Every backend "
+        "is handed the same seeded observations and the same injected noise, so the "
+        "action chunks line up element by element.",
         "",
-        parity_table(runs),
+        parity_table(runs, pairs),
         "",
-        "`max abs diff` is over the whole action chunk; `1st action max abs diff` is "
-        "the same measure on just the first step, which is the one a control loop "
-        "actually executes before the next inference lands. Where the two differ by a "
-        "lot, the disagreement is concentrated late in the horizon and the executed "
-        "action is the better guide. A difference is normalised against the "
-        "reference's own observed action range rather than an assumed [-1, 1], because "
-        "these policies do not share an action space.",
+        "The difference is on the **first action of the chunk** — the one a control "
+        "loop executes before the next inference lands — and is normalised against the "
+        "reference's own observed action range, not an assumed [-1, 1], because these "
+        "policies do not share an action space. " + _full_chunk_note(runs, pairs)
+        + "Thresholds are in the README; `python -m bench parity --reference <label>` "
+        "applies them.",
         "",
-    ] + ([
-        "Parity against a fixture carried inside the bundle, verified during load:",
-        "",
-        fixture,
-        "",
-    ] if fixture else []) + [
         "## Speed",
         "",
         speed_table(runs),
