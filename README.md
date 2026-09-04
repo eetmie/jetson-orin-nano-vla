@@ -33,8 +33,8 @@ Speed is only worth measuring if the actions survive the conversion. On this boa
 is a live question rather than a formality: compute 8.7 makes FP16 the only fast reduced
 precision available, and a blanket FP16 cast is exactly what collapsed SmolVLA's SigLIP
 vision tower to cosine 0.805 elsewhere. Every backend is therefore handed the *same*
-seeded observations and the *same* injected noise (`bench/obs.py`), which makes the saved
-action chunks comparable element by element rather than only in distribution.
+seeded observations and the *same* injected noise (`bench/obs.py`), so the action chunks
+line up element by element rather than only in distribution.
 
 **The gate is two conditions, and both must hold:**
 
@@ -45,21 +45,22 @@ Cosine alone hides a scale error, and an absolute difference means nothing witho
 range, so the difference is normalised against the range the reference policy actually
 commands. That keeps the number comparable across policies with different action spaces.
 
+The measured values are in [the results](docs/RESULTS.md#parity). The short version: the
+converted models reproduce their reference actions to **cosine 0.9993 or better, and
+within 0.49 % of the action range on the executed action**. Later steps in a long chunk
+drift further, so a deployment that runs the whole horizon open-loop should look at the
+full-chunk figure there too.
+
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
     --reference smolvla-base.torch
 ```
 
 It exits nonzero on a miss, and refuses any pair whose observations or injected noise
-differ rather than reporting a cosine against a sequence the reference never saw.
-
-Measured values for every comparable pair are in [the results](docs/RESULTS.md#parity) —
-including the split-vs-PyTorch difference for SmolVLA base, both over the whole 50-step
-chunk and over just the first action, which is the one a control loop executes. Whether a
-given number is good enough is a deployment decision that depends on the robot and the
-action space, so this repository reports it and leaves the call to the deployer. X-VLA has
-no PyTorch counterpart run on this board, so its FP16 split has no cross-backend value
-here; EVO1 carries its own native fixture and fails closed during load.
+differ rather than reporting a cosine against a sequence the reference never saw. X-VLA
+has no PyTorch counterpart run on this board yet, so it has no cross-backend value;
+EVO1 has no deployable PyTorch reference at all and is checked against a native fixture
+carried inside its bundle, which fails closed during load.
 
 ## Run SmolVLA base
 

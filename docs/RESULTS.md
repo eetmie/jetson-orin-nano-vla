@@ -15,23 +15,15 @@ Configured EP priority is not measured node placement. A nondeployable result is
 
 ## Parity
 
-Measured agreement between runs that were handed the identical seeded observations and the identical injected noise, so the action chunks line up element by element. Values only: the thresholds live in the README, and `python -m bench parity --reference <label>` applies them and exits nonzero on a miss.
+Does the converted model still produce the reference actions? Every backend is handed the same seeded observations and the same injected noise, so the action chunks line up element by element.
 
-| reference | candidate | obs | cosine min | cosine mean | max abs diff | ref action range | max abs diff % of range | 1st action max abs diff |
-|---|---|---|---|---|---|---|---|---|
-| smolvla-base.torch | smolvla-base.ort | 8 | 0.999339 | 0.9997228 | 0.3641 | 17.7487 | 2.052 | 0.08646 |
-
-`max abs diff` is over the whole action chunk; `1st action max abs diff` is the same measure on just the first step, which is the one a control loop actually executes before the next inference lands. Where the two differ by a lot, the disagreement is concentrated late in the horizon and the executed action is the better guide. A difference is normalised against the reference's own observed action range rather than an assumed [-1, 1], because these policies do not share an action space.
-
-Parity against a fixture carried inside the bundle, verified during load:
-
-| run | boundary | cosine | max abs | mean abs |
+| model | checked against | cosine | max abs diff, executed action | % of action range |
 |---|---|---|---|---|
-| evo1-bootstrap.ort | vision | 0.9996058 | 1.086 | 0.005063 |
-| evo1-bootstrap.ort | fused_valid | 0.9995459 | 18.88 | 0.07043 |
-| evo1-bootstrap.ort | action | 0.999991 | 0.007472 | 0.002013 |
-| evo1-bootstrap.ort | image_preprocess | 0.9999493 | 0.274 | 0.00389 |
-| evo1-bootstrap.ort | action_from_raw_observation | 0.9999801 | 0.01302 | 0.00298 |
+| evo1-bootstrap | native fixture inside the bundle | 0.999991 | 0.00747 | — |
+| smolvla-base | PyTorch float32 on this board | 0.999339 | 0.08646 | 0.49 |
+| xvla-base | not measured on this board | — | — | — |
+
+The difference is on the **first action of the chunk** — the one a control loop executes before the next inference lands — and is normalised against the reference's own observed action range, not an assumed [-1, 1], because these policies do not share an action space. Later steps in a long chunk drift further: smolvla-base's worst step over the full 50 is 2.052% of range. Thresholds are in the README; `python -m bench parity --reference <label>` applies them.
 
 ## Speed
 
