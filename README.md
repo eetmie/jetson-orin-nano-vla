@@ -86,67 +86,29 @@ scripts/fetch_models.sh xvla-base
 MODEL=xvla-base scripts/run_all.sh
 ```
 
-## Run the EVO1 infrastructure bootstrap
+## Run EVO1
 
-The current EVO1 artifact proves export, TensorRT execution, LeRobot 0.6.1 parity,
-memory fit, and performance. Its action head is deterministic random initialization.
-It is **not a trained policy and must never control a robot**. In particular, it is
-not the `MINT-SJTU/Evo1_RoboTwin2_clean` trained checkpoint.
-
-Export the bundle with the companion Spark workflow, copy the entire checksummed
-directory to the Jetson, then run:
+Both EVO1 bundles come from the companion Spark workflow and are copied over whole, so
+`fetch_models.sh` has nothing to download. `evo1-bootstrap` has a **randomly initialized
+action head**: it measures infrastructure only and must never control a robot.
+`evo1-libero` is trained ([`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero)),
+and its actions mean something for LIBERO's embodiment and nothing else.
 
 ```bash
 scripts/00_host_prep.sh
 scripts/11_env_ort.sh
 
-.venv-ort/bin/python scripts/check_evo1_fixture.py \
-    --bundle ~/bundles/evo1-bootstrap-split \
-    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-trt
+BUNDLE=~/bundles/evo1-libero-split
+CACHE=~/.cache/jetson-orin-nano-vla/evo1-libero-trt
 
-.venv-ort/bin/python -m bench ort-split \
-    --model evo1-bootstrap \
-    --bundle ~/bundles/evo1-bootstrap-split \
-    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-trt \
-    --iters 100
-```
-
-The benchmark itself repeats the native-fixture check during load and fails closed if
-parity is below the threshold. The standalone command is useful before a long run
-because it prints every graph provider and boundary comparison.
-
-The first ONNX run builds TensorRT engines serially and takes several minutes. Later
-runs reuse the persistent cache. No camera is required: the benchmark defaults to
-deterministic in-memory observations.
-
-## Run EVO1 LIBERO
-
-Unlike the bootstrap, this one has trained weights: [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero),
-a LeRobot-format LIBERO policy. Its actions are meaningful for LIBERO's own embodiment,
-and for nothing else.
-
-Not `MINT-SJTU/Evo1_LIBERO`, despite the name. That repository — and every other
-`MINT-SJTU/Evo1_*` and `EVO-Depth-*` — ships the author's DeepSpeed checkpoint
-(`mp_rank_00_model_states.pt`, `norm_stats.json`) with no `model.safetensors` and no
-processor configs, so `Evo1Policy.from_pretrained` has nothing to load.
-
-Export the two-view bundle with the companion Spark workflow, copy the whole checksummed
-directory over, then:
-
-```bash
-.venv-ort/bin/python scripts/check_evo1_fixture.py \
-    --bundle ~/bundles/evo1-libero-split \
-    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-libero-trt
-
+.venv-ort/bin/python scripts/check_evo1_fixture.py --bundle $BUNDLE --cache-dir $CACHE
 .venv-ort/bin/python -m bench ort-split --model evo1-libero \
-    --bundle ~/bundles/evo1-libero-split \
-    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-libero-trt \
-    --iters 100
+    --bundle $BUNDLE --cache-dir $CACHE --iters 100
 ```
 
-Two views cost more than the bootstrap's one in both directions: the sequence is 576
-tokens rather than 320 because an absent view still spends its 256 image tokens, and the
-cold engine build peaked at 5.35 GB RSS. It fits, and barely touched swap.
+Substitute `evo1-bootstrap` and its own bundle and cache for the bootstrap run. The
+first run builds TensorRT engines serially and takes several minutes; later runs reuse
+the cache. `python -m bench models` has the per-model contracts.
 
 ## Documentation
 
