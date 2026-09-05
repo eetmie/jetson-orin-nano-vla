@@ -9,6 +9,7 @@ explicitly nondeployable EVO1 infrastructure profile:
 | SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
 | X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
 | EVO1 775M bootstrap | [`OpenGVLab/InternVL3-1B-hf`](https://huggingface.co/OpenGVLab/InternVL3-1B-hf), pinned revision | local checksummed export; random action head |
+| EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | local checksummed export; **trained** action head |
 
 ## Measured fit
 
@@ -21,7 +22,8 @@ They measure inference cost, not robot-task quality.
 | SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz |
 | X-VLA split ONNX FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz |
-| EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.08 ms | 3.46 Hz |
+| EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.12 ms | 3.45 Hz |
+| EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
 
 The split bundles fit because the large policies are divided into independently built
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
@@ -116,6 +118,35 @@ because it prints every graph provider and boundary comparison.
 The first ONNX run builds TensorRT engines serially and takes several minutes. Later
 runs reuse the persistent cache. No camera is required: the benchmark defaults to
 deterministic in-memory observations.
+
+## Run EVO1 LIBERO
+
+Unlike the bootstrap, this one has trained weights: [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero),
+a LeRobot-format LIBERO policy. Its actions are meaningful for LIBERO's own embodiment,
+and for nothing else.
+
+Not `MINT-SJTU/Evo1_LIBERO`, despite the name. That repository — and every other
+`MINT-SJTU/Evo1_*` and `EVO-Depth-*` — ships the author's DeepSpeed checkpoint
+(`mp_rank_00_model_states.pt`, `norm_stats.json`) with no `model.safetensors` and no
+processor configs, so `Evo1Policy.from_pretrained` has nothing to load.
+
+Export the two-view bundle with the companion Spark workflow, copy the whole checksummed
+directory over, then:
+
+```bash
+.venv-ort/bin/python scripts/check_evo1_fixture.py \
+    --bundle ~/bundles/evo1-libero-split \
+    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-libero-trt
+
+.venv-ort/bin/python -m bench ort-split --model evo1-libero \
+    --bundle ~/bundles/evo1-libero-split \
+    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-libero-trt \
+    --iters 100
+```
+
+Two views cost more than the bootstrap's one in both directions: the sequence is 576
+tokens rather than 320 because an absent view still spends its 256 image tokens, and the
+cold engine build peaked at 5.35 GB RSS. It fits, and barely touched swap.
 
 ## Documentation
 
