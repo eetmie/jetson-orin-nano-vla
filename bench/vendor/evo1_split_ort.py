@@ -66,11 +66,24 @@ def verify_bundle(bundle_dir: str | Path) -> dict:
         raise ValueError(f"bundle artifacts absent from manifest: {missing}")
     if bundle.get("model") != "evo1" or bundle.get("schema_version") != 1:
         raise ValueError("unsupported EVO1 bundle schema")
-    if (bundle.get("deployable") is not False or
-            bundle.get("random_action_head") is not True):
-        raise ValueError("runtime accepts only a marked nondeployable bootstrap bundle")
-    if bundle.get("max_views") != 1 or bundle.get("valid_views") != 1:
-        raise ValueError("runtime requires the tested one-camera EVO1 export")
+    # A bundle must agree with itself about what it is. The bootstrap's random head and
+    # a trained checkpoint's are indistinguishable from the graphs alone, so the two
+    # flags are the only thing standing between "measured a policy" and "measured
+    # noise" -- a bundle that sets them inconsistently is rejected rather than guessed
+    # at. Whether a random-head bundle may run is the caller's decision
+    # (allow_bootstrap), not this function's.
+    if bool(bundle.get("deployable")) == bool(bundle.get("random_action_head")):
+        raise ValueError(
+            "bundle disagrees with itself: deployable="
+            f"{bundle.get('deployable')!r} random_action_head="
+            f"{bundle.get('random_action_head')!r}")
+    views = bundle.get("valid_views")
+    if not isinstance(views, int) or views < 1 or bundle.get("max_views") != views:
+        raise ValueError(
+            "runtime requires max_views == valid_views >= 1, got "
+            f"max_views={bundle.get('max_views')!r} valid_views={views!r}. A padded "
+            "view still spends its image tokens, so the two must match or the prompt "
+            "and the pixel stack describe different observations.")
     tokenizer_relative = Path(bundle["tokenizer"]["path"])
     tokenizer = (root / tokenizer_relative).resolve()
     if root not in tokenizer.parents:
@@ -152,21 +165,32 @@ def causal_mask(valid: np.ndarray) -> np.ndarray:
     return np.where(allowed, 0.0, -10000.0).astype(np.float32)
 
 
-def preprocess_image(image_hwc_uint8: np.ndarray, size: int) -> np.ndarray:
-    """Resize one RGB image with PIL bicubic and apply ImageNet normalization."""
+def preprocess_image(images_uint8: np.ndarray, size: int) -> np.ndarray:
+    """Resize RGB views with PIL bicubic and apply ImageNet normalization.
+
+    Accepts one HxWx3 image or a VxHxWx3 stack and always returns (V, 3, size, size),
+    which is the layout the vision graph was traced with. One view is just V == 1, so
+    a one-camera bundle takes the identical path and produces byte-identical output to
+    the single-image version this replaced.
+    """
     from PIL import Image
 
-    image = np.asarray(image_hwc_uint8)
-    if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
-        raise ValueError(f"expected uint8 HxWx3 RGB image, got {image.shape} {image.dtype}")
-    resized = Image.fromarray(image).resize((size, size), Image.Resampling.BICUBIC)
-    values = np.asarray(resized, dtype=np.float32) / 255.0
-    values = (values - IMAGENET_MEAN) / IMAGENET_STD
-    return np.ascontiguousarray(values.transpose(2, 0, 1)[None])
+    array = np.asarray(images_uint8)
+    if array.ndim == 3:
+        array = array[None]
+    if array.ndim != 4 or array.shape[3] != 3 or array.dtype != np.uint8:
+        raise ValueError(
+            f"expected uint8 HxWx3 or VxHxWx3 RGB, got {array.shape} {array.dtype}")
+    out = np.empty((array.shape[0], 3, size, size), dtype=np.float32)
+    for index, view in enumerate(array):
+        resized = Image.fromarray(view).resize((size, size), Image.Resampling.BICUBIC)
+        values = np.asarray(resized, dtype=np.float32) / 255.0
+        out[index] = ((values - IMAGENET_MEAN) / IMAGENET_STD).transpose(2, 0, 1)
+    return np.ascontiguousarray(out)
 
 
 class Evo1SplitPolicy:
-    """Fixed one-camera/320-token inference for bootstrap benchmarking only."""
+    """Split-ONNX EVO1 inference over the view count and sequence length a bundle declares."""
 
     def __init__(
         self,
@@ -177,10 +201,13 @@ class Evo1SplitPolicy:
         *,
         allow_bootstrap: bool = False,
     ) -> None:
-        if not allow_bootstrap:
-            raise ValueError(BOOTSTRAP_WARNING + " Pass allow_bootstrap=True for benchmarks.")
         self.root = Path(bundle_dir).resolve()
         self.bundle = verify_bundle(self.root)
+        # The consent gate applies to the random-head bundle only. Demanding it for a
+        # trained checkpoint would train callers to pass allow_bootstrap=True always,
+        # which is exactly how the flag stops protecting anything.
+        if self.bundle.get("random_action_head") and not allow_bootstrap:
+            raise ValueError(BOOTSTRAP_WARNING + " Pass allow_bootstrap=True for benchmarks.")
         self.cache_dir = Path(cache_dir).resolve()
         self.precision = precision
         self.steps = int(
@@ -252,9 +279,18 @@ class Evo1SplitPolicy:
         return value
 
     def _prompt_inputs(self, task: str) -> tuple[np.ndarray, np.ndarray]:
-        count = int(self.bundle["image_seq_length"])
-        image_tokens = IMG_START_TOKEN + IMG_CONTEXT_TOKEN * count + IMG_END_TOKEN
-        prompt = f"Image-1: {image_tokens}\n{task.strip()}"
+        # Must reproduce LeRobot's _build_multimodal_prompts exactly: one
+        # "Image-{i+1}: <start><ctx * n><end>\n" segment per view, then the stripped
+        # task. A different segment order, separator or numbering yields a different
+        # token sequence and the parity check fails with no clue why.
+        per_view = int(self.bundle["image_seq_length"])
+        count = per_view * int(self.bundle["valid_views"])
+        segments = "".join(
+            f"Image-{i + 1}: "
+            f"{IMG_START_TOKEN + IMG_CONTEXT_TOKEN * per_view + IMG_END_TOKEN}\n"
+            for i in range(int(self.bundle["valid_views"]))
+        )
+        prompt = segments + task.strip()
         encoded = self.tokenizer(
             prompt,
             return_tensors="np",
@@ -373,15 +409,20 @@ class Evo1SplitPolicy:
 
     def sample_actions(
         self,
-        image_hwc_uint8: np.ndarray,
+        images_uint8: np.ndarray,
         task: str,
         state: np.ndarray,
         noise: np.ndarray,
     ) -> np.ndarray:
+        """One HxWx3 image, or a VxHxWx3 stack matching the bundle's view count."""
         started = time.perf_counter()
         pixel_values = preprocess_image(
-            image_hwc_uint8, int(self.bundle["image_size"])
+            images_uint8, int(self.bundle["image_size"])
         )
+        if pixel_values.shape[0] != int(self.bundle["valid_views"]):
+            raise ValueError(
+                f"got {pixel_values.shape[0]} view(s), bundle declares "
+                f"{self.bundle['valid_views']}")
         input_ids, context_mask = self._prompt_inputs(task)
         state = np.asarray(state, dtype=np.float32).reshape(-1)
         width = int(self.bundle["max_state_dim"])

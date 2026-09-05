@@ -32,6 +32,11 @@ def validate_fixture(policy, bundle_dir: str | Path, threshold: float = 0.999) -
     root = Path(bundle_dir)
     bundle = policy.bundle
     with np.load(root / bundle["fixture"]["file"], allow_pickle=False) as fixture:
+        # raw_images is the full view stack; raw_image is only the first view, kept so
+        # older one-view fixtures still load. Preferring the stack means a two-view
+        # bundle is never silently checked against one camera -- which would pass the
+        # preprocessing comparison on view 0 and certify nothing about view 1.
+        raw = fixture["raw_images"] if "raw_images" in fixture else fixture["raw_image"]
         output = policy.run_fixture(fixture)
         valid = np.broadcast_to(
             fixture["context_mask"][..., None], fixture["expected_fused"].shape
@@ -44,11 +49,11 @@ def validate_fixture(policy, bundle_dir: str | Path, threshold: float = 0.999) -
             "action": _compare(fixture["expected_action"], output["action"]),
             "image_preprocess": _compare(
                 fixture["pixel_values"],
-                preprocess_image(fixture["raw_image"], int(bundle["image_size"])),
+                preprocess_image(raw, int(bundle["image_size"])),
             ),
         }
         from_raw = policy.sample_actions(
-            fixture["raw_image"],
+            raw,
             bundle["fixture"]["task"],
             fixture["state"][0],
             fixture["initial_noise"],
