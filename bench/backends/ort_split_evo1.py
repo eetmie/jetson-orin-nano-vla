@@ -92,13 +92,15 @@ class OrtSplitEvo1Backend(Backend):
         }
 
     def infer(self, obs: Observation) -> InferResult:
-        if len(obs.images) != 1:
+        views = int(self.policy.bundle["valid_views"])
+        if len(obs.images) != views:
             raise ValueError(
-                f"EVO1 bootstrap bundle requires one image, got {len(obs.images)}"
+                f"this EVO1 bundle declares {views} view(s), got {len(obs.images)}. "
+                "A padded view still spends its image tokens, so the counts must match."
             )
         started = time.perf_counter()
         chunk = self.policy.sample_actions(
-            obs.image,
+            np.stack(obs.images) if views > 1 else obs.image,
             obs.task,
             obs.state,
             noise=obs.noise,
