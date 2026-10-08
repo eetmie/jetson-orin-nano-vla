@@ -25,6 +25,8 @@ They measure inference cost, not robot-task quality.
 | EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.12 ms | 3.45 Hz |
 | EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
 
+Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
+
 The split bundles fit because the large policies are divided into independently built
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
 budget. Full memory, power, CPU, thermal, validity, and per-graph measurements are in
@@ -34,25 +36,13 @@ budget. Full memory, power, CPU, thermal, validity, and per-graph measurements a
 
 Speed is only worth measuring if the actions survive the conversion. On this board that
 is a live question rather than a formality: compute 8.7 makes FP16 the only fast reduced
-precision available, and a blanket FP16 cast is exactly what collapsed SmolVLA's SigLIP
-vision tower to cosine 0.805 elsewhere. Every backend is therefore handed the *same*
+precision available. Every backend is handed the *same*
 seeded observations and the *same* injected noise (`bench/obs.py`), so the action chunks
 line up element by element rather than only in distribution.
 
-**The gate is two conditions, and both must hold:**
-
-- `cosine >= 0.999` — direction
-- `max_abs_diff <= 1%` of the **reference run's own observed action range** — amplitude
-
-Cosine alone hides a scale error, and an absolute difference means nothing without a
-range, so the difference is normalised against the range the reference policy actually
-commands. That keeps the number comparable across policies with different action spaces.
-
 The measured values are in [the results](docs/RESULTS.md#parity). The short version: the
 converted models reproduce their reference actions to **cosine 0.9993 or better, and
-within 0.49 % of the action range on the executed action** — X-VLA to 0.04 %. Later steps
-in a long chunk drift further, so a deployment that runs the whole horizon open-loop
-should look at the full-chunk figure there too.
+within 0.49 % of the action range on the executed action**.
 
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
@@ -122,8 +112,8 @@ the cache. `python -m bench models` has the per-model contracts.
 ## Scope
 
 This repository downloads, runs, and compares two public base checkpoints and the
-nondeployable EVO1 export profile. It does not contain training, fine-tuning, robot
-control, camera capture, or a trained EVO1 action head. TensorRT engines are built on
+EVO1 export profile. It does not contain training, fine-tuning, robot
+control or camera capture. TensorRT engines are built on
 the Jetson and are never copied between machines; the ONNX bundles are the portable
 artifacts.
 
