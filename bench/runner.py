@@ -179,7 +179,10 @@ def collect_env() -> dict:
         except Exception:
             pass
     env["git_sha"] = sh("git", "rev-parse", "HEAD")
-    env["git_dirty"] = bool(sh("git", "status", "--porcelain"))
+    # results/ is the harness's own output: a run written just before this one must not
+    # mark it dirty. Untracked code elsewhere still does.
+    env["git_dirty"] = bool(sh("git", "status", "--porcelain", "--", ":(top)",
+                               ":(top,exclude)results"))
     if env["git_dirty"]:
         try:
             diff = subprocess.run(
