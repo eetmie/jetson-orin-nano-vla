@@ -209,34 +209,40 @@ def _parity_pairs(runs: list[dict]) -> list[dict]:
 
 
 def parity_table(runs: list[dict], pairs: list[dict]) -> str:
-    """One row per model: does the deployed export still produce the reference actions?
+    """One row per model and runtime: does the deployed export still produce the
+    reference actions?
 
     Deliberately one line each. The per-boundary and per-pair detail is in the run
     JSONs for anyone who needs it; what belongs in a summary is whether the converted
     model can be used. The reported difference is on the FIRST action of the chunk,
     because that is the one a control loop executes before the next inference lands.
+    A short and a sustained run of the same backend share a row.
     """
     by_label = {r.get("label"): r for r in runs}
-    order, models = [], {}
+    order, groups = [], {}
     for r in runs:
-        key = _g(r, "model", "key", default=None) or r.get("label")
-        if key not in models:
+        if str(r.get("backend") or "").startswith("torch"):
+            continue
+        key = (_g(r, "model", "key", default=None) or r.get("label"), r.get("backend"))
+        if key not in groups:
             order.append(key)
-            models[key] = []
-        models[key].append(r)
+            groups[key] = []
+        groups[key].append(r)
 
     rows = []
     for key in order:
+        model, backend = key
+        labels = {r.get("label") for r in groups[key]}
+        name = f"{model} ({backend})"
         row = None
         for pair in pairs:
-            cand = by_label.get(pair["candidate"], {})
-            if _g(cand, "model", "key", default=None) != key:
+            if pair["candidate"] not in labels:
                 continue
             ref = by_label.get(pair["reference"], {})
             dtype = _g(ref, "meta", "weights_dtype", default="") or ""
             span = pair.get("reference_action_range") or 1.0
             first = pair.get("first_action_max_abs_diff")
-            row = [key, f"PyTorch {dtype} on this board".rstrip(),
+            row = [name, f"PyTorch {dtype} on this board".rstrip(),
                    pair.get("cosine_min"), first,
                    round(float(first) / float(span) * 100, 2)]
             break
@@ -244,23 +250,23 @@ def parity_table(runs: list[dict], pairs: list[dict]) -> str:
             # No PyTorch run to compare against, so fall back to the fixture the bundle
             # carries. Only the action boundary is summarised: it is the policy output,
             # and the intermediate boundaries are in the run JSON.
-            for r in models[key]:
+            for r in groups[key]:
                 action = _g(r, "meta", "fixture_parity", "reports", "action",
                             default=None)
                 if action:
                     source = _g(r, "meta", "fixture_parity", "source", default=None)
                     pct = action.get("max_pct_range")
-                    row = [key, f"{source} fixture inside the bundle" if source
+                    row = [name, f"{source} fixture inside the bundle" if source
                            else "native fixture inside the bundle",
                            round(action["cosine"], 7),
                            float(f"{action['max_abs']:.3g}"),
                            round(pct, 2) if pct is not None else None]
                     break
         if row is None:
-            row = [key, "not measured on this board", None, None, None]
+            row = [name, "not measured on this board", None, None, None]
         rows.append(row)
     return _md_table(rows, [
-        "model", "checked against", "cosine",
+        "model (runtime)", "checked against", "cosine",
         "max abs diff, executed action", "% of action range"])
 
 

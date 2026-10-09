@@ -8,39 +8,46 @@ trained EVO1 LIBERO profile:
 
 | model | upstream checkpoint | split ONNX bundle |
 |---|---|---|
-| SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
-| EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | local checksummed export; **trained** action head |
-| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
-| GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
-| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
+| SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | `export/export.sh`; ORT also runs [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
+| EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | `export/export.sh`; **trained** action head |
+| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | `export/export.sh`; ORT also runs [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
+| GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) | `export/export.sh` |
+| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | `export/export.sh` |
+
+Every model runs on the **pure TensorRT** runtime (`bench trt-split`, no ONNX Runtime).
 
 ## Measured fit
 
 Retained runs use pinned MAXN_SUPER clocks and deterministic synthetic observations.
 They measure inference cost, not robot-task quality.
 
-| model / runtime | views | p50 | p95 | rate |
-|---|---:|---:|---:|---:|
-| SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz |
-| SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
-| EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
-| X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz |
-| X-VLA split ONNX FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz |
-| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 363.82 ms | 364.87 ms | 2.75 Hz |
-| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 349.75 ms | 366.42 ms | 2.84 Hz |
+| model / runtime | views | p50 | p95 | rate | RAM in use |
+|---|---:|---:|---:|---:|---:|
+| SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz | 4.13 GB |
+| SmolVLA split, ORT FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz | 2.39 GB |
+| **SmolVLA** split, pure TensorRT mixed FP16 | 2 | 185.28 ms | 186.86 ms | 5.39 Hz | 1.65 GB |
+| EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
+| **EVO1 LIBERO** split, pure TensorRT mixed FP16 | 2 | 413.93 ms | 414.75 ms | 2.42 Hz | 2.48 GB |
+| X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
+| X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
+| **X-VLA** split, pure TensorRT mixed FP16 | 3 | 405.52 ms | 408.50 ms | 2.46 Hz | 2.77 GB |
+| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 363.82 ms | 364.87 ms | 2.75 Hz | 5.88 GB |
+| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 349.75 ms | 366.42 ms | 2.84 Hz | 5.44 GB |
 
 Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
 
 A second Orin Nano Super, same JetPack and clock settings, ran X-VLA and EVO1 4-6 % slower (SmolVLA
-matched), so YMMV.
+matched), so YMMV. The pure TensorRT and GR00T rows come from that second board, the PyTorch and ORT
+rows from the first. `RAM in use` is the whole system's RAM in use while inferring (`sys RAM` in the results).
 
 The split bundles fit because the large policies are divided into independently built
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
-budget. GR00T N1.6 (3.3 B, ~2.3 B deployed) also needs its weights held only once: it
-runs on the TensorRT runtime without ONNX Runtime, at 5.44 GB system RAM in use, and
-held 351.63 ms p50 / 353.05 ms p95 over a 5-minute sustained run. GR00T N1.7 (3.1 B,
-~2.5 B deployed, Cosmos-Reason2 backbone) fits the same way at 5.88 GB in use and held
-365.70 ms p50 / 367.38 ms p95 over 5 minutes. Full memory, power,
+budget. Running those engines on TensorRT alone, without ONNX Runtime, holds each weight
+once: about half the memory of the ORT runs, at about the same speed. That is what lets
+GR00T N1.6 (3.3 B, ~2.3 B deployed) fit at all; it held 351.63 ms p50 / 353.05 ms p95
+over a 5-minute sustained run. GR00T N1.7 (3.1 B, ~2.5 B deployed, Cosmos-Reason2
+backbone) held 365.70 ms p50 / 367.38 ms p95. Every pure TensorRT model ran a 5-minute
+sustained run within 0.6 % of its short-run p50. Full memory, power,
 CPU, thermal, validity, and per-graph measurements are in
 [the generated results](docs/RESULTS.md).
 
@@ -59,8 +66,9 @@ within 0.49 % of the action range on the executed action**.
 `bench parity` gates the whole chunk, not only the executed action: max difference ≤ 1 %
 of range. X-VLA passes. SmolVLA's 50-step chunk stays at 0.23 % (p95) and 0.62 % (p99), but
 its single worst element reaches 2.05 %, so the command below reports FAIL for it.
-GR00T's worst element over its full chunk is 0.27 % (N1.6) and 0.09 % (N1.7) of range
-against the stock PyTorch FP32 model, checked by its bundle fixture every time it loads.
+Every pure TensorRT run is checked against the stock PyTorch FP32 policy by a fixture in
+its bundle, every time it loads; the worst element over the full chunk is 0.14 % (SmolVLA),
+0.06 % (EVO1 LIBERO), 0.05 % (X-VLA), 0.27 % (GR00T N1.6) and 0.09 % (GR00T N1.7) of range.
 
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
@@ -72,32 +80,41 @@ differ rather than reporting a cosine against a sequence the reference never saw
 the one model with no deployable PyTorch reference at all, so it is checked against a
 native fixture carried inside its bundle, which fails closed during load.
 
-## Run SmolVLA base
+## Run SmolVLA, X-VLA or EVO1 LIBERO
+
+Export on the machine you fine-tune on, copy the bundle over whole, and run it on the
+TensorRT runtime alone:
 
 ```bash
-scripts/00_host_prep.sh
-scripts/10_env_torch.sh
-scripts/11_env_ort.sh
-scripts/fetch_models.sh smolvla-base
+# on the export machine
+export/setup.sh
+export/export.sh lerobot/smolvla_base ~/bundles/smolvla-base-split --views 2
+export/export.sh lerobot/xvla-base ~/bundles/xvla-base-split
+export/export.sh zuoxingdong/evo1_libero ~/bundles/evo1-libero-split \
+    --task "pick up the black bowl and place it on the plate"
 
-MODEL=smolvla-base scripts/run_all.sh
+# on the Orin
+scripts/00_host_prep.sh
+scripts/11_env_ort.sh
+MODEL=smolvla-base BUNDLE=~/bundles/smolvla-base-split scripts/run_all.sh
+MODEL=xvla-base    BUNDLE=~/bundles/xvla-base-split    scripts/run_all.sh
+MODEL=evo1-libero  BUNDLE=~/bundles/evo1-libero-split  scripts/run_all.sh
 ```
 
-## Run X-VLA base
+The first run builds the engines one at a time: about 2 minutes for SmolVLA, 4 for
+X-VLA and 3 for EVO1. Each bundle carries the stock PyTorch FP32 policy's output for
+seeded inputs, and loading fails closed if the engines miss it. `run_all.sh` also runs
+the PyTorch reference when its venv exists (`scripts/10_env_torch.sh` for SmolVLA,
+`scripts/13_env_torch_xvla.sh` for X-VLA) and the checkpoint has been fetched with
+`python -m bench fetch --model <model> --what torch`. `evo1-libero` is trained
+([`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero)), and its
+actions mean something for LIBERO's embodiment and nothing else.
 
-```bash
-scripts/00_host_prep.sh
-scripts/13_env_torch_xvla.sh
-scripts/11_env_ort.sh
-scripts/fetch_models.sh xvla-base
-
-MODEL=xvla-base scripts/run_all.sh
-```
-
-The first run builds 12 TensorRT engines, and that build is very memory-limited: **4 GB swap
-and a headless board are a must**. If a build fails or the board freezes (it happens when
-other models or a robot stack are resident), reboot and build on the fresh board; that
-usually fixes it. Details in [host setup](docs/01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board).
+The SmolVLA and X-VLA ORT rows ran the Hugging Face bundles (`scripts/fetch_models.sh
+smolvla-base`, then `bench ort-split`); EVO1's ran an earlier export of the same graphs.
+X-VLA's ORT engine build is very memory-limited: **4 GB swap and a headless board are a
+must**, and if it fails, reboot and build on the fresh board.
+Details in [host setup](docs/01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board).
 
 ## Run GR00T N1.6
 
@@ -141,28 +158,6 @@ earlier; the runtime encodes only the new frames and reuses the earlier encode o
 history frame (an image's vision tokens depend on that image alone). The checkpoint's
 license file is the NVIDIA License with a non-commercial use limitation.
 
-## Run EVO1 LIBERO
-
-The EVO1 LIBERO bundle comes from the companion Spark workflow and is copied over whole,
-so `fetch_models.sh` has nothing to download.
-`evo1-libero` is trained ([`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero)),
-and its actions mean something for LIBERO's embodiment and nothing else.
-
-```bash
-scripts/00_host_prep.sh
-scripts/11_env_ort.sh
-
-BUNDLE=~/bundles/evo1-libero-split
-CACHE=~/.cache/jetson-orin-nano-vla/evo1-libero-trt
-
-.venv-ort/bin/python scripts/check_evo1_fixture.py --bundle $BUNDLE --cache-dir $CACHE
-.venv-ort/bin/python -m bench ort-split --model evo1-libero \
-    --bundle $BUNDLE --cache-dir $CACHE --iters 100
-```
-
-The first run builds TensorRT engines serially and takes several minutes; later runs reuse
-the cache. `python -m bench models` has the per-model contracts.
-
 ## Export your own checkpoint
 
 `export/` turns a LeRobot model checkpoint, base or fine-tuned, into a split bundle.
@@ -190,7 +185,7 @@ See [export/README.md](export/README.md).
 
 ## Scope
 
-This repository runs and compares three public base checkpoints and the trained
+This repository runs and compares four public base checkpoints and the trained
 EVO1 LIBERO checkpoint. `export/` lets you
 measure yours. It does not contain training, fine-tuning, robot
 control or camera capture. TensorRT engines are built on
