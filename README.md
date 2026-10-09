@@ -1,5 +1,7 @@
 # jetson-orin-nano-vla
 
+**Tested on JetPack 7.2 (L4T R39.2.1).**
+
 Recipes and measurements for running public base VLA models on an **8 GB Jetson
 Orin Nano Super**. The repository has two deployable base-model profiles and one
 explicitly nondeployable EVO1 infrastructure profile:
@@ -27,6 +29,9 @@ They measure inference cost, not robot-task quality.
 
 Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
 
+A second Orin Nano Super, same JetPack and clocks, ran X-VLA and EVO1 4-6 % slower (SmolVLA
+matched), so YMMV.
+
 The split bundles fit because the large policies are divided into independently built
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
 budget. Full memory, power, CPU, thermal, validity, and per-graph measurements are in
@@ -43,6 +48,10 @@ line up element by element rather than only in distribution.
 The measured values are in [the results](docs/RESULTS.md#parity). The short version: the
 converted models reproduce their reference actions to **cosine 0.9993 or better, and
 within 0.49 % of the action range on the executed action**.
+
+`bench parity` gates the whole chunk, not only the executed action: max difference ≤ 1 %
+of range. X-VLA passes. SmolVLA's 50-step chunk stays at 0.23 % (p95) and 0.62 % (p99), but
+its single worst element reaches 2.05 %, so the command below reports FAIL for it.
 
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
@@ -100,6 +109,22 @@ Substitute `evo1-bootstrap` and its own bundle and cache for the bootstrap run. 
 first run builds TensorRT engines serially and takes several minutes; later runs reuse
 the cache. `python -m bench models` has the per-model contracts.
 
+## Export your own checkpoint
+
+`export/` turns a LeRobot SmolVLA or X-VLA checkpoint, base or fine-tuned, into a split
+bundle. Run it on the machine you fine-tune on, not on the Jetson:
+
+```
+fetch model -> (fine-tune) -> export/export.sh -> copy bundle -> benchmark on the Orin
+```
+
+```bash
+export/setup.sh
+export/export.sh path/to/pretrained_model ~/bundles/my-policy
+```
+
+See [export/README.md](export/README.md).
+
 ## Documentation
 
 - [Host setup](docs/01-host-setup.md)
@@ -112,7 +137,8 @@ the cache. `python -m bench models` has the per-model contracts.
 ## Scope
 
 This repository downloads, runs, and compares two public base checkpoints and the
-EVO1 export profile. It does not contain training, fine-tuning, robot
+EVO1 export profile. Its own measurements are of base models only; `export/` lets you
+measure yours. It does not contain training, fine-tuning, robot
 control or camera capture. TensorRT engines are built on
 the Jetson and are never copied between machines; the ONNX bundles are the portable
 artifacts.

@@ -16,6 +16,12 @@ CACHE_DIR="${HOME}/.cache/jetson-orin-nano-vla/trt"
 verify() {
     echo "== power mode ==";        sudo nvpmodel -q || true
     echo; echo "== clocks ==";      sudo jetson_clocks --show 2>/dev/null | head -6 || true
+    # jetson_clocks assumes 8 TPCs on every Orin and prints 8 minus the power-gate mask,
+    # so a board with the mask unset reports 8. This module has 4 (tpc_fs_mask 0xf).
+    # 1020 MHz above is the requested rate; gpc0clk is what the GPU actually runs at.
+    echo; echo "== GPU ==";         echo "tpc_fs_mask $(cat /sys/devices/platform/gpu.0/tpc_fs_mask 2>/dev/null || echo '?')" \
+                                         "tpc_pg_mask $(cat /sys/devices/platform/gpu.0/tpc_pg_mask 2>/dev/null || echo '?')"
+    echo "gpc0clk actual $(sudo cat /sys/kernel/debug/bpmp/debug/clk/gpc0clk/rate 2>/dev/null || echo '?') Hz"
     echo; echo "== memory ==";      free -h
     echo; echo "== swap ==";        swapon --show || echo "(no swap!)"
     echo; echo "== thermal ==";     cat /sys/devices/virtual/thermal/thermal_zone*/type 2>/dev/null | paste -sd' '

@@ -7,7 +7,7 @@
 # then verify torch.cuda.is_available().
 #
 #   pip install -r requirements/torch.txt
-#   pip install --force-reinstall --no-deps torch torchvision \
+#   pip install --force-reinstall --no-deps torch==2.11.0 torchvision==0.26.0 \
 #       --extra-index-url https://pypi.jetson-ai-lab.io/sbsa/cu130
 #   python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 #
@@ -18,4 +18,5 @@
 
 lerobot==0.5.1        # the pin the DGX Spark trains and exports with
 transformers==5.3.0   # pinned to match the Spark export; the tokenizer must agree
+num2words             # the SmolVLM processor imports it; lerobot does not declare it
 -r bench.txt

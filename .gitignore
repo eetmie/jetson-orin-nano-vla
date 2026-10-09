@@ -234,3 +234,6 @@ results/**/*.log
 
 # The per-backend venvs this repo creates (.venv alone does not match these)
 .venv-*/
+
+# Checkpoints export/export.sh downloads from the Hub
+export/.checkpoints/
