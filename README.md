@@ -85,6 +85,11 @@ scripts/fetch_models.sh xvla-base
 MODEL=xvla-base scripts/run_all.sh
 ```
 
+The first run builds 12 TensorRT engines, and that build is very memory-limited: **4 GB swap
+and a headless board are a must**. If a build fails or the board freezes (it happens when
+other models or a robot stack are resident), reboot and build on the fresh board; that
+usually fixes it. Details in [host setup](docs/01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board).
+
 ## Run EVO1
 
 Both EVO1 bundles come from the companion Spark workflow and are copied over whole, so
