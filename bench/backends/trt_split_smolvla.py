@@ -72,7 +72,9 @@ class TrtSplitSmolVLABackend(Backend):
             "engine_cache": str(Path(self.cache_dir).expanduser()),
             "engines_built_this_load_s": self.built,
             "fixture_parity": self.fixture_parity,
-            "export_info": {k: v for k, v in b.info.items() if k != "fixture"},
+            # Not model_id: the exporter records the export machine's checkpoint path.
+            "export_info": {k: v for k, v in b.info.items()
+                            if k not in ("fixture", "model_id")},
         }
 
     def infer(self, obs: Observation) -> InferResult:
