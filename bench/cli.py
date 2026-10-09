@@ -3,7 +3,7 @@
 A run is a **model** crossed with a **backend**. `--model` pulls defaults out of the
 registry (`bench/models.py`): where the weights live, where a split ONNX export lives,
 which tokenizer, and the shapes needed to build an input. This repository registers
-two public base checkpoints and one nondeployable EVO1 infrastructure bootstrap.
+public base checkpoints and one nondeployable EVO1 infrastructure bootstrap.
 """
 
 from __future__ import annotations
@@ -161,10 +161,10 @@ def cmd_torch(args) -> int:
     bundle = Path(args.bundle) if args.bundle else None
     r = Resolved(args, bundle)
 
-    if r.family == "evo1":
+    if r.family in ("evo1", "groot"):
         sys.exit(
-            "evo1-bootstrap has no Jetson PyTorch backend; its native LeRobot fixture "
-            "is embedded in the split bundle for parity validation"
+            f"{args.model} has no Jetson PyTorch backend; its reference outputs are "
+            "embedded in the split bundle for parity validation"
         )
 
     ckpt = args.checkpoint or r.spec.torch_repo
@@ -221,6 +221,18 @@ def cmd_ort_split(args) -> int:
             drop_cuda_ep=False, seed=args.seed, projectors="gpu",
             trt_opt_level=None, trt_workspace_mb=None,
             tokenizer=None, iobinding=True)
+    return _finish(args, be, r)
+
+
+def cmd_trt_split(args) -> int:
+    bundle = Path(args.bundle) if args.bundle else None
+    if bundle is None:
+        sys.exit("--bundle is required: the split ONNX export directory (export/groot).")
+    r = Resolved(args, bundle)
+    if r.family != "groot":
+        sys.exit("trt-split serves the groot family; use ort-split for the others.")
+    from .backends.trt_split_groot import TrtSplitGrootBackend
+    be = TrtSplitGrootBackend(bundle, cache_dir=args.cache_dir)
     return _finish(args, be, r)
 
 
@@ -332,6 +344,14 @@ def main(argv=None) -> int:
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_ort_split)
+
+    p = sub.add_parser("trt-split", help="split ONNX export on the TensorRT runtime alone")
+    p.add_argument("--bundle", default=None, help="the split export directory")
+    p.add_argument("--cache-dir", default=str(Path(DEFAULT_CACHE).parent / "groot-trt"),
+                   help="persistent TensorRT engine cache")
+    _add_model(p)
+    _add_common(p)
+    p.set_defaults(func=cmd_trt_split)
 
     p = sub.add_parser("models", help="what can be benchmarked")
     p.set_defaults(func=cmd_models)

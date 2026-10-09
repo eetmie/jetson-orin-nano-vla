@@ -183,16 +183,17 @@ def _parity_pairs(runs: list[dict]) -> list[dict]:
 
     `compare` refuses anything whose comparison signature differs -- different policy,
     different observations, different injected noise -- so a rejected pair is dropped
-    rather than reported with a caveat. PyTorch is preferred as the reference where a
-    torch run exists: it is the unquantised side, so the difference reads as the cost
-    of the conversion.
+    rather than reported with a caveat. The reference is always a PyTorch run: it is
+    the unquantised side, so the difference reads as the cost of the conversion. Two
+    runs of the same converted backend (a short and a sustained run) also share a
+    signature, and pairing them would report 0 % against "PyTorch".
     """
     def is_torch(r: dict) -> bool:
         return str(r.get("backend") or "").startswith("torch")
 
     ok = [r for r in runs if r.get("status") == "ok"]
     out, seen = [], set()
-    for ref in sorted(ok, key=lambda r: (not is_torch(r), r.get("label") or "")):
+    for ref in sorted((r for r in ok if is_torch(r)), key=lambda r: r.get("label") or ""):
         for cand in ok:
             if cand is ref:
                 continue
@@ -247,9 +248,13 @@ def parity_table(runs: list[dict], pairs: list[dict]) -> str:
                 action = _g(r, "meta", "fixture_parity", "reports", "action",
                             default=None)
                 if action:
-                    row = [key, "native fixture inside the bundle",
+                    source = _g(r, "meta", "fixture_parity", "source", default=None)
+                    pct = action.get("max_pct_range")
+                    row = [key, f"{source} fixture inside the bundle" if source
+                           else "native fixture inside the bundle",
                            round(action["cosine"], 7),
-                           float(f"{action['max_abs']:.3g}"), None]
+                           float(f"{action['max_abs']:.3g}"),
+                           round(pct, 2) if pct is not None else None]
                     break
         if row is None:
             row = [key, "not measured on this board", None, None, None]

@@ -76,11 +76,14 @@ MODEL=xvla-base scripts/run_all.sh
 MODEL=evo1-bootstrap \
     BUNDLE=~/bundles/evo1-bootstrap-split \
     scripts/run_all.sh
+MODEL=groot-n16-base \
+    BUNDLE=~/bundles/groot-n16-base-split \
+    scripts/run_all.sh
 ```
 
 The public-base recipes record a PyTorch FP32 reference, the split ONNX FP16
-deployment, and a sustained thermal run. EVO1 skips PyTorch because its reference is
-the embedded native fixture. Set `SUSTAINED=0` to skip the five-minute sustained pass.
+deployment, and a sustained thermal run. EVO1 and GR00T skip PyTorch because their
+reference is the fixture embedded in the bundle; GR00T runs on `trt-split`. Set `SUSTAINED=0` to skip the five-minute sustained pass.
 
 The default observation is deterministic and in memory, so no camera or robot hardware
 is needed. EVO1 synthetic observations use the policy's native uniform `[-1, 1]` flow

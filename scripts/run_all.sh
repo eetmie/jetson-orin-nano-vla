@@ -4,6 +4,7 @@
 #   MODEL=smolvla-base scripts/run_all.sh
 #   MODEL=xvla-base    scripts/run_all.sh
 #   MODEL=evo1-bootstrap BUNDLE=/path/to/bundle scripts/run_all.sh
+#   MODEL=groot-n16-base BUNDLE=/path/to/bundle scripts/run_all.sh
 #
 # VIEWS must match the selected export bundle. Camera count is static for X-VLA and
 # EVO1, while camera slots change SmolVLA sequence shape. Cross-view sweeps need
@@ -25,12 +26,13 @@ case "$MODEL" in
     smolvla-base) MODEL_FAMILY=smolvla ;;
     xvla-base)    MODEL_FAMILY=xvla ;;
     evo1-bootstrap) MODEL_FAMILY=evo1 ;;
-    *) echo "MODEL must be smolvla-base, xvla-base, or evo1-bootstrap"; exit 2 ;;
+    groot-n16-base) MODEL_FAMILY=groot ;;
+    *) echo "MODEL must be smolvla-base, xvla-base, evo1-bootstrap, or groot-n16-base"; exit 2 ;;
 esac
 VIEWS="${VIEWS:-}"
 if [[ -z "$VIEWS" ]]; then
     case "$MODEL_FAMILY" in
-        xvla) VIEWS=3 ;;
+        xvla|groot) VIEWS=3 ;;
         evo1) VIEWS=1 ;;
         *) VIEWS=2 ;;
     esac
@@ -43,7 +45,7 @@ COMMON=(--iters "$ITERS" --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}")
 
 if [[ "$MODEL_FAMILY" == "xvla" ]]; then
     VENV_TORCH="${VENV_TORCH:-.venv-torch-xvla}"
-elif [[ "$MODEL_FAMILY" == "evo1" ]]; then
+elif [[ "$MODEL_FAMILY" == "evo1" || "$MODEL_FAMILY" == "groot" ]]; then
     VENV_TORCH="${VENV_TORCH:-.venv-ort}"
 else
     VENV_TORCH="${VENV_TORCH:-.venv-torch}"
@@ -68,6 +70,8 @@ scripts/00_host_prep.sh --verify | head -20
 #    environment rather than any backend.
 if [[ "$MODEL_FAMILY" == "evo1" ]]; then
     echo "== PyTorch skipped: EVO1 is validated by the bundle native fixture =="
+elif [[ "$MODEL_FAMILY" == "groot" ]]; then
+    echo "== PyTorch skipped: GR00T is validated by the stock-PyTorch fixture in its bundle =="
 else
     TORCH_BUNDLE_ARGS=()
     [[ -d "$BUNDLE" ]] && TORCH_BUNDLE_ARGS+=(--bundle "$BUNDLE")
@@ -76,21 +80,26 @@ else
 fi
 
 # 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
-#    for SmolVLA, ~10 for X-VLA. Later runs load from cache in seconds.
+#    for SmolVLA, ~10 for X-VLA, ~7 for GR00T. Later runs load from cache in seconds.
+#    GR00T runs on the TensorRT runtime alone (trt-split), the others on ORT.
+SPLIT_CMD=ort-split
+[[ "$MODEL_FAMILY" == "groot" ]] && SPLIT_CMD=trt-split
 if [[ -d "$BUNDLE" ]]; then
     for v in $VIEWS; do
-        run "$VENV_ORT" "$MODEL.ort-split.${v}cam" ort-split --bundle "$BUNDLE" \
+        run "$VENV_ORT" "$MODEL.$SPLIT_CMD.${v}cam" "$SPLIT_CMD" --bundle "$BUNDLE" \
             --views "$v" "${COMMON[@]}"
     done
 elif [[ "$MODEL_FAMILY" == "evo1" ]]; then
     echo "!! no EVO1 bundle at $BUNDLE — export/copy it from spark-projects"
+elif [[ "$MODEL_FAMILY" == "groot" ]]; then
+    echo "!! no GR00T bundle at $BUNDLE — export it with export/export.sh nvidia/GR00T-N1.6-3B"
 else
     echo "!! no split bundle at $BUNDLE — run scripts/fetch_models.sh $MODEL"
 fi
 
 # 3. Sustained run, to catch thermal drift the short runs miss.
 if [[ "${SUSTAINED:-1}" == "1" && -d "$BUNDLE" ]]; then
-    run "$VENV_ORT" "$MODEL.ort-split.sustained" ort-split --bundle "$BUNDLE" \
+    run "$VENV_ORT" "$MODEL.$SPLIT_CMD.sustained" "$SPLIT_CMD" --bundle "$BUNDLE" \
         --duration-s "${SUSTAINED_S:-300}" \
         --obs "$OBS" --idle-s 5 --warmup 5 "${MODEL_ARGS[@]}"
 fi
