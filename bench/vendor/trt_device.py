@@ -187,6 +187,57 @@ def _runs(mask: np.ndarray) -> list[tuple[int, int]]:
     return out
 
 
+class DitChain:
+    """GR00T's denoising loop on the device, fed by graph input names (both layouts).
+
+    Per-step constants (time encodings, schema-2 AdaLN modulation) are uploaded once;
+    schema-2 cross-attention K/V run once per observation from `vl`; actions ping-pong
+    between two buffers. `static` holds vl, state_features and the attention biases.
+    """
+
+    def __init__(self, d: "Device", bundle, consts: list[dict], static: dict):
+        from .groot_trt import _pool_name
+
+        self.d, self.b, self.static, self.pool_name = d, bundle, static, _pool_name
+        needed = {i for n in bundle.dit for i in bundle.graph[n]["inputs"]}
+        self.steps = []
+        for c in consts:
+            bufs = {}
+            for k, v in c.items():
+                if k in needed:
+                    bufs[k] = DevBuf(v.shape, v.dtype)
+                    d.upload(bufs[k], v)
+            self.steps.append(bufs)
+        self.kv_out = [d.outputs(n) for n in bundle.kv]
+        self.dit_out = {n: {k: v for k, v in d.outputs(n).items() if k != "actions_next"}
+                        for n in bundle.dit}
+        a = d.buf_for(bundle.dit[0], "actions")
+        self.actions = [a, DevBuf(a.shape, a.dtype)]
+
+    @property
+    def result(self) -> DevBuf:
+        return self.actions[len(self.steps) % 2]
+
+    def enqueue(self) -> None:
+        d, bd = self.d, self.b
+        pool = dict(self.static)
+        for name, out in zip(bd.kv, self.kv_out):
+            d.enqueue(name, {"vl": pool["vl"], **out})
+            pool.update(out)
+        for i, c in enumerate(self.steps):
+            a_in, a_out = self.actions[i % 2], self.actions[(i + 1) % 2]
+            pool.update(c)
+            pool["actions"] = a_in
+            for name in bd.dit:
+                outs = self.dit_out[name]
+                bind = {k: pool[k] for k in bd.graph[name]["inputs"]}
+                bind.update(outs)
+                if "actions_next" in bd.graph[name]["outputs"]:
+                    bind["actions_next"] = a_out
+                d.enqueue(name, bind)
+                pool.update({self.pool_name(k): v for k, v in outs.items()})
+
+
 class Groot16Device:
     """GR00T N1.6 as one device-resident chain (see groot_trt.infer for the host one).
 
@@ -208,19 +259,13 @@ class Groot16Device:
         self.llm_out = [d.outputs(n) for n in bd.llm]
         self.state = d.buf_for("cond", "state")
         self.cond_out = d.outputs("cond")
-        self.text_bias = d.buf_for(bd.dit[0], "text_bias")
-        self.image_bias = d.buf_for(bd.dit[0], "image_bias")
+        self.text_bias = DevBuf(bd.text_bias.shape, np.float32)
+        self.image_bias = DevBuf(bd.image_bias.shape, np.float32)
         d.upload(self.text_bias, bd.text_bias)
         d.upload(self.image_bias, bd.image_bias)
-        self.time = []
-        for step in b["timesteps"]:
-            t = d.buf_for("time", "t")
-            d.upload(t, np.array([step], np.float32))
-            out = d.outputs("time")
-            d.enqueue("time", {"t": t, **out})
-            self.time.append(out)
-        self.actions = [d.buf_for(bd.dit[0], "actions"), d.buf_for(bd.dit[0], "actions")]
-        self.dit_out = [d.outputs(n) for n in bd.dit[:-1]]   # the last writes `actions`
+        self.dit = DitChain(d, bd, bd.consts, {
+            "vl": self.cond_out["vl"], "state_features": self.cond_out["state_features"],
+            "text_bias": self.text_bias, "image_bias": self.image_bias})
         d.sync()
         hidden = self.h0.shape[-1]
         row = hidden * self.h0.dtype.itemsize
@@ -257,27 +302,12 @@ class Groot16Device:
             h = next(iter(out.values()))
         d.enqueue("cond", {"features": h, "state": self.state, **self.cond_out})
         d.record(self.ev[2])
-        vl, sf = self.cond_out["vl"], self.cond_out["state_features"]
-        tb, ib = self.text_bias, self.image_bias
-        for i, te in enumerate(self.time):
-            a_in, a_out = self.actions[i % 2], self.actions[(i + 1) % 2]
-            o0 = self.dit_out[0]
-            d.enqueue(bd.dit[0], {"actions": a_in, "t_proj": te["t_proj"], "tau": te["tau"],
-                                  "state_features": sf, "vl": vl, "text_bias": tb,
-                                  "image_bias": ib, **o0})
-            hh, temb = o0["h_out"], o0["temb"]
-            for name, out in zip(bd.dit[1:-1], self.dit_out[1:]):
-                d.enqueue(name, {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                                 "image_bias": ib, **out})
-                hh = out["h_out"]
-            d.enqueue(bd.dit[-1], {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                                   "image_bias": ib, "actions": a_in,
-                                   "actions_next": a_out})
+        self.dit.enqueue()
         d.record(self.ev[3])
 
     @property
     def result(self) -> DevBuf:
-        return self.actions[len(self.time) % 2]
+        return self.dit.result
 
     def infer(self, pixel_values: np.ndarray, state: np.ndarray, noise: np.ndarray,
               timings: dict | None = None) -> np.ndarray:
@@ -285,7 +315,7 @@ class Groot16Device:
         t0 = time.perf_counter()
         d.upload(self.vision_in, pixel_values)
         d.upload(self.state, state)
-        d.upload(self.actions[0], noise)
+        d.upload(self.dit.actions[0], noise)
         if self.graph is not None:
             d.launch(self.graph)
         else:
@@ -723,19 +753,15 @@ class Groot17Device:
         d.upload(self.pad_bias, bd.pad_bias)
         self.state = d.buf_for(bd.cond[0], "state")
         self.cond_out = [d.outputs(n) for n in bd.cond]
-        self.text_bias = d.buf_for(bd.dit[0], "text_bias")
-        self.image_bias = d.buf_for(bd.dit[0], "image_bias")
+        self.text_bias = DevBuf(bd.text_bias.shape, np.float32)
+        self.image_bias = DevBuf(bd.image_bias.shape, np.float32)
         d.upload(self.text_bias, bd.text_bias)
         d.upload(self.image_bias, bd.image_bias)
-        self.time = []
-        for step in b["timesteps"]:
-            t = d.buf_for("time", "t")
-            d.upload(t, np.array([step], np.float32))
-            out = d.outputs("time")
-            d.enqueue("time", {"t": t, **out})
-            self.time.append(out)
-        self.actions = [d.buf_for(bd.dit[0], "actions"), d.buf_for(bd.dit[0], "actions")]
-        self.dit_out = [d.outputs(n) for n in bd.dit[:-1]]
+        c_last = self.cond_out[-1] if len(self.cond_out) > 1 else self.cond_out[0]
+        self.dit = DitChain(d, bd, bd.consts, {
+            "vl": c_last["vl_out" if len(self.cond_out) > 1 else "vl"],
+            "state_features": self.cond_out[0]["state_features"],
+            "text_bias": self.text_bias, "image_bias": self.image_bias})
         d.sync()
         # One image per run, past frames first: run k is frame k // V, view k % V.
         V, row = b["views"], self.h0.shape[-1] * self.h0.dtype.itemsize
@@ -783,22 +809,8 @@ class Groot17Device:
         for name, out in zip(bd.cond[1:], c1):
             d.enqueue(name, {"vl": vl, "pad_bias": self.pad_bias, **out})
             vl = out["vl_out"]
-        sf = c0["state_features"]
         d.record(self.ev[2])
-        tb, ib = self.text_bias, self.image_bias
-        for i, te in enumerate(self.time):
-            a_in, a_out = self.actions[i % 2], self.actions[(i + 1) % 2]
-            o0 = self.dit_out[0]
-            d.enqueue(bd.dit[0], {"actions": a_in, "t_proj": te["t_proj"], "tau": te["tau"],
-                                  "state_features": sf, "vl": vl, "text_bias": tb,
-                                  "image_bias": ib, **o0})
-            hh, temb = o0["h_out"], o0["temb"]
-            for name, out in zip(bd.dit[1:-1], self.dit_out[1:]):
-                d.enqueue(name, {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                                 "image_bias": ib, **out})
-                hh = out["h_out"]
-            d.enqueue(bd.dit[-1], {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                                   "image_bias": ib, "actions": a_in, "actions_next": a_out})
+        self.dit.enqueue()
         d.record(self.ev[3])
 
     def _slot(self) -> int:
@@ -812,7 +824,7 @@ class Groot17Device:
 
     @property
     def result(self) -> DevBuf:
-        return self.actions[len(self.time) % 2]
+        return self.dit.result
 
     def infer(self, pixel_values, state, noise, t_capture: float,
               timings: dict | None = None) -> tuple[np.ndarray, float]:
@@ -821,7 +833,7 @@ class Groot17Device:
         t0 = time.perf_counter()
         d.upload(self.vision_in, pixel_values)
         d.upload(self.state, state)
-        d.upload(self.actions[0], noise)
+        d.upload(self.dit.actions[0], noise)
         if self.graphs:
             d.launch(self.graphs[0])
         else:

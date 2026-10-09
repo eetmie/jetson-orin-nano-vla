@@ -28,6 +28,8 @@ import torch.nn.functional as F
 from torch import nn
 
 from groot_split import MASK_NEG, plan, n_params  # noqa: F401  (re-exported)
+from groot_split import (DitChunk, KvChunk, ModChunk, TimeEmb, _is_cross,  # noqa: E402
+                         action_plans)
 
 PATCH, MERGE = 16, 2
 
@@ -282,7 +284,7 @@ def layer_plans(policy, budget: int) -> dict[str, list[tuple[int, int]]]:
         "vision": plan([n_params(b) + extra.get(i, 0) for i, b in enumerate(vit.blocks)], budget),
         "llm": plan([n_params(l) for l in m.language_model.layers], budget),
         "cond": plan([n_params(b) for b in head.vl_self_attention.transformer_blocks], budget),
-        "dit": plan([n_params(b) for b in head.model.transformer_blocks], budget),
+        **action_plans(policy, budget),
     }
 
 
@@ -335,12 +337,22 @@ def run_split(policy, plans, c: Contract, pixel, input_ids, n_real, state, noise
         else:
             vl = ch(vl, pb)
     actions = noise
+    dit = policy.action_head.model
+    pool = {"state_features": sf, "text_bias": tb, "image_bias": ib}
+    cross = [i for i in range(len(dit.transformer_blocks)) if _is_cross(i)]
+    for lo, hi in plans["kv"]:
+        m = KvChunk(policy, cross[lo:hi])
+        pool.update(zip(m.out_names, m(vl)))
     chunks = [DitChunk(policy, a, b, c) for a, b in plans["dit"]]
+    mods = [ModChunk(policy, a, b, b == len(dit.transformer_blocks)) for a, b in plans["mod"]]
     time_emb = TimeEmb(policy)
     for t in c.timesteps():
         t_proj, tau = time_emb(torch.tensor([t]))
-        hh, temb = chunks[0](actions, t_proj, tau, sf, vl, tb, ib)
-        for ch in chunks[1:-1]:
-            hh = ch(hh, temb, vl, tb, ib)
-        actions = chunks[-1](hh, temb, vl, tb, ib, actions)
+        pool["tau"] = tau
+        for m in mods:
+            pool.update(zip(m.out_names, m(t_proj)))
+        pool["actions"] = actions
+        for ch in chunks:
+            pool["h"] = ch(*[pool[n] for n in ch.in_names])
+        actions = pool["h"]
     return actions, vl

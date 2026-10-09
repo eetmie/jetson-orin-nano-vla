@@ -8,6 +8,8 @@ Graphs (static shapes, one per TensorRT engine; see groot_split.py for the pipel
     llm_{k}     Qwen3 layer chunks over the padded sequence; the last adds the final norm
     cond        vlln + embodiment-sliced state encoder
     time        the two sinusoidal encodings of t, kept FP32
+    mod_{k}     every DiT block's AdaLN modulation from t alone; run at load, then unloaded
+    kv_{k}      the cross-attention blocks' keys and values from vl; once per observation
     dit_{k}     one denoising step in chunks; the last adds the decoder and Euler update
 
 Chunks are packed to --budget-m million params, the per-engine TensorRT build budget
@@ -41,8 +43,8 @@ import re  # noqa: E402
 from vla_common.bundle import write_manifest  # noqa: E402
 from vla_common.fp16_weights import FP16_SENSITIVE_OPS  # noqa: E402
 
-from groot_split import (MASK_NEG, Cond, Contract, DitChunk, LlmChunk,  # noqa: E402
-                         TimeEmb, VisionChunk, layer_plans, load_policy, n_params)
+from groot_split import (MASK_NEG, Cond, Contract, LlmChunk, VisionChunk,  # noqa: E402
+                         add_action_graphs, layer_plans, load_policy, n_params)
 
 SENSITIVE = tuple(FP16_SENSITIVE_OPS)
 
@@ -197,24 +199,7 @@ def main():
         add("cond", Cond(policy, c.embodiment_id).eval(),
             (torch.zeros(1, S, D), torch.zeros(1, 1, c.state_dim)),
             ["features", "state"], ["vl", "state_features"])
-        add("time", TimeEmb(policy).eval(), (torch.zeros(1),), ["t"], ["t_proj", "tau"])
-        hd = policy.action_head.input_embedding_dim
-        dit_args = (torch.zeros(1, 1 + c.action_horizon, hd), torch.zeros(1, hd),
-                    torch.zeros(1, S, D), torch.zeros(1, 1, S), torch.zeros(1, 1, S))
-        names = ["h", "temb", "vl", "text_bias", "image_bias"]
-        for k, (lo, hi) in enumerate(plans["dit"]):
-            m = DitChunk(policy, lo, hi, c).eval()
-            if m.first:
-                args = (torch.zeros(1, c.action_horizon, c.action_dim), torch.zeros(1, 256),
-                        torch.zeros(1, 1, hd), torch.zeros(1, 1, hd), *dit_args[2:])
-                add(f"dit_{k}", m, args,
-                    ["actions", "t_proj", "tau", "state_features", "vl", "text_bias", "image_bias"],
-                    ["h_out", "temb"])
-            elif m.last:
-                add(f"dit_{k}", m, (*dit_args, torch.zeros(1, c.action_horizon, c.action_dim)),
-                    names + ["actions"], ["actions_next"])
-            else:
-                add(f"dit_{k}", m, dit_args, names, ["h_out"])
+        add_action_graphs(add, policy, c, plans, S, D)
 
     emb = eagle.language_model.get_input_embeddings().weight.detach().to(torch.float16).numpy()
     np.save(fp32 / "embed_tokens.npy", emb)
@@ -222,7 +207,7 @@ def main():
     pad_id = eagle.config.text_config.eos_token_id
     ids_p = np.concatenate([ids[0], np.full(S - n_real, pad_id)]).astype(np.int64)
     bundle = {
-        "schema": "groot-n1.6-split/1",
+        "schema": "groot-n1.6-split/2",
         "model": "nvidia/GR00T-N1.6-3B",
         "checkpoint": meta["checkpoint"],
         "embodiment": c.embodiment, "embodiment_id": c.embodiment_id,

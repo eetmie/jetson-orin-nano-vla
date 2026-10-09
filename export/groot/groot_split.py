@@ -20,6 +20,7 @@ approximation.
 
 from __future__ import annotations
 
+import copy
 import sys
 from dataclasses import dataclass
 
@@ -244,13 +245,76 @@ class TimeEmb(nn.Module):
         return self.time_proj(t), tau
 
 
+def _is_cross(idx: int) -> bool:
+    """Even DiT blocks cross-attend to the backbone features, odd ones self-attend."""
+    return idx % 2 == 0
+
+
+class _Half(nn.Module):
+    """Stands in for a cross-attention block's to_k / to_v: the block is handed the
+    precomputed [K | V] rows as its context and this picks one half, so the stock
+    attention code (masking, SDPA, to_out) runs unchanged."""
+
+    def __init__(self, i: int, inner: int):
+        super().__init__()
+        self.i, self.inner = i, inner
+
+    def forward(self, x):
+        return x[..., self.i * self.inner:(self.i + 1) * self.inner]
+
+
+class ModChunk(nn.Module):
+    """The AdaLN modulation of DiT blocks [a, b), plus the output AdaLN's on the last chunk.
+
+    Each is linear(silu(temb)) with temb a function of the timestep alone, so for the
+    fixed schedule they are constants: the runtime runs these graphs once at load and
+    the per-step DiT graphs no longer carry those weights (~158 M of N1.6's 1.09 B).
+    """
+
+    def __init__(self, policy, a: int, b: int, last: bool):
+        super().__init__()
+        dit = policy.action_head.model
+        self.timestep_embedder = dit.timestep_encoder.timestep_embedder
+        self.lins = nn.ModuleList(dit.transformer_blocks[i].norm1.linear for i in range(a, b))
+        self.proj_out_1 = dit.proj_out_1 if last else None
+        self.out_names = [f"mod_{i}" for i in range(a, b)] + (["mod_out"] if last else [])
+
+    def forward(self, t_proj):
+        s = F.silu(self.timestep_embedder(t_proj))
+        out = [lin(s) for lin in self.lins]
+        if self.proj_out_1 is not None:
+            out.append(self.proj_out_1(s))
+        return tuple(out)
+
+
+class KvChunk(nn.Module):
+    """Cross-attention keys and values of the given DiT blocks, as [K | V] rows.
+
+    They depend on the backbone features alone, so they run once per observation
+    instead of once per denoising step.
+    """
+
+    def __init__(self, policy, idxs: list[int]):
+        super().__init__()
+        blocks = policy.action_head.model.transformer_blocks
+        self.k = nn.ModuleList(blocks[i].attn1.to_k for i in idxs)
+        self.v = nn.ModuleList(blocks[i].attn1.to_v for i in idxs)
+        self.out_names = [f"kv_{i}" for i in idxs]
+
+    def forward(self, vl):
+        return tuple(torch.cat([k(vl), v(vl)], dim=-1) for k, v in zip(self.k, self.v))
+
+
 class DitChunk(nn.Module):
-    """DiT blocks [a, b) of one denoising step.
+    """DiT blocks [a, b) of one denoising step, fed precomputed modulation and K/V.
 
     First chunk: action encoder (sliced to the embodiment), position embedding, concat
-    with the state token, timestep embedding. Last chunk: output AdaLN, proj_out,
-    action decoder and the Euler update, so it returns the next action iterate.
-    `temb` crosses every chunk boundary because every block's AdaLN needs it.
+    with the state token. Last chunk: output AdaLN, proj_out, action decoder and the
+    Euler update, so it returns the next action iterate. Each block gets its AdaLN
+    modulation (`mod_i`, from ModChunk) and, if it cross-attends, its [K | V] rows
+    (`kv_i`, from KvChunk): the blocks are copies whose norm1.linear is an identity and
+    whose to_k / to_v pick the halves, so the stock block code runs unchanged.
+    Inputs and outputs are named in `in_names` / `out_names`.
     """
 
     def __init__(self, policy, a: int, b: int, c: Contract):
@@ -260,55 +324,106 @@ class DitChunk(nn.Module):
         self.a, self.b = a, b
         self.first = a == 0
         self.last = b == len(dit.transformer_blocks)
-        self.blocks = nn.ModuleList(dit.transformer_blocks[a:b])
         self.every = dit.attend_text_every_n_blocks
         self.dt = 1.0 / c.steps
         self.horizon = c.action_horizon
+        blocks = []
+        for i in range(a, b):
+            blk = copy.deepcopy(dit.transformer_blocks[i])
+            blk.norm1.linear, blk.norm1.silu = nn.Identity(), nn.Identity()
+            if _is_cross(i):
+                inner = blk.attn1.to_q.out_features
+                blk.attn1.to_k, blk.attn1.to_v = _Half(0, inner), _Half(1, inner)
+            blocks.append(blk)
+        self.blocks = nn.ModuleList(blocks)
         eid = c.embodiment_id
         if self.first:
             enc = head.action_encoder
             self.w1 = _slice_cat_linear(enc.W1, eid)
             self.w2 = _slice_cat_linear(enc.W2, eid)
             self.w3 = _slice_cat_linear(enc.W3, eid)
-            self.timestep_embedder = dit.timestep_encoder.timestep_embedder
             self.register_buffer(
                 "pos_emb", head.position_embedding.weight[:c.action_horizon][None].detach().clone(),
                 persistent=False)
         if self.last:
             self.norm_out = dit.norm_out
-            self.proj_out_1 = dit.proj_out_1
             self.proj_out_2 = dit.proj_out_2
             dec = head.action_decoder
             self.d1 = _slice_cat_linear(dec.layer1, eid)
             self.d2 = _slice_cat_linear(dec.layer2, eid)
+        cross = [i for i in range(a, b) if _is_cross(i)]
+        bias = []
+        if any(i % (2 * self.every) == 0 for i in cross):
+            bias.append("text_bias")
+        if any(i % (2 * self.every) != 0 for i in cross):
+            bias.append("image_bias")
+        self.in_names = ((["actions", "tau", "state_features"] if self.first else ["h"])
+                         + [f"mod_{i}" for i in range(a, b)]
+                         + (["mod_out"] if self.last else [])
+                         + [f"kv_{i}" for i in cross] + bias
+                         + (["actions"] if self.last and not self.first else []))
+        self.out_names = ["actions_next"] if self.last else ["h_out"]
+
+    def example(self, c: Contract, hd: int, mod_dim: int, kv_dim: int, S: int) -> tuple:
+        """Zero inputs in `in_names` order, for tracing."""
+        shapes = {"actions": (1, c.action_horizon, c.action_dim), "tau": (1, 1, hd),
+                  "state_features": (1, 1, hd), "h": (1, 1 + c.action_horizon, hd),
+                  "mod_out": (1, 2 * hd), "text_bias": (1, 1, S), "image_bias": (1, 1, S)}
+        def shape(n):
+            if n.startswith("mod_"):
+                return shapes.get(n, (1, mod_dim))
+            if n.startswith("kv_"):
+                return (1, S, kv_dim)
+            return shapes[n]
+        return tuple(torch.zeros(*shape(n)) for n in self.in_names)
 
     def forward(self, *args):
+        x = dict(zip(self.in_names, args))
         if self.first:
-            actions, t_proj, tau, state_features, vl, text_bias, image_bias = args
+            actions = x["actions"]
             a_emb = self.w1(actions)
-            x = torch.cat([a_emb, tau.to(a_emb.dtype).repeat(1, actions.shape[1], 1)], dim=-1)
-            x = self.w2(x)
-            x = self.w3(x * torch.sigmoid(x)) + self.pos_emb
-            h = torch.cat([state_features, x], dim=1)
-            temb = self.timestep_embedder(t_proj.to(a_emb.dtype))
-        elif self.last:
-            h, temb, vl, text_bias, image_bias, actions = args
+            h = torch.cat([a_emb, x["tau"].to(a_emb.dtype).repeat(1, actions.shape[1], 1)], dim=-1)
+            h = self.w2(h)
+            h = self.w3(h * torch.sigmoid(h)) + self.pos_emb
+            h = torch.cat([x["state_features"], h], dim=1)
         else:
-            h, temb, vl, text_bias, image_bias = args
-        for i, block in enumerate(self.blocks):
-            idx = self.a + i
-            if idx % 2 == 1:
+            h = x["h"]
+        for idx, block in zip(range(self.a, self.b), self.blocks):
+            temb = x[f"mod_{idx}"]
+            if not _is_cross(idx):
                 h = block(h, temb=temb)
             else:
-                bias = text_bias if idx % (2 * self.every) == 0 else image_bias
-                h = block(h, encoder_hidden_states=vl, encoder_attention_mask=bias, temb=temb)
+                bias = x["text_bias" if idx % (2 * self.every) == 0 else "image_bias"]
+                h = block(h, encoder_hidden_states=x[f"kv_{idx}"],
+                          encoder_attention_mask=bias, temb=temb)
         if not self.last:
-            return (h, temb) if self.first else h
-        shift, scale = self.proj_out_1(F.silu(temb)).chunk(2, dim=1)
+            return h
+        shift, scale = x["mod_out"].chunk(2, dim=1)
         h = self.norm_out(h) * (1 + scale[:, None]) + shift[:, None]
         h = self.proj_out_2(h)
         v = self.d2(F.relu(self.d1(h)))[:, -self.horizon:]
-        return actions + self.dt * v
+        return x["actions"] + self.dt * v
+
+
+def add_action_graphs(add, policy, c: Contract, plans: dict, S: int, D: int) -> None:
+    """The action head as graphs: time (FP32 sinusoids), mod_k (load-time constants),
+    kv_k (once per observation) and dit_k (per step). Shared by both exporters."""
+    dit = policy.action_head.model
+    hd = policy.action_head.input_embedding_dim
+    add("time", TimeEmb(policy).eval(), (torch.zeros(1),), ["t"], ["t_proj", "tau"])
+    td = dit.timestep_encoder.timestep_embedder.linear_1.in_features
+    for k, (lo, hi) in enumerate(plans["mod"]):
+        m = ModChunk(policy, lo, hi, last=hi == len(dit.transformer_blocks)).eval()
+        add(f"mod_{k}", m, (torch.zeros(1, td),), ["t_proj"], m.out_names)
+    cross = [i for i in range(len(dit.transformer_blocks)) if _is_cross(i)]
+    for k, (lo, hi) in enumerate(plans["kv"]):
+        m = KvChunk(policy, cross[lo:hi]).eval()
+        add(f"kv_{k}", m, (torch.zeros(1, S, D),), ["vl"], m.out_names)
+    blk = dit.transformer_blocks[0]
+    mod_dim, kv_dim = blk.norm1.linear.out_features, 2 * blk.attn1.to_k.out_features
+    for k, (lo, hi) in enumerate(plans["dit"]):
+        m = DitChunk(policy, lo, hi, c).eval()
+        add(f"dit_{k}", m, m.example(c, hd, mod_dim, kv_dim, S), m.in_names, m.out_names)
 
 
 # --------------------------------------------------------------------------------------
@@ -336,7 +451,23 @@ def layer_plans(policy, budget: int) -> dict[str, list[tuple[int, int]]]:
     return {
         "vision": plan([n_params(l) for l in eagle.vision_model.vision_model.encoder.layers], budget),
         "llm": plan([n_params(l) for l in eagle.language_model.model.layers], budget),
-        "dit": plan([n_params(b) for b in policy.action_head.model.transformer_blocks], budget),
+        **action_plans(policy, budget),
+    }
+
+
+def action_plans(policy, budget: int) -> dict[str, list[tuple[int, int]]]:
+    """mod / kv / dit groupings: the per-step DiT blocks without their AdaLN linears
+    and cross-attention K/V projections, which live in the mod and kv graphs."""
+    blocks = policy.action_head.model.transformer_blocks
+    kv = [n_params(b.attn1.to_k) + n_params(b.attn1.to_v)
+          for i, b in enumerate(blocks) if _is_cross(i)]
+    step = [n_params(b) - n_params(b.norm1.linear)
+            - (n_params(b.attn1.to_k) + n_params(b.attn1.to_v) if _is_cross(i) else 0)
+            for i, b in enumerate(blocks)]
+    return {
+        "mod": plan([n_params(b.norm1.linear) for b in blocks], budget),
+        "kv": plan(kv, budget),
+        "dit": plan(step, budget),
     }
 
 
@@ -370,12 +501,23 @@ def run_split(policy, plans, c: Contract, pixel, input_ids, attn, state, noise,
     tb, ib = biases(input_ids, attn, eagle.image_token_index)
     tb, ib = tb.to(dtype), ib.to(dtype)
     actions = noise.to(dtype)
+    dit = policy.action_head.model
+    pool = {"state_features": sf, "text_bias": tb, "image_bias": ib}
+    cross = [i for i in range(len(dit.transformer_blocks)) if _is_cross(i)]
+    for lo, hi in plans["kv"]:
+        m = KvChunk(policy, cross[lo:hi])
+        pool.update(zip(m.out_names, m(vl)))
     chunks = [DitChunk(policy, a, b, c) for a, b in plans["dit"]]
+    mods = [ModChunk(policy, a, b, b == len(dit.transformer_blocks)) for a, b in plans["mod"]]
     time_emb = TimeEmb(policy).float()
     for t in c.timesteps():
         t_proj, tau = time_emb(torch.tensor([t]))
-        hh, temb = chunks[0](actions, t_proj.to(dtype), tau.to(dtype), sf, vl, tb, ib)
-        for ch in chunks[1:-1]:
-            hh = ch(hh, temb, vl, tb, ib)
-        actions = chunks[-1](hh, temb, vl, tb, ib, actions) if len(chunks) > 1 else hh
+        pool["tau"] = tau.to(dtype)
+        for m in mods:
+            pool.update(zip(m.out_names, m(t_proj.to(dtype))))
+        pool["actions"] = actions
+        for ch in chunks:
+            out = ch(*[pool[n] for n in ch.in_names])
+            pool["h"] = out
+        actions = pool["h"]
     return actions, h

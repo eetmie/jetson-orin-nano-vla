@@ -30,7 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .groot_trt import FIXTURE_MAX_PCT_RANGE, FIXTURE_MIN_COSINE, _cmp
+from .groot_trt import FIXTURE_MAX_PCT_RANGE, FIXTURE_MIN_COSINE, _cmp, denoise
 
 
 class Bundle:
@@ -46,6 +46,9 @@ class Bundle:
         self.llm = [n for n in self.names if n.startswith("llm_")]
         self.cond = [n for n in self.names if n.startswith("cond_")]
         self.dit = [n for n in self.names if n.startswith("dit_")]
+        self.mod = [n for n in self.names if n.startswith("mod_")]
+        self.kv = [n for n in self.names if n.startswith("kv_")]
+        self.consts = None
         ids = np.asarray(self.b["input_ids"], dtype=np.int64)
         n, neg = self.b["prompt_tokens"], np.float32(self.b["mask_neg"])
         valid = np.arange(ids.shape[0]) < n
@@ -133,19 +136,10 @@ def infer(bundle: Bundle, run, frames: list[list[np.ndarray]], state: np.ndarray
     vl, sf = o["vl"], o["state_features"]
     for name in bundle.cond[1:]:
         vl = run(name, {"vl": vl, "pad_bias": bundle.pad_bias})["vl_out"]
-    tb, ib = bundle.text_bias, bundle.image_bias
     t1 = time.perf_counter()
-    actions = noise.astype(np.float32)
-    for step in b["timesteps"]:
-        te = run("time", {"t": np.array([step], np.float32)})
-        o = run(bundle.dit[0], {"actions": actions, "t_proj": te["t_proj"], "tau": te["tau"],
-                                "state_features": sf, "vl": vl, "text_bias": tb, "image_bias": ib})
-        hh, temb = o["h_out"], o["temb"]
-        for name in bundle.dit[1:-1]:
-            hh = run(name, {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                            "image_bias": ib})["h_out"]
-        actions = run(bundle.dit[-1], {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                                       "image_bias": ib, "actions": actions})["actions_next"]
+    actions = denoise(bundle, run, {"vl": vl, "state_features": sf,
+                                    "text_bias": bundle.text_bias,
+                                    "image_bias": bundle.image_bias}, noise)
     t2 = time.perf_counter()
     t.update(backbone=(t1 - t0) * 1e3, denoise=(t2 - t1) * 1e3)
     return actions
