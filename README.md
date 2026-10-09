@@ -1,6 +1,6 @@
 # jetson-orin-nano-vla
 
-**Tested on JetPack 7.2 (L4T R39.2.1).**
+**Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 Recipes and measurements for running public base VLA models on an **8 GB Jetson
 Orin Nano Super**. The repository has two deployable base-model profiles and one

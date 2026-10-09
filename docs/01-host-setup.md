@@ -1,4 +1,4 @@
-# 1. Host setup — Jetson Orin Nano Super 8 GB, JetPack 7.2
+# 1. Host setup — Jetson Orin Nano Super 8 GB, JetPack 7.2.1
 
 Every number in this repo is only meaningful against a known board state. JetPack 7.2
 is L4T R39.2.0: Ubuntu 24.04, kernel 6.8, Python 3.12, CUDA 13.2, cuDNN 9.20,
@@ -52,7 +52,7 @@ bootloader handed it is invalid. `torch.cuda.is_available()` is False,
 `/dev/nvgpu/igpu0/` holds only `power` instead of a dozen nodes, and `libnvrm_gpu.so:
 NvRmGpuLibOpen failed` prefixes every command. **A warm `reboot` may not clear it** —
 the carveout is built by the bootloader, so power-cycle the board. Observed once on
-JetPack 7.2 (L4T R39.2.1) with a clean capsule status and both slots normal, i.e. not
+JetPack 7.2.1 (L4T R39.2.1) with a clean capsule status and both slots normal, i.e. not
 a failed update, and it did not recur after a cold boot.
 
 A systemd unit that runs `jetson_clocks` at boot will fail on a board in that state
