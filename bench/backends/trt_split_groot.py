@@ -16,9 +16,12 @@ class TrtSplitGrootBackend(Backend):
     name = "trt-split-groot"
     noise_injected = True
 
-    def __init__(self, bundle: Path, cache_dir: str, camera_fps: float = 30.0) -> None:
+    def __init__(self, bundle: Path, cache_dir: str, camera_fps: float = 30.0,
+                 chain: str = "host") -> None:
         self.bundle_dir = Path(bundle)
         self.cache_dir = cache_dir
+        self.chain = chain
+        self.device = None
         self.camera_fps = camera_fps
         self.bundle = None
         self.engines = None
@@ -43,6 +46,59 @@ class TrtSplitGrootBackend(Backend):
         self.fixture_parity = validate_fixture(self.bundle, self.engines)
         if self.fixture_parity["status"] != "PASS":
             raise ValueError(f"GR00T fixture parity failed: {self.fixture_parity}")
+        if self.chain != "host":
+            self._load_device()
+
+    def _load_device(self) -> None:
+        """The device-resident chain must reproduce the host chain on the fixture inputs."""
+        from ..vendor.groot_trt import _cmp, infer
+        from ..vendor.trt_device import Groot16Device
+
+        if self.n17:
+            return self._load_device17()
+        self.device = Groot16Device(self.bundle, self.engines, graph=self.chain == "graph")
+        r = np.load(self.bundle.root / self.bundle.b["fixture"]["file"])
+        args = (r["pixel_values"].astype(np.float32), r["state"], r["noise"])
+        host = infer(self.bundle, self.engines.run, *args)
+        dev = self.device.infer(*args)
+        rep = _cmp(dev, host)
+        rep["identical"] = bool(np.array_equal(dev, host))
+        ok = _cmp(dev, r["action_pred"])
+        self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok}
+        if ok["cosine"] < self.fixture_parity["threshold"] or \
+                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
+            raise ValueError(f"device chain fails the fixture: {ok}")
+
+    def _load_device17(self) -> None:
+        """Fixture check through the device history: the fixture's earlier frame is fed
+        first, then its current frame one lag later, so the history slot must pick it."""
+        from ..vendor.groot17_trt import _unpatchify, encode_frames, infer
+        from ..vendor.groot_trt import _cmp
+        from ..vendor.trt_device import Groot17Device
+
+        b, lag = self.bundle, self.history.lag_s
+        self.device = Groot17Device(b, self.engines, lag, graph=self.chain == "graph")
+        r = np.load(b.root / b.b["fixture"]["file"])
+        thw = r["image_grid_thw"]
+        pix = _unpatchify(r["pixel_values"].astype(np.float32), thw.shape[0],
+                          int(thw[0, 1]), int(thw[0, 2]))
+        v = b.b["views"]
+        frames = [pix[i * v:(i + 1) * v] for i in range(b.b["frames"])]
+        host = infer(b, self.engines.run, [encode_frames(b, self.engines.run, f)
+                                           for f in frames], r["state"], r["noise"])
+        self.device.infer(frames[0], r["state"], r["noise"], 0.0)
+        dev, age = self.device.infer(frames[1], r["state"], r["noise"], lag)
+        rep = _cmp(dev, host)
+        rep["identical"] = bool(np.array_equal(dev, host))
+        ok = _cmp(dev, r["action_pred"])
+        self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok,
+                                               "history_age_s": age}
+        # Start the benchmark with an empty history, like the host chain.
+        from ..vendor.groot17_trt import FrameHistory
+        self.device.history = FrameHistory(lag)
+        if ok["cosine"] < self.fixture_parity["threshold"] or \
+                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
+            raise ValueError(f"device chain fails the fixture: {ok}")
 
     def artifact_paths(self) -> dict[str, Path]:
         return {"bundle": self.bundle_dir}
@@ -78,6 +134,7 @@ class TrtSplitGrootBackend(Backend):
             "engine_cache": str(Path(self.cache_dir).expanduser()),
             "engines_built_this_load_s": self.built,
             "fixture_parity": self.fixture_parity,
+            "chain": self.chain,
         }
         if self.n17:
             m.update({
@@ -123,7 +180,10 @@ class TrtSplitGrootBackend(Backend):
         state = self._state(obs)
         pre = (time.perf_counter() - t0) * 1000
         t = {}
-        actions = infer(self.bundle, self.engines.run, pv, state, obs.noise, timings=t)
+        if self.device is not None:
+            actions = self.device.infer(pv, state, obs.noise, timings=t)
+        else:
+            actions = infer(self.bundle, self.engines.run, pv, state, obs.noise, timings=t)
         timings = {"total": pre + t["total"], "preprocess": pre,
                    "vision": t["vision"], "backbone": t["backbone"], "denoise": t["denoise"]}
         return InferResult(np.asarray(actions[0]), timings)
@@ -135,6 +195,15 @@ class TrtSplitGrootBackend(Backend):
         pv = np.stack([self.bundle.preprocess(im) for im in obs.images])
         state = self._state(obs)
         t1 = time.perf_counter()
+        if self.device is not None:
+            t = {}
+            actions, age = self.device.infer(pv, state, obs.noise, t0, timings=t)
+            self.history_ages_ms.append(age * 1000)
+            pre = (t1 - t0) * 1000
+            # Stage times are GPU events; the total is the host wall.
+            timings = {"total": pre + t["total"], "preprocess": pre, "vision": t["vision"],
+                       "backbone": t["backbone"], "denoise": t["denoise"]}
+            return InferResult(np.asarray(actions[0]), timings)
         now = encode_frames(self.bundle, self.engines.run, pv)
         self.history.push(t0, now)
         past, age = self.history.past(t0)

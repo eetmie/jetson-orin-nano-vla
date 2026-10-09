@@ -231,16 +231,20 @@ def trt_backend(args, r: Resolved, bundle: Path):
         "groot-trt" if args.model == "groot-n16-base" else f"{args.model}-trt"))
     if r.family == "groot":
         from .backends.trt_split_groot import TrtSplitGrootBackend
-        return TrtSplitGrootBackend(bundle, cache_dir=cache)
+        return TrtSplitGrootBackend(bundle, cache_dir=cache,
+                                    chain=getattr(args, "chain", "graph"))
     if r.family == "xvla":
         from .backends.trt_split_xvla import TrtSplitXVLABackend
-        return TrtSplitXVLABackend(bundle, cache_dir=cache)
+        return TrtSplitXVLABackend(bundle, cache_dir=cache,
+                                   chain=getattr(args, "chain", "graph"))
     if r.family == "smolvla":
         from .backends.trt_split_smolvla import TrtSplitSmolVLABackend
-        return TrtSplitSmolVLABackend(bundle, cache_dir=cache, action_dim=r.action_dim or 32)
+        return TrtSplitSmolVLABackend(bundle, cache_dir=cache, action_dim=r.action_dim or 32,
+                                      chain=getattr(args, "chain", "graph"))
     if r.family == "evo1":
         from .backends.trt_split_evo1 import TrtSplitEvo1Backend
-        return TrtSplitEvo1Backend(bundle, cache_dir=cache)
+        return TrtSplitEvo1Backend(bundle, cache_dir=cache,
+                                   chain=getattr(args, "chain", "graph"))
     sys.exit(f"trt-split does not serve {r.family}; use ort-split.")
 
 
@@ -366,6 +370,11 @@ def main(argv=None) -> int:
     p.add_argument("--cache-dir", default=None,
                    help="persistent TensorRT engine cache (default: one directory per "
                         "model next to the ORT cache; graph names repeat across models)")
+    p.add_argument("--chain", choices=["graph", "device", "host"], default="graph",
+                   help="graph (default): the device-resident chain replayed as a CUDA "
+                        "graph; device: the same chain enqueued call by call; host: numpy "
+                        "between engines, the reference the other two are checked against "
+                        "at load")
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_trt_split)

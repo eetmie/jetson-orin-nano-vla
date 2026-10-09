@@ -20,9 +20,11 @@ class TrtSplitXVLABackend(Backend):
     name = "trt-split-xvla"
     noise_injected = True
 
-    def __init__(self, bundle: Path, cache_dir: str) -> None:
+    def __init__(self, bundle: Path, cache_dir: str, chain: str = "host") -> None:
         self.bundle_dir = Path(bundle)
         self.cache_dir = cache_dir
+        self.chain = chain
+        self.device = None
         self.bundle = None
         self.engines = None
 
@@ -39,6 +41,30 @@ class TrtSplitXVLABackend(Backend):
         self.fixture_parity = validate_fixture(self.bundle, self.engines)
         if self.fixture_parity["status"] != "PASS":
             raise ValueError(f"X-VLA fixture parity failed: {self.fixture_parity}")
+        if self.chain != "host":
+            self._load_device()
+
+    def _load_device(self) -> None:
+        """The device-resident chain must reproduce the host chain on the fixture inputs."""
+        from ..vendor.groot_trt import _cmp
+        from ..vendor.trt_device import XVLADevice
+        from ..vendor.trt_ops import Ops
+        from ..vendor.xvla_trt import infer
+
+        self.device = XVLADevice(self.bundle, self.engines, Ops(self.engines, self.cache_dir),
+                                 graph=self.chain == "graph")
+        r = np.load(self.bundle.root / self.bundle.b["fixture"]["file"])
+        args = (r["pixel_values"].astype(np.float32), r["input_ids"].astype(np.int64),
+                r["proprio"].astype(np.float32), r["x1"])
+        host = infer(self.bundle, self.engines.run, *args)
+        dev = self.device.infer(*args)
+        rep = _cmp(dev, host)
+        rep["identical"] = bool(np.array_equal(dev, host))
+        ok = _cmp(dev, r["action_pred"])
+        self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok}
+        if ok["cosine"] < self.fixture_parity["threshold"] or \
+                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
+            raise ValueError(f"device chain fails the fixture: {ok}")
 
     def artifact_paths(self) -> dict[str, Path]:
         return {"bundle": self.bundle_dir}
@@ -73,6 +99,7 @@ class TrtSplitXVLABackend(Backend):
             "engine_cache": str(Path(self.cache_dir).expanduser()),
             "engines_built_this_load_s": self.built,
             "fixture_parity": self.fixture_parity,
+            "chain": self.chain,
             "kv_cache": False,
             "kv_cache_note": "impossible — bidirectional policy transformer, "
                              "conditioning attends to action tokens and changes per step",
@@ -94,8 +121,13 @@ class TrtSplitXVLABackend(Backend):
         pre = (time.perf_counter() - t0) * 1000
         t = {}
         # X-VLA injects x1, the single fixed draw the loop interpolates against.
-        chunk = infer(bd, self.engines.run, pv, ids, proprio, obs.noise, timings=t)
-        timings = {"total": pre + t["vision"] + t["text"] + t["cond"] + t["denoise"],
+        if self.device is not None:
+            chunk = self.device.infer(pv, ids, proprio, obs.noise, timings=t)
+        else:
+            chunk = infer(bd, self.engines.run, pv, ids, proprio, obs.noise, timings=t)
+        # The device chain's stage times are GPU events; its total is the host wall.
+        total = t.get("total", t["vision"] + t["text"] + t["cond"] + t["denoise"])
+        timings = {"total": pre + total,
                    "preprocess": pre, "vision": t["vision"], "text": t["text"],
                    "cond": t["cond"], "denoise": t["denoise"]}
         return InferResult(np.asarray(chunk[0]), timings)
