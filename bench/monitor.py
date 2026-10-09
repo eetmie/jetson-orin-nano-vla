@@ -30,6 +30,7 @@ instantaneous value over the measurement window to get **energy per inference**
 
 from __future__ import annotations
 
+import glob
 import re
 import shutil
 import statistics
@@ -45,6 +46,16 @@ _RE_SWAP = re.compile(r"SWAP (\d+)/(\d+)MB")
 _RE_CPU = re.compile(r"CPU \[([^\]]*)\]")
 _RE_CPU_CORE = re.compile(r"(\d+)%@(\d+)")
 _RE_GR3D = re.compile(r"GR3D_FREQ (\d+)%")
+# Root tegrastats appends the measured clocks: GR3D_FREQ 0%@[1019] (one per GPC) and
+# EMC_FREQ 0%@3199. Without root they are absent; the CPU's %@MHz is always there.
+_RE_GR3D_MHZ = re.compile(r"GR3D_FREQ \d+%@\[([\d,]+)\]")
+_RE_EMC_MHZ = re.compile(r"EMC_FREQ \d+%@(\d+)")
+
+# Throttling the target clocks never show. soctherm counts over-current events, on
+# which the hardware cuts CPU/GPU clocks for a moment; a thermal cooling device with
+# cur_state > 0 is a software clamp in force.
+_OC_GLOB = "/sys/class/hwmon/hwmon*/oc*_event_cnt"
+_COOLING_GLOB = "/sys/class/thermal/cooling_device*"
 _RE_TEMP = re.compile(r"\b([A-Za-z][A-Za-z0-9_]*)@([\d.]+)C")
 _RE_POWER = re.compile(r"\b([A-Z][A-Z0-9_]+) (\d+)mW/(\d+)mW")
 
@@ -59,6 +70,10 @@ class Sample:
     gpu_pct: float | None = None
     temps_c: dict[str, float] = field(default_factory=dict)
     power_mw: dict[str, float] = field(default_factory=dict)
+    cpu_mhz: list[float] = field(default_factory=list)      # per online core
+    gpu_mhz: float | None = None                            # slowest GPC
+    emc_mhz: float | None = None
+    cooling: dict[str, int] = field(default_factory=dict)   # cooling device -> cur_state
 
     @property
     def cpu_pct_total(self) -> float | None:
@@ -94,6 +109,7 @@ class _BaseMonitor:
     def __init__(self) -> None:
         self._samples: list[Sample] = []
         self._windows: dict[str, tuple[float, float]] = {}
+        self._counter_deltas: dict[str, dict[str, int]] = {}
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
@@ -117,10 +133,14 @@ class _BaseMonitor:
 
         def __enter__(self):
             self.t0 = time.time()
+            self.counters0 = self.mon._counters()
             return self
 
         def __exit__(self, *exc):
             self.mon._windows[self.name] = (self.t0, time.time())
+            c0, c1 = self.counters0, self.mon._counters()
+            self.mon._counter_deltas[self.name] = {
+                k: c1[k] - c0[k] for k in c0 if k in c1}
             return False
 
     def window(self, name: str) -> "_BaseMonitor._Window":
@@ -133,6 +153,9 @@ class _BaseMonitor:
         for name, (t0, t1) in self._windows.items():
             sel = [s for s in self._samples if t0 <= s.t <= t1]
             out["windows"][name] = self._summarize(sel, t1 - t0)
+            if name in self._counter_deltas:
+                out["windows"][name].setdefault("throttle", {})["oc_events"] = (
+                    self._counter_deltas[name])
         # The comparison that answers "what does inference itself cost".
         if "idle" in out["windows"] and "load" in out["windows"]:
             out["delta_load_minus_idle"] = _delta(out["windows"]["idle"],
@@ -157,6 +180,23 @@ class _BaseMonitor:
         gpu = [s.gpu_pct for s in sel if s.gpu_pct is not None]
         if gpu:
             d["gpu_pct"] = _summ(gpu)
+        clocks: dict = {}
+        cpu_mhz = [f for s in sel for f in s.cpu_mhz]
+        if cpu_mhz:
+            clocks["cpu"] = _summ(cpu_mhz)
+        for key in ("gpu", "emc"):
+            v = [getattr(s, f"{key}_mhz") for s in sel if getattr(s, f"{key}_mhz") is not None]
+            if v:
+                clocks[key] = _summ(v)
+        if clocks:
+            d["clock_mhz"] = clocks
+        clamped: dict[str, int] = {}
+        for s in sel:
+            for k, v in s.cooling.items():
+                if v > 0 and k != "pwm-fan":
+                    clamped[k] = clamped.get(k, 0) + 1
+        if any(s.cooling for s in sel):
+            d.setdefault("throttle", {})["cooling_active_samples"] = clamped
         temps: dict[str, list[float]] = {}
         for s in sel:
             for k, v in s.temps_c.items():
@@ -179,6 +219,9 @@ class _BaseMonitor:
     # -- helpers ------------------------------------------------------------
     def _record(self, s: Sample) -> None:
         self._samples.append(s)
+
+    def _counters(self) -> dict[str, int]:
+        return {}
 
 
 def _delta(idle: dict, load: dict) -> dict:
@@ -212,20 +255,35 @@ class TegrastatsMonitor(_BaseMonitor):
         self.binary = binary
         self.interval_s = interval_ms / 1000.0
         self._proc: subprocess.Popen | None = None
+        # Root tegrastats also reports the GPU and memory clocks. Only non-interactive
+        # sudo is tried, so a board without passwordless sudo runs it as the user.
+        self.root = subprocess.run(["sudo", "-n", "true"], capture_output=True,
+                                   timeout=5).returncode == 0 if shutil.which("sudo") else False
+        self._oc = sorted(glob.glob(_OC_GLOB))
+        self._cooling = {}
+        for d in sorted(glob.glob(_COOLING_GLOB)):
+            try:
+                self._cooling[open(f"{d}/type").read().strip()] = f"{d}/cur_state"
+            except OSError:
+                pass
 
     @staticmethod
     def available() -> bool:
         return shutil.which("tegrastats") is not None
 
     def _run(self) -> None:
+        cmd = [self.binary, "--interval", str(self.interval_ms)]
         self._proc = subprocess.Popen(
-            [self.binary, "--interval", str(self.interval_ms)],
+            (["sudo", "-n"] + cmd) if self.root else cmd,
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
         assert self._proc.stdout is not None
         for line in self._proc.stdout:
             if self._stop.is_set():
                 break
-            self._record(self.parse(line))
+            s = self.parse(line)
+            s.cooling = {k: v for k, v in ((k, _read_int(p)) for k, p in self._cooling.items())
+                         if v is not None}
+            self._record(s)
         try:
             self._proc.terminate()
         except Exception:
@@ -241,6 +299,19 @@ class TegrastatsMonitor(_BaseMonitor):
                 self._proc.kill()
         super().stop()
 
+    def _counters(self) -> dict[str, int]:
+        out = {}
+        for p in self._oc:
+            v = _read_int(p)
+            if v is not None:
+                out[p.rsplit("/", 1)[1].removesuffix("_event_cnt")] = v
+        return out
+
+    def summary(self) -> dict:
+        out = super().summary()
+        out["tegrastats_root"] = self.root
+        return out
+
     @staticmethod
     def parse(line: str, now: float | None = None) -> Sample:
         s = Sample(t=now if now is not None else time.time())
@@ -253,8 +324,14 @@ class TegrastatsMonitor(_BaseMonitor):
             for part in m.group(1).split(","):
                 core = _RE_CPU_CORE.search(part)
                 s.cpu_pct_cores.append(float(core.group(1)) if core else 0.0)
+                if core:
+                    s.cpu_mhz.append(float(core.group(2)))
         if (m := _RE_GR3D.search(line)):
             s.gpu_pct = float(m.group(1))
+        if (m := _RE_GR3D_MHZ.search(line)):
+            s.gpu_mhz = min(float(x) for x in m.group(1).split(","))
+        if (m := _RE_EMC_MHZ.search(line)):
+            s.emc_mhz = float(m.group(1))
         s.temps_c = {k: float(v) for k, v in _RE_TEMP.findall(line)}
         # group(2) is instantaneous, group(3) tegrastats' own running average.
         s.power_mw = {k: float(cur) for k, cur, _avg in _RE_POWER.findall(line)}
@@ -307,6 +384,14 @@ class PsutilMonitor(_BaseMonitor):
                     float(power) * 1000 if power not in ("[N/A]", "N/A") else None)
         except Exception:
             return None, None
+
+
+def _read_int(path: str) -> int | None:
+    try:
+        with open(path) as f:
+            return int(f.read().strip())
+    except (OSError, ValueError):
+        return None
 
 
 def make_monitor(force: str | None = None) -> _BaseMonitor:
