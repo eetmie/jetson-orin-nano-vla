@@ -3,13 +3,14 @@
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 Recipes and measurements for running public base VLA models on an **8 GB Jetson
-Orin Nano Super**. The repository has two deployable base-model profiles and one
+Orin Nano Super**. The repository has three deployable base-model profiles and one
 explicitly nondeployable EVO1 infrastructure profile:
 
 | model | upstream checkpoint / initializer | split ONNX bundle |
 |---|---|---|
 | SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
 | X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
+| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
 | EVO1 775M bootstrap | [`OpenGVLab/InternVL3-1B-hf`](https://huggingface.co/OpenGVLab/InternVL3-1B-hf), pinned revision | local checksummed export; random action head |
 | EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | local checksummed export; **trained** action head |
 
@@ -26,6 +27,7 @@ They measure inference cost, not robot-task quality.
 | X-VLA split ONNX FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz |
 | EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.12 ms | 3.45 Hz |
 | EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
+| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 349.75 ms | 366.42 ms | 2.84 Hz |
 
 Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
 
@@ -34,7 +36,10 @@ matched), so YMMV.
 
 The split bundles fit because the large policies are divided into independently built
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
-budget. Full memory, power, CPU, thermal, validity, and per-graph measurements are in
+budget. GR00T N1.6 (3.3 B, ~2.3 B deployed) also needs its weights held only once: it
+runs on the TensorRT runtime without ONNX Runtime, at 5.44 GB system RAM in use, and
+held 351.63 ms p50 / 353.05 ms p95 over a 5-minute sustained run. Full memory, power,
+CPU, thermal, validity, and per-graph measurements are in
 [the generated results](docs/RESULTS.md).
 
 ## Parity gate
@@ -52,6 +57,8 @@ within 0.49 % of the action range on the executed action**.
 `bench parity` gates the whole chunk, not only the executed action: max difference ≤ 1 %
 of range. X-VLA passes. SmolVLA's 50-step chunk stays at 0.23 % (p95) and 0.62 % (p99), but
 its single worst element reaches 2.05 %, so the command below reports FAIL for it.
+GR00T's worst element over its full chunk is 0.27 % of range against the stock PyTorch
+FP32 model, checked by its bundle fixture every time it loads.
 
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
@@ -89,6 +96,28 @@ The first run builds 12 TensorRT engines, and that build is very memory-limited:
 and a headless board are a must**. If a build fails or the board freezes (it happens when
 other models or a robot stack are resident), reboot and build on the fresh board; that
 usually fixes it. Details in [host setup](docs/01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board).
+
+## Run GR00T N1.6
+
+GR00T is exported on the machine you fine-tune on (`export/README.md`), copied over
+whole, and run on the TensorRT runtime alone: through ORT its weights would be held
+twice and could not fit.
+
+```bash
+# on the export machine
+export/setup.sh groot
+export/export.sh nvidia/GR00T-N1.6-3B ~/bundles/groot-n16-base-split
+
+# on the Orin
+scripts/00_host_prep.sh
+scripts/11_env_ort.sh
+MODEL=groot-n16-base BUNDLE=~/bundles/groot-n16-base-split scripts/run_all.sh
+```
+
+The first run builds 26 engines, one at a time (about 7 minutes); every build kept at
+least 3.9 GB free. The bundle carries stock-PyTorch FP32 outputs, and loading fails
+closed if the engines miss them. The weights, and so the bundle, are under the NVIDIA
+One-Way Noncommercial License.
 
 ## Run EVO1
 
@@ -141,7 +170,7 @@ See [export/README.md](export/README.md).
 
 ## Scope
 
-This repository downloads, runs, and compares two public base checkpoints and the
+This repository downloads, runs, and compares three public base checkpoints and the
 EVO1 export profile. Its own measurements are of base models only; `export/` lets you
 measure yours. It does not contain training, fine-tuning, robot
 control or camera capture. TensorRT engines are built on

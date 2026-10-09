@@ -1,7 +1,7 @@
 # Export your own checkpoint
 
-Turns a LeRobot SmolVLA or X-VLA checkpoint (base or fine-tuned) into the split ONNX
-bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
+Turns a LeRobot SmolVLA or X-VLA checkpoint (base or fine-tuned), or NVIDIA's GR00T
+N1.6, into the split ONNX bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
 bundle to the Jetson:
 
 ```
@@ -39,6 +39,27 @@ a mixed-FP16 weight pass (LayerNorm and Softmax kept FP32), which halves what st
 resident on the board. Every bundle carries a `MANIFEST.sha256`; check it after copying:
 `cd <bundle> && sha256sum -c MANIFEST.sha256`.
 
+## GR00T N1.6
+
+Not a LeRobot policy, so it has its own venv and NVIDIA's model code (Isaac-GR00T
+n1.6.1-release, fetched at a pinned commit):
+
+```bash
+export/setup.sh groot
+export/export.sh nvidia/GR00T-N1.6-3B ~/bundles/groot-n16-base-split
+```
+
+| option | default | |
+|---|---|---|
+| `--embodiment E` | `robocasa_panda_omron` | which of the checkpoint's embodiment heads is sliced in |
+| `--views N` | 3 | cameras, baked into the graphs |
+| `--task "..."` | `pick up the red cube and place it in the bowl` | one prompt, baked as token ids |
+
+The stock PyTorch model runs first on seeded inputs and its outputs ship in the bundle
+as `fixture.npz`; the board checks its engines against them before measuring. On the
+Spark this took under 3 minutes with the checkpoint cached. The weights are under the
+NVIDIA One-Way Noncommercial License, and so is the bundle.
+
 ## Benchmark it
 
 On the Jetson, use the base profile of the same family with your bundle:
@@ -56,4 +77,5 @@ runs with `python -m bench parity` (see the README's parity gate).
 
 The exporters are vendored from the author's fine-tuning pipeline. Each file names its
 source path and commit in its first lines. EVO1 is not included: its exporter depends on
-model code outside LeRobot.
+model code outside LeRobot. GR00T's does too, but that code is NVIDIA's public repository,
+which `setup.sh groot` fetches.

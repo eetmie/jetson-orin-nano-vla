@@ -7,14 +7,16 @@ The repository has a PyTorch reference path and split-ONNX deployment paths:
 | `torch` | run a public upstream LeRobot base checkpoint |
 | `ort-split` | run a matching split ONNX bundle through TensorRT EP |
 | `ort-split` + `evo1-bootstrap` | validate and measure the nondeployable EVO1 export |
+| `trt-split` | run a GR00T N1.6 split bundle on the TensorRT runtime alone |
 
-Three profiles are registered. The EVO1 profile is deliberately not fetchable or
+Four profiles are registered. The EVO1 profile is deliberately not fetchable or
 deployable because its current action head is random.
 
 | key | parameters | Torch checkpoint | split ONNX |
 |---|---:|---|---|
 | `smolvla-base` | 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
 | `xvla-base` | 880M | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
+| `groot-n16-base` | 3.3B (2.3B deployed) | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B), stock-PyTorch fixture in bundle | local export (`export/export.sh`) |
 | `evo1-bootstrap` | 775M | native fixture in bundle | local checksummed export |
 
 Authenticate once with `hf auth login` if a published split repository is private.
@@ -119,6 +121,35 @@ unsupported work falls back directly to CPU. The small Euler update remains on h
 Do not use `--num-steps` for the retained EVO1 result. Changing its 32-step native
 contract changes the expected action and therefore fails the embedded action-parity
 gate.
+
+## GR00T N1.6 base contract
+
+`export/export.sh nvidia/GR00T-N1.6-3B <out>` writes 26 graphs (vision ×5, LLM ×8,
+`cond`, `time`, DiT ×11), each about 105 M params, the size this board builds with
+margin. Its fixed contract:
+
+- embodiment `robocasa_panda_omron` (3 cameras), sliced from the 32-embodiment tables;
+- 252×252 RGB per view, 81 image tokens each, through the stock eval transform;
+- one prompt baked as token ids, right-padded to 320 (the LLM is causal and every DiT
+  cross-attention masks the pad, so padding is exact);
+- a 50-action chunk, 128-wide padded state and action, 4 Euler steps;
+- mixed FP16 with LayerNorm, Softmax, every Qwen3 RMSNorm and the time sinusoids FP32.
+
+It runs on `trt-split`, not ORT. ORT's TensorRT EP keeps every ONNX initializer in host
+memory beside the engines, and on unified memory both count: about 5.5 bytes/param for
+X-VLA here, which would be ~13 GB for GR00T's 2.3 B deployed params. The engines alone
+hold each weight once, and all 26 contexts share one scratch buffer. The 621 MB token
+embedding is a memory-mapped `.npy` gathered on the CPU.
+
+The bundle carries stock-PyTorch FP32 outputs for seeded inputs (`fixture.npz`). Load
+runs the engines on them and fails closed below cosine 0.999 or above 1 % of range on
+the full chunk. There is no PyTorch run on the board: the BF16 checkpoint alone is
+6.6 GB.
+
+```bash
+.venv-ort/bin/python -m bench trt-split --model groot-n16-base \
+    --bundle ~/bundles/groot-n16-base-split --iters 100
+```
 
 ## Why split ONNX
 

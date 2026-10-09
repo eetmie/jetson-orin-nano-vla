@@ -8,7 +8,7 @@ itself at load time, because the artefact is the authority: chunk length and cam
 slot count are baked into the exported graphs and differ between exports of the same
 model.
 
-Two deployable base families and one EVO1 bootstrap profile are wired up.
+Three deployable base families and one EVO1 bootstrap profile are wired up.
 
 `smolvla`  450 M. Vision + text + a Gemma-ish expert, prefilled once into a KV cache,
            then a flow-matching decode loop of `num_steps` Euler updates.
@@ -19,6 +19,10 @@ Two deployable base families and one EVO1 bootstrap profile are wired up.
            fixed noise draw against the current action estimate. Porting SmolVLA's
            update here yields plausible-looking garbage, which is exactly why the two
            families get separate runtimes rather than a shared "denoise loop".
+`groot`    GR00T N1.6, 3.3 B in the checkpoint, ~2.3 B deployed (the lm_head is unused,
+           the LLM is already cut to 16 layers, per-embodiment tables slice to one).
+           SigLIP2 + Qwen3 once, then a 32-block DiT 4x. Runs on the TensorRT runtime
+           alone: through ORT's TensorRT EP its weights would be held twice.
 `evo1`     775 M in the current bootstrap export. InternVL3 vision/language stages feed
            a cached action context and a 32-step Euler flow loop. The present action
            head is deterministic random initialization, so it is an infrastructure
@@ -116,6 +120,32 @@ REGISTRY: dict[str, ModelSpec] = {
               "forward pass, so one camera means a batch-1 vision engine.",
         extras={"action_mode": "ee6d", "num_image_views": 3, "lang_len": 50,
                 "requires_lerobot": "0.6.1"},
+    ),
+    "groot-n16-base": ModelSpec(
+        key="groot-n16-base",
+        family="groot",
+        label="GR00T N1.6 3B (base)",
+        params_m=3286.6,
+        # BF16 checkpoint, NVIDIA One-Way Noncommercial License. Not loadable by
+        # LeRobot; export/groot/ cuts it with NVIDIA's own model code.
+        torch_repo="nvidia/GR00T-N1.6-3B",
+        split_repo=None,
+        tokenizer="bundle",
+        # The prompt is baked into the bundle's token ids (export/groot --task).
+        task="pick up the red cube and place it in the bowl",
+        chunk_size=50,
+        num_steps=4,
+        # Padded widths: the model's state/action space is max_state_dim/max_action_dim
+        # 128 for every embodiment, and that is what the graphs take.
+        state_dim=128,
+        action_dim=128,
+        image_views=3,
+        notes="Embodiment robocasa_panda_omron (3 cameras) baked at export. No "
+              "PyTorch run on the board (BF16 3.3 B does not fit); parity is against "
+              "stock PyTorch FP32 outputs carried in the bundle.",
+        extras={"deployable": True, "embodiment": "robocasa_panda_omron",
+                "license": "NVIDIA One-Way Noncommercial License",
+                "source": "NVIDIA/Isaac-GR00T n1.6.1-release"},
     ),
     "evo1-bootstrap": ModelSpec(
         key="evo1-bootstrap",

@@ -237,3 +237,6 @@ results/**/*.log
 
 # Checkpoints export/export.sh downloads from the Hub
 export/.checkpoints/
+
+# NVIDIA Isaac-GR00T source export/setup.sh groot fetches
+export/.isaac-gr00t/
