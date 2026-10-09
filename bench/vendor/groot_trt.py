@@ -60,6 +60,25 @@ def _malloc(n: int) -> int:
     return p.value
 
 
+def _trt_version() -> str:
+    # Package metadata, not `import tensorrt`: the builder runs in child processes and
+    # this one should not hold the library while they do.
+    from importlib import metadata
+    for dist in ("tensorrt", "tensorrt_cu13", "tensorrt-cu13"):
+        try:
+            return metadata.version(dist)
+        except metadata.PackageNotFoundError:
+            pass
+    import tensorrt
+    return tensorrt.__version__
+
+
+def _cudart_version() -> int:
+    v = ctypes.c_int()
+    _ck(_cuda().cudaRuntimeGetVersion(ctypes.byref(v)), "cudaRuntimeGetVersion")
+    return v.value
+
+
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -197,18 +216,22 @@ def prebuild_engines(bundle: Bundle, cache_dir: str | Path, opt_level: int = 2,
                      workspace_mb: int = 512) -> dict:
     """Build every missing or stale engine, one subprocess each, serially.
 
-    An engine is keyed by the sha256 of the ONNX it came from (`<name>.onnx.sha256`
-    beside it), so a re-exported bundle can never run against an old engine. Serial,
+    An engine is keyed by the sha256 of the ONNX it came from plus the TensorRT and CUDA
+    versions and the builder options (`<name>.onnx.sha256` beside it), so neither a
+    re-exported bundle nor an upgraded stack can run against an old engine. Serial,
     one process per graph: two resident TensorRT builders OOM this board.
     opt_level 2 / 512 MB workspace is what every GR00T build was measured with: each
     peaked at 3.3 GB RSS with >= 3.9 GB still available.
     """
     cache = Path(cache_dir).expanduser()
     cache.mkdir(parents=True, exist_ok=True)
+    stack = (f"tensorrt={_trt_version()} cudart={_cudart_version()} "
+             f"opt_level={opt_level} workspace_mb={workspace_mb} strongly_typed")
+    onnx_path_of = getattr(bundle, "onnx_path", lambda n: bundle.root / f"{n}.onnx")
     built = {}
     for name in bundle.names:
-        onnx_path = bundle.root / f"{name}.onnx"
-        sha = _sha256(onnx_path)
+        onnx_path = onnx_path_of(name)
+        sha = f"{_sha256(onnx_path)} {stack}"
         eng, key = cache / f"{name}.engine", cache / f"{name}.onnx.sha256"
         if eng.exists() and key.exists() and key.read_text().strip() == sha:
             continue
@@ -222,7 +245,7 @@ def prebuild_engines(bundle: Bundle, cache_dir: str | Path, opt_level: int = 2,
             check=True, cwd=str(Path(__file__).resolve().parents[2]))
         key.write_text(sha + "\n")
         built[name] = round(time.time() - t0, 1)
-        print(f"[groot] built {name} in {built[name]} s", flush=True)
+        print(f"[trt] built {name} in {built[name]} s", flush=True)
     return built
 
 

@@ -227,15 +227,25 @@ def cmd_ort_split(args) -> int:
 def cmd_trt_split(args) -> int:
     bundle = Path(args.bundle) if args.bundle else None
     if bundle is None:
-        sys.exit("--bundle is required: the split ONNX export directory (export/groot).")
+        sys.exit("--bundle is required: the split ONNX export directory (export/export.sh).")
     r = Resolved(args, bundle)
-    if r.family != "groot":
-        sys.exit("trt-split serves the groot family; use ort-split for the others.")
-    from .backends.trt_split_groot import TrtSplitGrootBackend
     # groot-n16-base keeps the directory its published run used.
     cache = args.cache_dir or str(Path(DEFAULT_CACHE).parent / (
         "groot-trt" if args.model == "groot-n16-base" else f"{args.model}-trt"))
-    be = TrtSplitGrootBackend(bundle, cache_dir=cache)
+    if r.family == "groot":
+        from .backends.trt_split_groot import TrtSplitGrootBackend
+        be = TrtSplitGrootBackend(bundle, cache_dir=cache)
+    elif r.family == "xvla":
+        from .backends.trt_split_xvla import TrtSplitXVLABackend
+        be = TrtSplitXVLABackend(bundle, cache_dir=cache)
+    elif r.family == "smolvla":
+        from .backends.trt_split_smolvla import TrtSplitSmolVLABackend
+        be = TrtSplitSmolVLABackend(bundle, cache_dir=cache, action_dim=r.action_dim or 32)
+    elif r.family == "evo1":
+        from .backends.trt_split_evo1 import TrtSplitEvo1Backend
+        be = TrtSplitEvo1Backend(bundle, cache_dir=cache)
+    else:
+        sys.exit(f"trt-split does not serve {r.family}; use ort-split.")
     return _finish(args, be, r)
 
 

@@ -1,7 +1,7 @@
 # Export your own checkpoint
 
-Turns a LeRobot SmolVLA or X-VLA checkpoint (base or fine-tuned), or NVIDIA's GR00T
-N1.6, into the split ONNX bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
+Turns a LeRobot SmolVLA, X-VLA or EVO1 checkpoint (base or fine-tuned), or NVIDIA's
+GR00T N1.6/N1.7, into the split ONNX bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
 bundle to the Jetson:
 
 ```
@@ -21,11 +21,14 @@ Linux with Python 3.12. A GPU is not needed.
 export/setup.sh            # .venv-smolvla (lerobot 0.5.1) and .venv-xvla (lerobot 0.6.1)
 ```
 
+EVO1 uses `.venv-xvla` (it is in LeRobot 0.6.1 too).
+
 ## Export
 
 ```bash
 export/export.sh lerobot/smolvla_base ~/bundles/smolvla-base-split --views 2
 export/export.sh path/to/checkpoints/020000/pretrained_model ~/bundles/my-xvla
+export/export.sh zuoxingdong/evo1_libero ~/bundles/evo1-libero-split
 ```
 
 | option | default | |
@@ -34,9 +37,14 @@ export/export.sh path/to/checkpoints/020000/pretrained_model ~/bundles/my-xvla
 | `--task "..."` | the dataset's tasks, if the checkpoint has them | repeatable; written into the bundle |
 | `--fps N` | the dataset's fps | written into the bundle |
 
-SmolVLA bundles stay FP32 and TensorRT builds FP16 engines from them. X-VLA bundles get
-a mixed-FP16 weight pass (LayerNorm and Softmax kept FP32), which halves what stays
-resident on the board. Every bundle carries a `MANIFEST.sha256`; check it after copying:
+Every bundle gets mixed-FP16 graphs, which halve what stays resident on the board:
+X-VLA keeps LayerNorm and Softmax FP32; SmolVLA's three large graphs and every EVO1
+engine graph also keep each RMSNorm FP32. Each bundle also carries the stock policy's
+FP32 output for seeded inputs (`fixture.npz`; EVO1 `parity_fixture.npz`), which
+`bench trt-split` checks its engines against at load, and SmolVLA and EVO1 bundles carry
+their token embedding as `embed_tokens.npy`. EVO1 fetches its VLM base,
+`OpenGVLab/InternVL3-1B-hf`, at the pinned revision its LIBERO recipe trained from.
+Every bundle carries a `MANIFEST.sha256`; check it after copying:
 `cd <bundle> && sha256sum -c MANIFEST.sha256`.
 
 ## GR00T N1.6
@@ -82,12 +90,15 @@ checkpoint's license file is the NVIDIA License with a non-commercial use limita
 
 ## Benchmark it
 
-On the Jetson, use the base profile of the same family with your bundle:
+On the Jetson, use the base profile of the same family (EVO1: `evo1-libero`) with your
+bundle:
 
 ```bash
-.venv-ort/bin/python -m bench ort-split --model smolvla-base \
-    --bundle ~/bundles/my-smolvla --views 1 --task "pick up the cube" --label my-smolvla.ort
+.venv-ort/bin/python -m bench trt-split --model smolvla-base \
+    --bundle ~/bundles/my-smolvla --views 1 --task "pick up the cube" --label my-smolvla.trt
 ```
+
+`ort-split` runs the same bundles through ONNX Runtime.
 
 To check the conversion against the PyTorch policy, copy the checkpoint too, run
 `bench torch --checkpoint <dir>` with the same `--views` and `--task`, and compare the two
@@ -96,6 +107,5 @@ runs with `python -m bench parity` (see the README's parity gate).
 ## Provenance
 
 The exporters are vendored from the author's fine-tuning pipeline. Each file names its
-source path and commit in its first lines. EVO1 is not included: its exporter depends on
-model code outside LeRobot. GR00T's does too, but that code is NVIDIA's public repository,
-which `setup.sh groot` / `setup.sh groot17` fetches.
+source path and commit in its first lines. GR00T's depends on model code outside
+LeRobot: NVIDIA's public repository, which `setup.sh groot` / `setup.sh groot17` fetches.
