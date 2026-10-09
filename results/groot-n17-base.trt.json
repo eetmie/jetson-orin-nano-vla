@@ -8,11 +8,11 @@
     "machine": "aarch64",
     "kernel": "6.8.12-1021-tegra",
     "python": "3.12.3",
-    "utc": "2026-10-09T17:34:14+00:00",
+    "utc": "2026-10-09T20:00:20+00:00",
     "l4t": "# R39 (release), REVISION: 2.1, GCID: 46758480, BOARD: generic, EABI: aarch64, DATE: Fri Aug  7 05:54:22 AM UTC 2026",
     "os_release": "PRETTY_NAME=\"Ubuntu 24.04.4 LTS\"",
     "nvpmodel": "NV Power Mode: MAXN_SUPER\n2",
-    "jetson_clocks": "SOC family:tegra234  Machine:NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super\nOnline CPUs: 0-5, Offline CPUs: \ncpu0:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu1:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu2:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu3:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu4:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu5:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \nGPU MinFreq=1020000000 MaxFreq=1020000000 CurrentFreq=1020000000\nActive GPU TPCs: 4\nEMC MinFreq=3199000000 MaxFreq=3199000000 CurrentFreq=3199000000\nFAN Dynamic Speed Control=nvfancontrol hwmon0_pwm1=89\nFAN Dynamic Speed Control=nvfancontrol hwmon0_pwm1_enable=1\nNV Power Mode: MAXN_SUPER",
+    "jetson_clocks": "SOC family:tegra234  Machine:NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super\nOnline CPUs: 0-5, Offline CPUs: \ncpu0:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu1:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu2:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu3:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu4:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \ncpu5:  Governor=schedutil MinFreq=1728000 MaxFreq=1728000 CurrentFreq=1728000 IdleStates: WFI=0 c7=0 \nGPU MinFreq=1020000000 MaxFreq=1020000000 CurrentFreq=1020000000\nActive GPU TPCs: 4\nEMC MinFreq=3199000000 MaxFreq=3199000000 CurrentFreq=3199000000\nFAN Dynamic Speed Control=nvfancontrol hwmon0_pwm1=102\nFAN Dynamic Speed Control=nvfancontrol hwmon0_pwm1_enable=1\nNV Power Mode: MAXN_SUPER",
     "clock_state": {
       "cpu_min_khz": [
         1728000,
@@ -55,7 +55,7 @@
       "transformers": "5.3.0",
       "numpy": "2.5.2"
     },
-    "git_sha": "856879d28f293710afa59734d860104a9a9f244d",
+    "git_sha": "576304dce63592f9e84bf8d1aeae78f56656097c",
     "git_dirty": false
   },
   "obs": {
@@ -85,22 +85,22 @@
   },
   "observation_prepare_ms": {
     "n": 16,
-    "mean": 79.22,
-    "p50": 77.88,
-    "p90": 78.65,
-    "p95": 84.34,
-    "p99": 96.7,
-    "min": 76.81,
-    "max": 99.79,
-    "std": 5.33,
-    "hz_mean": 12.62,
+    "mean": 80.12,
+    "p50": 79.07,
+    "p90": 79.32,
+    "p95": 84.32,
+    "p99": 96.05,
+    "min": 77.58,
+    "max": 98.98,
+    "std": 4.9,
+    "hz_mean": 12.48,
     "quartile_means_in_order": [
-      82.85,
-      78.22,
-      77.9,
-      77.9
+      83.41,
+      78.93,
+      79.03,
+      79.09
     ],
-    "drift_q4_vs_q1_pct": -6.0
+    "drift_q4_vs_q1_pct": -5.2
   },
   "observation_ring": {
     "size": 16,
@@ -124,7 +124,7 @@
     ],
     "scope": "materialized before monitoring; measurement wraps this ring"
   },
-  "load_s": 14.96,
+  "load_s": 14.57,
   "meta": {
     "backend": "trt-split-groot",
     "family": "groot",
@@ -221,55 +221,55 @@
     "state_used": 14,
     "action_used": 14,
     "history_age_ms": {
-      "p50": 1091.8,
+      "p50": 1091.7,
       "min": 0.0,
-      "max": 6123.5,
+      "max": 6096.6,
       "calls": 106
     }
   },
-  "rss_after_load_mb": 5551.2,
-  "first_infer_ms": 375.5,
+  "rss_after_load_mb": 5575.4,
+  "first_infer_ms": 368.1,
   "chunk_shape": [
     40,
     132
   ],
   "latency_ms": {
     "n": 100,
-    "mean": 363.94,
-    "p50": 363.82,
-    "p90": 364.61,
-    "p95": 364.87,
-    "p99": 369.89,
-    "min": 361.79,
-    "max": 370.56,
-    "std": 1.35,
+    "mean": 363.88,
+    "p50": 363.74,
+    "p90": 365.05,
+    "p95": 365.53,
+    "p99": 365.99,
+    "min": 362.41,
+    "max": 367.63,
+    "std": 0.9,
     "hz_mean": 2.75,
     "quartile_means_in_order": [
-      364.28,
-      363.79,
-      363.87,
-      363.81
+      363.83,
+      364.01,
+      363.75,
+      363.93
     ],
-    "drift_q4_vs_q1_pct": -0.1
+    "drift_q4_vs_q1_pct": 0.0
   },
   "infer_wall_ms": {
     "n": 100,
-    "mean": 364.0,
-    "p50": 363.88,
-    "p90": 364.67,
-    "p95": 364.93,
-    "p99": 369.96,
-    "min": 361.85,
-    "max": 370.61,
-    "std": 1.35,
+    "mean": 363.94,
+    "p50": 363.79,
+    "p90": 365.11,
+    "p95": 365.58,
+    "p99": 366.04,
+    "min": 362.47,
+    "max": 367.69,
+    "std": 0.9,
     "hz_mean": 2.75,
     "quartile_means_in_order": [
-      364.34,
-      363.85,
-      363.93,
-      363.87
+      363.88,
+      364.07,
+      363.8,
+      363.99
     ],
-    "drift_q4_vs_q1_pct": -0.1
+    "drift_q4_vs_q1_pct": 0.0
   },
   "observation_ms": {
     "n": 100,
@@ -279,9 +279,9 @@
     "p95": 0.0,
     "p99": 0.0,
     "min": 0.0,
-    "max": 0.09,
-    "std": 0.01,
-    "hz_mean": 493590.74,
+    "max": 0.0,
+    "std": 0.0,
+    "hz_mean": 829125.43,
     "quartile_means_in_order": [
       0.0,
       0.0,
@@ -292,14 +292,14 @@
   "measurement": {
     "scope": "runtime-only over a pre-materialized observation ring",
     "completed_calls": 100,
-    "window_s": 36.410704,
-    "achieved_hz": 2.7464
+    "window_s": 36.403932,
+    "achieved_hz": 2.747
   },
   "latency_breakdown_ms": {
-    "backbone": 128.851,
-    "denoise": 153.025,
-    "preprocess": 9.939,
-    "vision": 72.125
+    "backbone": 129.138,
+    "denoise": 153.002,
+    "preprocess": 9.982,
+    "vision": 71.759
   },
   "saved_chunks": {
     "noise_injected": true,
@@ -43237,236 +43237,299 @@
     "fps": 30,
     "chunk_size": 40,
     "steps_consumed_per_inference_mean": 10.92,
-    "steps_consumed_per_inference_p95": 10.95,
+    "steps_consumed_per_inference_p95": 10.97,
     "chunk_headroom_x": 3.66,
     "note": "headroom < 1 means the plan runs out before the next one lands"
   },
   "process": {
     "pids": [
-      41171
+      54010
     ],
     "n_samples": 175,
     "windows": {
       "idle": {
         "n": 20,
         "cpu_pct": {
-          "mean": 0.8,
+          "mean": 1.4,
           "p95": 16.0,
           "max": 16.0
         },
         "cores_busy": 0.01,
         "rss_mb": {
-          "mean": 5586.1,
-          "max": 5586.1
+          "mean": 5609.8,
+          "max": 5610.0
         }
       },
       "load": {
         "n": 146,
         "cpu_pct": {
-          "mean": 17.6,
-          "p95": 20.0,
+          "mean": 18.6,
+          "p95": 24.0,
           "max": 24.0
         },
-        "cores_busy": 0.18,
+        "cores_busy": 0.19,
         "rss_mb": {
-          "mean": 5590.5,
-          "max": 5592.2
+          "mean": 5614.5,
+          "max": 5616.2
         }
       }
     }
   },
   "system": {
     "sampler": "TegrastatsMonitor",
-    "n_samples": 567,
+    "n_samples": 518,
     "windows": {
       "idle": {
-        "duration_s": 5.01,
-        "n": 48,
+        "duration_s": 5.0,
+        "n": 44,
         "ram_used_mb": {
-          "mean": 5886.4,
-          "p50": 5887.0,
-          "p95": 5889.0,
-          "max": 5889.0,
-          "min": 5885.0
+          "mean": 5939.48,
+          "p50": 5940.0,
+          "p95": 5940.0,
+          "max": 5941.0,
+          "min": 5938.0
         },
         "ram_total_mb": 7546.0,
         "swap_used_mb": {
-          "mean": 181.0,
-          "p50": 181.0,
-          "p95": 181.0,
-          "max": 181.0,
-          "min": 181.0
+          "mean": 164.0,
+          "p50": 164.0,
+          "p95": 164.0,
+          "max": 164.0,
+          "min": 164.0
         },
         "cpu_pct_total": {
-          "mean": 2.17,
+          "mean": 3.68,
           "p50": 0.0,
-          "p95": 9.0,
-          "max": 34.0,
+          "p95": 16.0,
+          "max": 22.0,
           "min": 0.0
         },
-        "cpu_cores_busy": 0.02,
+        "cpu_cores_busy": 0.04,
         "gpu_pct": {
-          "mean": 1.5,
+          "mean": 0.0,
           "p50": 0.0,
           "p95": 0.0,
-          "max": 72.0,
+          "max": 0.0,
           "min": 0.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1728.0,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 1728.0
+          },
+          "gpu": {
+            "mean": 1019.0,
+            "p50": 1019.0,
+            "p95": 1019.0,
+            "max": 1019.0,
+            "min": 1019.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 0
+          }
         },
         "temp_c": {
           "cpu": {
-            "mean": 52.7,
+            "mean": 52.6,
             "max": 54.1
           },
           "soc2": {
             "mean": 51.6,
-            "max": 52.9
-          },
-          "soc0": {
-            "mean": 52.6,
             "max": 53.1
           },
+          "soc0": {
+            "mean": 52.8,
+            "max": 53.7
+          },
           "gpu": {
-            "mean": 53.5,
-            "max": 56.8
+            "mean": 53.4,
+            "max": 56.6
           },
           "tj": {
-            "mean": 53.9,
-            "max": 56.8
+            "mean": 54.0,
+            "max": 56.6
           },
           "soc1": {
-            "mean": 53.7,
-            "max": 54.0
+            "mean": 53.9,
+            "max": 54.3
           }
         },
         "power_mw": {
           "VDD_IN": {
-            "mean": 8357.0,
+            "mean": 8310.14,
             "p50": 7028.0,
-            "p95": 15809.0,
-            "max": 21350.0,
-            "min": 6948.0
+            "p95": 15044.0,
+            "max": 20714.0,
+            "min": 6988.0
           },
           "VDD_CPU_GPU_CV": {
-            "mean": 2371.83,
-            "p50": 1594.0,
-            "p95": 6787.0,
-            "max": 10061.0,
-            "min": 1555.0
+            "mean": 2361.43,
+            "p50": 1597.0,
+            "p95": 6415.0,
+            "max": 9744.0,
+            "min": 1557.0
           },
           "VDD_SOC": {
-            "mean": 2811.77,
+            "mean": 2785.14,
             "p50": 2555.0,
-            "p95": 4172.0,
-            "max": 5192.0,
+            "p95": 3988.0,
+            "max": 5013.0,
             "min": 2555.0
           }
         },
         "energy_mj": {
-          "VDD_IN": 41857.5,
-          "VDD_CPU_GPU_CV": 11879.8,
-          "VDD_SOC": 14083.3
+          "VDD_IN": 41556.2,
+          "VDD_CPU_GPU_CV": 11808.7,
+          "VDD_SOC": 13927.5
         }
       },
       "load": {
-        "duration_s": 36.41,
-        "n": 347,
+        "duration_s": 36.4,
+        "n": 319,
         "ram_used_mb": {
-          "mean": 5876.67,
-          "p50": 5875.0,
-          "p95": 5882.0,
-          "max": 5883.0,
-          "min": 5864.0
+          "mean": 5937.48,
+          "p50": 5938.0,
+          "p95": 5939.0,
+          "max": 5939.0,
+          "min": 5923.0
         },
         "ram_total_mb": 7546.0,
         "swap_used_mb": {
-          "mean": 181.0,
-          "p50": 181.0,
-          "p95": 181.0,
-          "max": 181.0,
-          "min": 181.0
+          "mean": 164.0,
+          "p50": 164.0,
+          "p95": 164.0,
+          "max": 164.0,
+          "min": 164.0
         },
         "cpu_pct_total": {
-          "mean": 18.82,
-          "p50": 18.0,
-          "p95": 33.0,
-          "max": 42.0,
+          "mean": 21.66,
+          "p50": 23.0,
+          "p95": 38.0,
+          "max": 52.0,
           "min": 0.0
         },
-        "cpu_cores_busy": 0.19,
+        "cpu_cores_busy": 0.22,
         "gpu_pct": {
-          "mean": 87.97,
+          "mean": 87.95,
           "p50": 92.0,
           "p95": 94.0,
           "max": 98.0,
-          "min": 33.0
+          "min": 0.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1614.64,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1010.9,
+            "p50": 1010.0,
+            "p95": 1018.0,
+            "max": 1019.0,
+            "min": 1004.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 14222
+          }
         },
         "temp_c": {
           "cpu": {
-            "mean": 57.9,
-            "max": 61.2
+            "mean": 55.8,
+            "max": 57.6
           },
           "soc2": {
-            "mean": 56.6,
-            "max": 59.8
+            "mean": 54.6,
+            "max": 56.3
           },
           "soc0": {
-            "mean": 57.0,
-            "max": 60.4
+            "mean": 55.1,
+            "max": 56.9
           },
           "gpu": {
-            "mean": 61.3,
-            "max": 64.8
+            "mean": 59.1,
+            "max": 61.1
           },
           "tj": {
-            "mean": 61.3,
-            "max": 64.8
+            "mean": 59.1,
+            "max": 61.1
           },
           "soc1": {
-            "mean": 57.4,
-            "max": 60.6
+            "mean": 55.4,
+            "max": 57.0
           }
         },
         "power_mw": {
           "VDD_IN": {
-            "mean": 21743.59,
-            "p50": 21940.0,
-            "p95": 22174.0,
-            "max": 22252.0,
-            "min": 7707.0
+            "mean": 21669.21,
+            "p50": 21859.0,
+            "p95": 22054.0,
+            "max": 22093.0,
+            "min": 7000.0
           },
           "VDD_CPU_GPU_CV": {
-            "mean": 10576.57,
-            "p50": 10686.0,
-            "p95": 10937.0,
-            "max": 10996.0,
-            "min": 2033.0
+            "mean": 10560.62,
+            "p50": 10683.0,
+            "p95": 10916.0,
+            "max": 10993.0,
+            "min": 1597.0
           },
           "VDD_SOC": {
-            "mean": 5125.2,
-            "p50": 5144.0,
-            "p95": 5261.0,
-            "max": 5300.0,
-            "min": 2671.0
+            "mean": 5118.28,
+            "p50": 5153.0,
+            "p95": 5239.0,
+            "max": 5357.0,
+            "min": 2555.0
           }
         },
         "energy_mj": {
-          "VDD_IN": 791699.7,
-          "VDD_CPU_GPU_CV": 385100.3,
-          "VDD_SOC": 186612.3
+          "VDD_IN": 788855.0,
+          "VDD_CPU_GPU_CV": 384453.3,
+          "VDD_SOC": 186327.8
         }
       }
     },
     "delta_load_minus_idle": {
-      "ram_used_mb": -9.73,
-      "cpu_pct_total": 16.65,
-      "gpu_pct": 86.47,
-      "cpu_cores_busy": 0.17,
+      "ram_used_mb": -2.0,
+      "cpu_pct_total": 17.98,
+      "gpu_pct": 87.95,
+      "cpu_cores_busy": 0.18,
       "power_mw": {
-        "VDD_CPU_GPU_CV": 8204.7,
-        "VDD_IN": 13386.6,
-        "VDD_SOC": 2313.4
+        "VDD_SOC": 2333.1,
+        "VDD_IN": 13359.1,
+        "VDD_CPU_GPU_CV": 8199.2
       }
-    }
+    },
+    "tegrastats_root": true
   },
   "model": {
     "key": "groot-n17-base",

@@ -49,20 +49,20 @@ The difference is on the **first action of the chunk** — the one a control loo
 |---|---|---|---|---|---|---|---|---|---|---|
 | evo1-bootstrap.ort | ok | 1/1 | 289.18 | 289.22 | 292.12 | 3.4545 | 10 TRT / 1 CPU | 296.1 | 34.85 | -0.6 |
 | evo1-libero.ort | ok | 2/2 | 414.67 | 414.71 | 424.72 | 2.4093 | 10 TRT / 1 CPU | 422.6 | 52.26 | -1.5 |
-| evo1-libero.trt | ok | 2/2 | 413.93 | 413.99 | 414.75 | 2.4157 | 10 TRT | 414.9 | 5.98 | -0.0 |
-| evo1-libero.trt.sustained | ok | 2/2 | 414.43 | 414.49 | 415.74 | 2.412 | 10 TRT | 414.9 | 5.47 | 0.1 |
-| groot-n16-base.trt | ok | 3/3 | 349.75 | 349.81 | 366.48 | 2.8402 | 26 TRT | 366.0 | 293.62 | -2.1 |
-| groot-n16-base.trt.sustained | ok | 3/3 | 351.63 | 351.69 | 353.11 | 2.8421 | 26 TRT | 360.5 | 14.05 | 0.1 |
-| groot-n17-base.trt | ok | 3/3 | 363.82 | 363.88 | 364.93 | 2.7464 | 26 TRT | 375.5 | 14.96 | -0.1 |
-| groot-n17-base.trt.sustained | ok | 3/3 | 365.7 | 365.76 | 367.44 | 2.7328 | 26 TRT | 368.4 | 15.74 | 0.2 |
+| evo1-libero.trt | ok | 2/2 | 413.99 | 414.05 | 415.5 | 2.4141 | 10 TRT | 414.5 | 6.39 | 0.1 |
+| evo1-libero.trt.sustained | ok | 2/2 | 414.45 | 414.5 | 415.75 | 2.4119 | 10 TRT | 414.6 | 6.0 | 0.0 |
+| groot-n16-base.trt | ok | 3/3 | 346.99 | 347.05 | 349.95 | 2.8764 | 26 TRT | 367.0 | 15.47 | -0.5 |
+| groot-n16-base.trt.sustained | ok | 3/3 | 348.71 | 348.76 | 350.17 | 2.8671 | 26 TRT | 351.7 | 13.37 | 0.2 |
+| groot-n17-base.trt | ok | 3/3 | 363.74 | 363.79 | 365.58 | 2.747 | 26 TRT | 368.1 | 14.57 | 0.0 |
+| groot-n17-base.trt.sustained | ok | 3/3 | 364.11 | 364.17 | 365.78 | 2.744 | 26 TRT | 367.6 | 14.52 | 0.1 |
 | smolvla-base.ort | ok | 2/2 | 189.89 | 189.96 | 190.93 | 5.2481 | 7 TRT / 2 CPU | 395.3 | 100.45 | -0.9 |
 | smolvla-base.torch | ok | 2/2 | 1167.93 | 1167.99 | 1176.65 | 0.8556 | — | 1909.0 | 22.33 | 0.5 |
-| smolvla-base.trt | ok | 2/2 | 185.28 | 185.34 | 186.86 | 5.3858 | 8 TRT | 197.6 | 3.62 | -0.9 |
-| smolvla-base.trt.sustained | ok | 2/2 | 185.07 | 185.12 | 186.21 | 5.4024 | 8 TRT | 187.9 | 3.2 | -0.0 |
+| smolvla-base.trt | ok | 2/2 | 184.89 | 184.94 | 187.46 | 5.391 | 8 TRT | 186.0 | 2.85 | -0.6 |
+| smolvla-base.trt.sustained | ok | 2/2 | 185.01 | 185.06 | 186.39 | 5.4028 | 8 TRT | 199.2 | 2.83 | -0.3 |
 | xvla-base.ort | ok | 3/3 | 391.55 | 391.64 | 407.33 | 2.5453 | 12 TRT | 600.5 | 38.28 | -1.9 |
 | xvla-base.torch | ok | 3/3 | 2313.5 | 2313.54 | 2320.89 | 0.4321 | — | 3805.4 | 34.04 | 0.1 |
-| xvla-base.trt | ok | 3/3 | 405.52 | 405.58 | 408.5 | 2.4644 | 12 TRT | 419.1 | 7.23 | -0.1 |
-| xvla-base.trt.sustained | ok | 3/3 | 405.74 | 405.8 | 408.41 | 2.4638 | 12 TRT | 421.8 | 7.28 | 0.1 |
+| xvla-base.trt | ok | 3/3 | 405.48 | 405.53 | 407.93 | 2.4668 | 12 TRT | 402.7 | 6.88 | 0.5 |
+| xvla-base.trt.sustained | ok | 3/3 | 407.25 | 407.31 | 409.61 | 2.455 | 12 TRT | 399.2 | 6.24 | 0.2 |
 
 `backend p50` is the backend-reported total; `outer p50` wraps the complete backend call; `achieved Hz` is completed calls divided by the measured window. Configured EP priority is not proof of actual node placement. `1st infer` is the very first call after load — a lazy TensorRT build, a cuDNN autotune or a CUDA context lands there. `drift` compares the last quarter of the run against the first; read it next to `tj max °C` in the footprint table. It is only meaningful on a run long enough to heat the board — see `--duration-s`.
 
@@ -72,26 +72,37 @@ The difference is on the **first action of the chunk** — the one a control loo
 |---|---|---|---|---|---|---|---|---|---|---|
 | evo1-bootstrap.ort | 4731.4 | 4731.8 | 4974.65 | -1.29 | 81.82 | 0.0 | 0.39 | 18.43 | 5335.5 | 58.1 |
 | evo1-libero.ort | 5277.0 | 5305.6 | 6000.93 | 12.93 | 81.27 | 0.0 | 0.3 | 20.23 | 8398.1 | 64.6 |
-| evo1-libero.trt | 2258.8 | 2259.3 | 2484.66 | 2.3 | 84.62 | 0.01 | 0.2 | 20.2 | 8361.1 | 59.7 |
-| evo1-libero.trt.sustained | 2278.9 | 2279.3 | 2467.95 | 4.74 | 85.34 | 0.01 | 0.2 | 20.32 | 8425.1 | 61.2 |
-| groot-n16-base.trt | 5088.8 | 5130.7 | 5444.8 | 33.74 | 86.33 | 0.01 | 0.18 | 21.61 | 7610.2 | 65.5 |
-| groot-n16-base.trt.sustained | 5206.5 | 5228.2 | 5484.86 | -0.52 | 87.14 | 0.01 | 0.19 | 21.89 | 7703.3 | 72.9 |
-| groot-n17-base.trt | 5551.2 | 5592.2 | 5876.67 | -9.73 | 87.97 | 0.01 | 0.18 | 21.74 | 7917.0 | 64.8 |
-| groot-n17-base.trt.sustained | 5593.5 | 5641.0 | 5896.2 | 1.16 | 87.74 | 0.01 | 0.18 | 22.16 | 8108.6 | 72.9 |
+| evo1-libero.trt | 2310.4 | 2310.9 | 2470.41 | -6.16 | 84.74 | 0.02 | 0.21 | 20.23 | 8379.7 | 58.6 |
+| evo1-libero.trt.sustained | 2249.9 | 2251.8 | 2473.64 | -68.8 | 85.29 | 0.02 | 0.21 | 20.38 | 8449.1 | 62.8 |
+| groot-n16-base.trt | 5226.0 | 5237.2 | 5482.85 | 2.85 | 87.33 | 0.01 | 0.18 | 21.66 | 7529.3 | 61.0 |
+| groot-n16-base.trt.sustained | 5213.1 | 5230.1 | 5504.68 | -12.39 | 87.67 | 0.01 | 0.19 | 21.91 | 7642.4 | 63.9 |
+| groot-n17-base.trt | 5575.4 | 5616.2 | 5937.48 | -2.0 | 87.95 | 0.01 | 0.19 | 21.67 | 7888.6 | 61.1 |
+| groot-n17-base.trt.sustained | 5561.6 | 5611.6 | 5906.45 | -24.95 | 88.24 | 0.01 | 0.18 | 21.92 | 7989.5 | 64.5 |
 | smolvla-base.ort | 1870.5 | 2088.5 | 2385.37 | -90.99 | 80.77 | 0.01 | 0.34 | 18.13 | 3455.0 | 62.1 |
 | smolvla-base.torch | 3295.5 | 3826.1 | 4126.32 | -0.49 | 58.42 | 0.01 | 0.7 | 15.52 | 18140.8 | 61.3 |
-| smolvla-base.trt | 1472.5 | 1473.1 | 1646.33 | 7.04 | 82.28 | 0.01 | 0.32 | 18.36 | 3409.8 | 53.8 |
-| smolvla-base.trt.sustained | 1479.3 | 1481.0 | 1636.98 | 1.13 | 82.78 | 0.01 | 0.33 | 18.61 | 3445.6 | 58.6 |
+| smolvla-base.trt | 1520.1 | 1520.8 | 1754.15 | -18.26 | 82.25 | 0.01 | 0.33 | 18.36 | 3405.3 | 48.8 |
+| smolvla-base.trt.sustained | 1510.7 | 1540.5 | 1711.93 | -43.07 | 82.54 | 0.02 | 0.33 | 18.62 | 3446.6 | 58.2 |
 | xvla-base.ort | 4843.4 | 5109.9 | 5394.7 | -17.05 | 86.45 | 0.0 | 0.19 | 20.93 | 8223.9 | 66.3 |
 | xvla-base.torch | 4337.2 | 5144.0 | 5449.84 | -2.16 | 97.14 | 0.0 | 0.17 | 21.9 | 50690.4 | 71.5 |
-| xvla-base.trt | 2547.5 | 2547.9 | 2767.92 | -20.7 | 88.35 | 0.01 | 0.16 | 21.33 | 8654.4 | 60.0 |
-| xvla-base.trt.sustained | 2549.5 | 2550.3 | 2748.41 | -17.14 | 89.49 | 0.01 | 0.16 | 21.48 | 8718.7 | 62.2 |
+| xvla-base.trt | 2543.1 | 2543.6 | 2757.16 | -30.39 | 88.85 | 0.01 | 0.17 | 21.39 | 8670.1 | 61.8 |
+| xvla-base.trt.sustained | 2526.9 | 2527.9 | 2745.09 | -15.11 | 89.29 | 0.01 | 0.17 | 21.51 | 8762.0 | 63.9 |
 
 `CPU cores busy` is per-process CPU during the measurement window — 1.0 means one of the six Orin Nano cores is gone and the robot control stack cannot have it. `CPU cores idle` is the same measure with the model loaded but not inferring, so the difference is what inference itself takes. `ΔRAM` is system-wide load minus idle: the cost of *running*, on top of the resident weights. `mJ/infer` integrates VDD_IN (whole board) over the window and divides by the inference count — the fair way to compare a fast-and-hungry backend against a slow-and-frugal one.
 
 ## Clocks and throttling
 
-_no run records measured clocks yet_
+| run | CPU MHz min | CPU MHz p50 | GPU MHz min | GPU MHz p50 | EMC MHz min | over-current events | thermal clamps (samples) |
+|---|---|---|---|---|---|---|---|
+| evo1-libero.trt | 861.0 | 1728.0 | 1007.0 | 1010.0 | 3199.0 | 11007 | none |
+| evo1-libero.trt.sustained | 860.0 | 1728.0 | 1006.0 | 1010.0 | 3199.0 | 79674 | none |
+| groot-n16-base.trt | 860.0 | 1728.0 | 1005.0 | 1010.0 | 3199.0 | 13831 | none |
+| groot-n16-base.trt.sustained | 859.0 | 1728.0 | 1003.0 | 1010.0 | 3199.0 | 123643 | none |
+| groot-n17-base.trt | 861.0 | 1728.0 | 1004.0 | 1010.0 | 3199.0 | 14222 | none |
+| groot-n17-base.trt.sustained | 860.0 | 1728.0 | 1002.0 | 1010.0 | 3199.0 | 118997 | none |
+| smolvla-base.trt | 862.0 | 1728.0 | 1005.0 | 1010.0 | 3199.0 | 4584 | none |
+| smolvla-base.trt.sustained | 860.0 | 1728.0 | 1002.0 | 1009.0 | 3199.0 | 73166 | none |
+| xvla-base.trt | 859.0 | 1728.0 | 1005.0 | 1010.0 | 3199.0 | 17229 | none |
+| xvla-base.trt.sustained | 859.0 | 1728.0 | 1002.0 | 1010.0 | 3199.0 | 132017 | none |
 
 Measured, not targeted: CPU MHz across every core and sample, the GPU's slowest GPC and the memory controller (GPU and EMC need tegrastats as root, so passwordless sudo). `over-current events` counts soctherm OC events during the window, on each of which the hardware briefly cuts clocks; `thermal clamps` counts samples with a thermal cooling device engaged.
 
@@ -101,21 +112,21 @@ Measured, not targeted: CPU MHz across every core and sample, the GPU's slowest 
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | evo1-bootstrap.ort | 1.202 | 4.242 | 5.737 | 39.365 | 102.445 | 25.048 | 11.742 | 288.136 | 99.556 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 | evo1-libero.ort | 2.279 | 7.35 | 9.221 | 40.067 | 113.965 | 41.293 | 26.119 | 412.281 | 174.266 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| evo1-libero.trt | — | — | — | — | — | — | — | — | — | 9.374 | 157.222 | 40.091 | 20.941 | 186.193 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| evo1-libero.trt.sustained | — | — | — | — | — | — | — | — | — | 9.502 | 157.927 | 40.091 | 20.873 | 186.078 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| groot-n16-base.trt | — | — | — | — | — | — | — | — | — | — | 144.451 | — | 16.411 | 119.821 | 70.979 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| groot-n16-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 145.595 | — | 15.032 | 120.326 | 70.753 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| groot-n17-base.trt | — | — | — | — | — | — | — | — | — | — | 153.025 | — | 9.939 | 72.125 | 128.851 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| groot-n17-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 154.35 | — | 9.965 | 72.385 | 129.079 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| evo1-libero.trt | — | — | — | — | — | — | — | — | — | 9.424 | 157.412 | 40.065 | 20.746 | 186.454 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| evo1-libero.trt.sustained | — | — | — | — | — | — | — | — | — | 9.449 | 157.552 | 40.158 | 20.908 | 186.411 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| groot-n16-base.trt | — | — | — | — | — | — | — | — | — | — | 143.144 | — | 14.957 | 118.77 | 70.628 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| groot-n16-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 143.346 | — | 14.921 | 119.659 | 70.716 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| groot-n17-base.trt | — | — | — | — | — | — | — | — | — | — | 153.002 | — | 9.982 | 71.759 | 129.138 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| groot-n17-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 153.335 | — | 9.953 | 72.04 | 128.953 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 | smolvla-base.ort | 15.757 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 59.278 | 2.592 | 2.851 | 59.278 | 11.638 | 0.102 | 0.0 | 3.736 | 3.197 | 91.234 | 0.102 | 174.526 | 12.375 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 | smolvla-base.torch | — | — | — | — | — | — | — | — | — | — | — | — | 4.811 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 1.619 | 1162.04 | 0.142 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| smolvla-base.trt | — | — | — | — | — | — | — | — | — | — | 76.662 | — | 3.92 | 89.756 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 15.21 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| smolvla-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 76.363 | — | 3.905 | 89.643 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 15.07 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| smolvla-base.trt | — | — | — | — | — | — | — | — | — | — | 76.639 | — | 3.924 | 89.639 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 15.166 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+| smolvla-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 76.119 | — | 3.908 | 89.75 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 15.192 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 | xvla-base.ort | 24.053 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 0.0 | 368.625 | — | — | — | — | — | 0.703 | 69.758 | 68.728 | 68.364 | 67.239 | 1.802 | 3.842 | 1.292 | 40.264 | 19.495 | 20.253 | 6.885 | 0.71 | 275.334 | 10.0 | 7.463 | 108.745 | — | — |
 | xvla-base.torch | — | — | — | — | — | — | — | — | — | — | — | — | 20.542 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 1.515 | 2291.9 | 0.137 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| xvla-base.trt | — | — | — | — | — | — | — | — | — | — | 284.679 | — | 20.163 | 93.703 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 0.584 | 6.5 |
-| xvla-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 284.825 | — | 20.184 | 93.632 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 0.583 | 6.511 |
+| xvla-base.trt | — | — | — | — | — | — | — | — | — | — | 283.988 | — | 20.314 | 93.807 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 0.582 | 6.542 |
+| xvla-base.trt.sustained | — | — | — | — | — | — | — | — | — | — | 286.099 | — | 20.279 | 93.672 | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | 0.605 | 6.553 |
 
 ## Control-rate fit
 
-At a 30 Hz control rate, `evo1-bootstrap.ort` spans 8.7 of its 50-step action chunk (41.3 steps remain); `evo1-libero.ort` spans 12.4 of its 50-step action chunk (37.5 steps remain); `evo1-libero.trt` spans 12.4 of its 50-step action chunk (37.6 steps remain); `evo1-libero.trt.sustained` spans 12.4 of its 50-step action chunk (37.6 steps remain); `groot-n16-base.trt` spans 10.6 of its 50-step action chunk (39.4 steps remain); `groot-n16-base.trt.sustained` spans 10.6 of its 50-step action chunk (39.4 steps remain); `groot-n17-base.trt` spans 10.9 of its 40-step action chunk (29.1 steps remain); `groot-n17-base.trt.sustained` spans 11.0 of its 40-step action chunk (29.0 steps remain); `smolvla-base.ort` spans 5.7 of its 50-step action chunk (44.3 steps remain); `smolvla-base.torch` spans 35.1 of its 50-step action chunk (14.9 steps remain); `smolvla-base.trt` spans 5.6 of its 50-step action chunk (44.4 steps remain); `smolvla-base.trt.sustained` spans 5.5 of its 50-step action chunk (44.5 steps remain); `xvla-base.ort` spans 11.8 of its 30-step action chunk (18.2 steps remain); `xvla-base.torch` spans 69.4 of its 30-step action chunk (it overruns by 39.4 steps); `xvla-base.trt` spans 12.2 of its 30-step action chunk (17.8 steps remain); `xvla-base.trt.sustained` spans 12.2 of its 30-step action chunk (17.8 steps remain).
+At a 30 Hz control rate, `evo1-bootstrap.ort` spans 8.7 of its 50-step action chunk (41.3 steps remain); `evo1-libero.ort` spans 12.4 of its 50-step action chunk (37.5 steps remain); `evo1-libero.trt` spans 12.4 of its 50-step action chunk (37.6 steps remain); `evo1-libero.trt.sustained` spans 12.4 of its 50-step action chunk (37.6 steps remain); `groot-n16-base.trt` spans 10.4 of its 50-step action chunk (39.6 steps remain); `groot-n16-base.trt.sustained` spans 10.5 of its 50-step action chunk (39.5 steps remain); `groot-n17-base.trt` spans 10.9 of its 40-step action chunk (29.1 steps remain); `groot-n17-base.trt.sustained` spans 10.9 of its 40-step action chunk (29.1 steps remain); `smolvla-base.ort` spans 5.7 of its 50-step action chunk (44.3 steps remain); `smolvla-base.torch` spans 35.1 of its 50-step action chunk (14.9 steps remain); `smolvla-base.trt` spans 5.6 of its 50-step action chunk (44.4 steps remain); `smolvla-base.trt.sustained` spans 5.5 of its 50-step action chunk (44.5 steps remain); `xvla-base.ort` spans 11.8 of its 30-step action chunk (18.2 steps remain); `xvla-base.torch` spans 69.4 of its 30-step action chunk (it overruns by 39.4 steps); `xvla-base.trt` spans 12.2 of its 30-step action chunk (17.8 steps remain); `xvla-base.trt.sustained` spans 12.2 of its 30-step action chunk (17.8 steps remain).
