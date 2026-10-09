@@ -29,8 +29,8 @@ These measure inference cost, not robot-task quality.
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
 | **X-VLA** split, pure TensorRT mixed FP16 | 3 | 383.68 ms | 385.10 ms | 2.61 Hz | 2.78 GB |
-| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 325.68 ms | 326.69 ms | 3.07 Hz | 6.08 GB |
-| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 314.38 ms | 316.01 ms | 3.18 Hz | 5.58 GB |
+| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 288.11 ms | 289.09 ms | 3.47 Hz | 5.97 GB |
+| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 288.09 ms | 289.10 ms | 3.47 Hz | 5.49 GB |
 
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
@@ -114,6 +114,15 @@ fetched (`python -m bench fetch --model <model> --what torch`).
 - [Benchmark runbook](docs/05-runbook.md)
 - [Profile: where the time goes](docs/06-profile.md)
 - [Measured results](docs/RESULTS.md)
+
+## Thanks
+
+Big thanks to the teams behind [LeRobot and SmolVLA](https://github.com/huggingface/lerobot),
+[X-VLA](https://thu-air-dream.github.io/X-VLA/), [EVO-1](https://github.com/MINT-SJTU/Evo-1),
+[NVIDIA Isaac GR00T](https://github.com/NVIDIA/Isaac-GR00T), and
+[Physical Intelligence's openpi](https://github.com/Physical-Intelligence/openpi) for
+sharing their models and code. Thanks also to [FlashRT](https://github.com/flashrt-project/FlashRT)
+for deployment and optimization ideas.
 
 ## Scope
 
