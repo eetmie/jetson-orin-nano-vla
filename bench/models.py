@@ -23,6 +23,8 @@ Three deployable base families and one EVO1 bootstrap profile are wired up.
            the LLM is already cut to 16 layers, per-embodiment tables slice to one).
            SigLIP2 + Qwen3 once, then a 32-block DiT 4x. Runs on the TensorRT runtime
            alone: through ORT's TensorRT EP its weights would be held twice.
+           GR00T N1.7 (3.1 B, ~2.5 B deployed) is the same family on a Cosmos-Reason2
+           (Qwen3-VL) backbone, with each camera seen now and 30 frames earlier.
 `evo1`     775 M in the current bootstrap export. InternVL3 vision/language stages feed
            a cached action context and a 32-step Euler flow loop. The present action
            head is deterministic random initialization, so it is an infrastructure
@@ -146,6 +148,31 @@ REGISTRY: dict[str, ModelSpec] = {
         extras={"deployable": True, "embodiment": "robocasa_panda_omron",
                 "license": "NVIDIA One-Way Noncommercial License",
                 "source": "NVIDIA/Isaac-GR00T n1.6.1-release"},
+    ),
+    "groot-n17-base": ModelSpec(
+        key="groot-n17-base",
+        family="groot",
+        label="GR00T N1.7 3B (base)",
+        params_m=3144.0,
+        # BF16 checkpoint; its LICENSE file is the NVIDIA License with a non-commercial
+        # use limitation. Backbone Cosmos-Reason2-2B (Qwen3-VL); export/groot/ cuts it
+        # with NVIDIA's own model code (export/setup.sh groot17).
+        torch_repo="nvidia/GR00T-N1.7-3B",
+        split_repo=None,
+        tokenizer="bundle",
+        task="pick up the red cube and place it in the bowl",
+        chunk_size=40,
+        num_steps=4,
+        # Padded widths: max_state_dim/max_action_dim 132; the graphs take those.
+        state_dim=132,
+        action_dim=132,
+        image_views=3,
+        notes="Embodiment xdof_relative_eef_relative_joint (3 cameras, each seen now and "
+              "30 frames earlier) baked at export. robocasa is not a pretrained N1.7 "
+              "embodiment. Parity is against stock PyTorch FP32 outputs in the bundle.",
+        extras={"deployable": True, "embodiment": "xdof_relative_eef_relative_joint",
+                "license": "NVIDIA License (non-commercial use limitation)",
+                "source": "NVIDIA/Isaac-GR00T n1.7-release"},
     ),
     "evo1-bootstrap": ModelSpec(
         key="evo1-bootstrap",

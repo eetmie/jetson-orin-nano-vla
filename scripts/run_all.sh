@@ -5,6 +5,7 @@
 #   MODEL=xvla-base    scripts/run_all.sh
 #   MODEL=evo1-bootstrap BUNDLE=/path/to/bundle scripts/run_all.sh
 #   MODEL=groot-n16-base BUNDLE=/path/to/bundle scripts/run_all.sh
+#   MODEL=groot-n17-base BUNDLE=/path/to/bundle scripts/run_all.sh
 #
 # VIEWS must match the selected export bundle. Camera count is static for X-VLA and
 # EVO1, while camera slots change SmolVLA sequence shape. Cross-view sweeps need
@@ -26,8 +27,8 @@ case "$MODEL" in
     smolvla-base) MODEL_FAMILY=smolvla ;;
     xvla-base)    MODEL_FAMILY=xvla ;;
     evo1-bootstrap) MODEL_FAMILY=evo1 ;;
-    groot-n16-base) MODEL_FAMILY=groot ;;
-    *) echo "MODEL must be smolvla-base, xvla-base, evo1-bootstrap, or groot-n16-base"; exit 2 ;;
+    groot-n16-base|groot-n17-base) MODEL_FAMILY=groot ;;
+    *) echo "MODEL must be smolvla-base, xvla-base, evo1-bootstrap, groot-n16-base or groot-n17-base"; exit 2 ;;
 esac
 VIEWS="${VIEWS:-}"
 if [[ -z "$VIEWS" ]]; then
@@ -92,7 +93,7 @@ if [[ -d "$BUNDLE" ]]; then
 elif [[ "$MODEL_FAMILY" == "evo1" ]]; then
     echo "!! no EVO1 bundle at $BUNDLE — export/copy it from spark-projects"
 elif [[ "$MODEL_FAMILY" == "groot" ]]; then
-    echo "!! no GR00T bundle at $BUNDLE — export it with export/export.sh nvidia/GR00T-N1.6-3B"
+    echo "!! no GR00T bundle at $BUNDLE — export it with export/export.sh nvidia/GR00T-N1.6-3B (or -N1.7-3B)"
 else
     echo "!! no split bundle at $BUNDLE — run scripts/fetch_models.sh $MODEL"
 fi

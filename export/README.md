@@ -60,6 +60,26 @@ as `fixture.npz`; the board checks its engines against them before measuring. On
 Spark this took under 3 minutes with the checkpoint cached. The weights are under the
 NVIDIA One-Way Noncommercial License, and so is the bundle.
 
+## GR00T N1.7
+
+Own venv (transformers 4.57.3) and NVIDIA's n1.7-release model code:
+
+```bash
+export/setup.sh groot17
+export/export.sh nvidia/GR00T-N1.7-3B ~/bundles/groot-n17-base-split
+```
+
+| option | default | |
+|---|---|---|
+| `--embodiment E` | `xdof_relative_eef_relative_joint` | which pretrained embodiment head is sliced in; it also fixes the cameras and history frames |
+| `--task "..."` | `pick up the red cube and place it in the bowl` | one prompt, baked as token ids |
+| `--vlm-files D` | `nvidia/Cosmos-Reason2-2B` | where the tokenizer, chat template and image-processor files come from |
+
+`nvidia/Cosmos-Reason2-2B` is gated on Hugging Face: accept its terms, or pass
+`--vlm-files` with a local copy. Only those small files are read; the backbone weights
+come from the GR00T checkpoint. The export took about 3 minutes on the Spark. The
+checkpoint's license file is the NVIDIA License with a non-commercial use limitation.
+
 ## Benchmark it
 
 On the Jetson, use the base profile of the same family with your bundle:
@@ -78,4 +98,4 @@ runs with `python -m bench parity` (see the README's parity gate).
 The exporters are vendored from the author's fine-tuning pipeline. Each file names its
 source path and commit in its first lines. EVO1 is not included: its exporter depends on
 model code outside LeRobot. GR00T's does too, but that code is NVIDIA's public repository,
-which `setup.sh groot` fetches.
+which `setup.sh groot` / `setup.sh groot17` fetches.

@@ -240,3 +240,4 @@ export/.checkpoints/
 
 # NVIDIA Isaac-GR00T source export/setup.sh groot fetches
 export/.isaac-gr00t/
+export/.isaac-gr00t-n17/
