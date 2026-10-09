@@ -177,6 +177,28 @@ REGISTRY: dict[str, ModelSpec] = {
                 "license": "NVIDIA License (non-commercial use limitation)",
                 "source": "NVIDIA/Isaac-GR00T n1.7-release"},
     ),
+    "pi05-libero": ModelSpec(
+        key="pi05-libero",
+        family="pi05",
+        label="pi0.5 LIBERO (prototype)",
+        params_m=3354.0,
+        # openpi's pi05_libero, converted to PyTorch and exported by the prototype
+        # pipeline (see export/pi05/README.md). Not a LeRobot policy.
+        torch_repo=None,
+        split_repo=None,
+        tokenizer="bundle",
+        # Prompts are tokenized at export; the compact bundle's prefix fits short ones.
+        task="pick up the red block",
+        chunk_size=10,
+        num_steps=10,
+        # pi05_libero has discrete_state_input=False: the state never reaches the model.
+        state_dim=8,
+        action_dim=32,
+        image_views=2,
+        notes="Prototype. Two cameras (base, wrist) plus the masked third slot; 10 Euler "
+              "steps; actions mean something for LIBERO's embodiment only.",
+        extras={"deployable": True, "source": "Physical-Intelligence/openpi pi05_libero"},
+    ),
     "evo1-bootstrap": ModelSpec(
         key="evo1-bootstrap",
         family="evo1",

@@ -247,6 +247,23 @@ what was used). The first call uses the current frame for both slots.
 Engines go to `~/.cache/jetson-orin-nano-vla/groot-n17-base-trt` (N1.6 keeps
 `groot-trt`): graph names repeat between the two bundles.
 
+## pi0.5 LIBERO (prototype)
+
+`trt-split --model pi05-libero` runs Physical Intelligence's `pi05_libero` from a bundle
+made by the scripts in `export/pi05/` (not yet `export/export.sh`). FP16 weights and
+hidden states, FP32 normalization, accumulation and Euler updates; 10 steps, horizon 10.
+Each layer kind (SigLIP, Gemma language, action expert and four small ones) is one
+weight-stripped, refittable template built on the board; all 67 components are copies
+refitted with their own weights at load, so a build needs one layer's memory. TensorRT
+allocates through plain `cudaMalloc` (its default allocator failed mid-load on this
+board). The AdaRMS modulation is a fixed table for the 10-step schedule; prompt rows come
+from a memory-mapped FP16 embedding table; the prompt is tokenized at export (`tasks`).
+
+Two layouts: padded (968-token prefix: three image slots, the third masked, 200 prompt
+slots) and compact (521: the two real cameras and the prompt's real tokens, the masked
+camera never computed). Load checks every bundle fixture against its full-FP16 PyTorch
+trajectory: cosine >= 0.99999 and max |diff| <= 0.005 on the normalized chunk.
+
 ## Why split ONNX
 
 TensorRT temporarily materializes FP32 working copies while building an engine. A

@@ -245,6 +245,10 @@ def trt_backend(args, r: Resolved, bundle: Path):
         from .backends.trt_split_evo1 import TrtSplitEvo1Backend
         return TrtSplitEvo1Backend(bundle, cache_dir=cache,
                                    chain=getattr(args, "chain", "graph"))
+    if r.family == "pi05":
+        from .backends.trt_split_pi05 import TrtSplitPi05Backend
+        return TrtSplitPi05Backend(bundle, cache_dir=cache,
+                                   chain=getattr(args, "chain", "graph"))
     sys.exit(f"trt-split does not serve {r.family}; use ort-split.")
 
 
