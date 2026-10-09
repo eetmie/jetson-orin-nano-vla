@@ -29,7 +29,7 @@ They measure inference cost, not robot-task quality.
 
 Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
 
-A second Orin Nano Super, same JetPack and clocks, ran X-VLA and EVO1 4-6 % slower (SmolVLA
+A second Orin Nano Super, same JetPack and clock settings, ran X-VLA and EVO1 4-6 % slower (SmolVLA
 matched), so YMMV.
 
 The split bundles fit because the large policies are divided into independently built
