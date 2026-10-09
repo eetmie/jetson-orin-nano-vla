@@ -3,15 +3,14 @@
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 Recipes and measurements for running public base VLA models on an **8 GB Jetson
-Orin Nano Super**. The repository has three deployable base-model profiles and one
-explicitly nondeployable EVO1 infrastructure profile:
+Orin Nano Super**. The comparison covers three public base-model profiles and the
+trained EVO1 LIBERO profile:
 
-| model | upstream checkpoint / initializer | split ONNX bundle |
+| model | upstream checkpoint | split ONNX bundle |
 |---|---|---|
 | SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
 | X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
 | GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
-| EVO1 775M bootstrap | [`OpenGVLab/InternVL3-1B-hf`](https://huggingface.co/OpenGVLab/InternVL3-1B-hf), pinned revision | local checksummed export; random action head |
 | EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | local checksummed export; **trained** action head |
 
 ## Measured fit
@@ -25,7 +24,6 @@ They measure inference cost, not robot-task quality.
 | SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz |
 | X-VLA split ONNX FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz |
-| EVO1 bootstrap split ONNX mixed FP16 | 1 | 289.18 ms | 292.12 ms | 3.45 Hz |
 | EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 349.75 ms | 366.42 ms | 2.84 Hz |
 
@@ -119,11 +117,10 @@ least 3.9 GB free. The bundle carries stock-PyTorch FP32 outputs, and loading fa
 closed if the engines miss them. The weights, and so the bundle, are under the NVIDIA
 One-Way Noncommercial License.
 
-## Run EVO1
+## Run EVO1 LIBERO
 
-Both EVO1 bundles come from the companion Spark workflow and are copied over whole, so
-`fetch_models.sh` has nothing to download. `evo1-bootstrap` has a **randomly initialized
-action head**: it measures infrastructure only and must never control a robot.
+The EVO1 LIBERO bundle comes from the companion Spark workflow and is copied over whole,
+so `fetch_models.sh` has nothing to download.
 `evo1-libero` is trained ([`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero)),
 and its actions mean something for LIBERO's embodiment and nothing else.
 
@@ -139,8 +136,7 @@ CACHE=~/.cache/jetson-orin-nano-vla/evo1-libero-trt
     --bundle $BUNDLE --cache-dir $CACHE --iters 100
 ```
 
-Substitute `evo1-bootstrap` and its own bundle and cache for the bootstrap run. The
-first run builds TensorRT engines serially and takes several minutes; later runs reuse
+The first run builds TensorRT engines serially and takes several minutes; later runs reuse
 the cache. `python -m bench models` has the per-model contracts.
 
 ## Export your own checkpoint
@@ -170,8 +166,8 @@ See [export/README.md](export/README.md).
 
 ## Scope
 
-This repository downloads, runs, and compares three public base checkpoints and the
-EVO1 export profile. Its own measurements are of base models only; `export/` lets you
+This repository runs and compares three public base checkpoints and the trained
+EVO1 LIBERO checkpoint. `export/` lets you
 measure yours. It does not contain training, fine-tuning, robot
 control or camera capture. TensorRT engines are built on
 the Jetson and are never copied between machines; the ONNX bundles are the portable
