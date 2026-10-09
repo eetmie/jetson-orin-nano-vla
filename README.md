@@ -32,8 +32,6 @@ These measure inference cost, not robot-task quality.
 | **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 325.68 ms | 326.69 ms | 3.07 Hz | 6.08 GB |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 314.38 ms | 316.01 ms | 3.18 Hz | 5.58 GB |
 
-Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
-
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
 YMMV. `RAM in use` is the whole system while inferring.
