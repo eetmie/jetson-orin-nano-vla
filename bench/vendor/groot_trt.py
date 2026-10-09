@@ -96,9 +96,13 @@ class Bundle:
         self.b = json.loads((self.root / "bundle.json").read_text())
         self.embed = np.load(self.root / self.b["embed_tokens"], mmap_mode="r")
         self.names = [g["name"] for g in self.b["graphs"]]
+        self.graph = {g["name"]: g for g in self.b["graphs"]}
         self.vision = [n for n in self.names if n.startswith("vision_")]
         self.llm = [n for n in self.names if n.startswith("llm_")]
         self.dit = [n for n in self.names if n.startswith("dit_")]
+        self.mod = [n for n in self.names if n.startswith("mod_")]
+        self.kv = [n for n in self.names if n.startswith("kv_")]
+        self.consts = None
         ids = np.asarray(self.b["input_ids"], dtype=np.int64)
         n, neg = self.b["prompt_tokens"], np.float32(self.b["mask_neg"])
         valid = np.arange(ids.shape[0]) < n
@@ -148,10 +152,93 @@ class Bundle:
         return np.ascontiguousarray(x.transpose(2, 0, 1))
 
 
+def _pool_name(output: str) -> str:
+    """A DiT output's name as the next graph's input: h_out -> h, actions_next -> actions."""
+    for suffix in ("_out", "_next"):
+        if output.endswith(suffix):
+            return output[:-len(suffix)]
+    return output
+
+
+def step_constants(bundle, run) -> list[dict]:
+    """Per denoising step, everything that depends on the timestep alone: the time
+    graph's encodings and, in schema 2 bundles, every block's AdaLN modulation (the
+    mod graphs). Computed once; the runtime can unload the mod engines afterwards."""
+    if bundle.consts is None:
+        consts = []
+        for step in bundle.b["timesteps"]:
+            c = dict(run("time", {"t": np.array([step], np.float32)}))
+            for name in bundle.mod:
+                c.update(run(name, {"t_proj": c["t_proj"]}))
+            consts.append(c)
+        bundle.consts = consts
+    return bundle.consts
+
+
+def _write_constants(root: str, cache_dir: str) -> None:
+    """Subprocess entry: load only the time and mod engines, write their per-step outputs."""
+    from types import SimpleNamespace
+
+    b = json.loads((Path(root) / "bundle.json").read_text())
+    mods = [g["name"] for g in b["graphs"] if g["name"].startswith("mod_")]
+    sub = SimpleNamespace(root=Path(root), b=b, names=["time", *mods], mod=mods, consts=None)
+    engines = Engines(sub, cache_dir)
+    consts = step_constants(sub, engines.run)
+    np.savez(Path(cache_dir).expanduser() / "step_constants.npz",
+             **{f"{i}/{k}": v for i, c in enumerate(consts) for k, v in c.items()})
+
+
+def load_step_constants(bundle, cache_dir) -> list[dict]:
+    """step_constants, computed in a short-lived subprocess and cached beside the engines.
+
+    The mod engines are needed only for this: run in the benchmark process, the memory
+    they held is not given back to the board after they are released (measured: RSS
+    falls by their size, MemAvailable does not move).
+    """
+    cache = Path(cache_dir).expanduser()
+    path, key = cache / "step_constants.npz", cache / "step_constants.key"
+    want = "\n".join((cache / f"{n}.onnx.sha256").read_text().strip()
+                      for n in ["time", *bundle.mod]) + f"\n{bundle.b['timesteps']}"
+    if not (path.exists() and key.exists() and key.read_text() == want):
+        subprocess.run(
+            [sys.executable, "-c",
+             "import sys; from bench.vendor.groot_trt import _write_constants; "
+             "_write_constants(sys.argv[1], sys.argv[2])", str(bundle.root), str(cache)],
+            check=True, cwd=str(Path(__file__).resolve().parents[2]))
+        key.write_text(want)
+    with np.load(path) as z:
+        consts = [{} for _ in bundle.b["timesteps"]]
+        for k in z.files:
+            i, name = k.split("/", 1)
+            consts[int(i)][name] = z[k]
+    bundle.consts = consts
+    return consts
+
+
+def denoise(bundle, run, pool: dict, noise: np.ndarray) -> np.ndarray:
+    """The DiT loop, fed by graph input names, so both bundle layouts run.
+
+    pool: vl, state_features and the attention biases. Schema 2 bundles add the
+    cross-attention K/V (kv graphs, once per observation) and per-step modulation;
+    schema 1 bundles carry vl and temb through the chunks instead.
+    """
+    pool = dict(pool)
+    for name in bundle.kv:
+        pool.update(run(name, {"vl": pool["vl"]}))
+    actions = noise.astype(np.float32)
+    for c in step_constants(bundle, run):
+        pool.update(c)
+        pool["actions"] = actions
+        for name in bundle.dit:
+            out = run(name, {k: pool[k] for k in bundle.graph[name]["inputs"]})
+            pool.update({_pool_name(k): v for k, v in out.items()})
+        actions = pool["actions"]
+    return actions
+
+
 def infer(bundle: Bundle, run, pixel_values: np.ndarray, state: np.ndarray,
           noise: np.ndarray, timings: dict | None = None) -> np.ndarray:
     """One action chunk. pixel_values [V,3,H,W], state [1,1,128], noise [1,50,128]."""
-    b = bundle.b
     t = {} if timings is None else timings
     t0 = time.perf_counter()
     x = pixel_values
@@ -163,20 +250,10 @@ def infer(bundle: Bundle, run, pixel_values: np.ndarray, state: np.ndarray,
     for name in bundle.llm:
         h = next(iter(run(name, {"h": h}).values()))
     cond = run("cond", {"features": h, "state": state.astype(np.float32)})
-    vl, sf = cond["vl"], cond["state_features"]
-    tb, ib = bundle.text_bias, bundle.image_bias
     t2 = time.perf_counter()
-    actions = noise.astype(np.float32)
-    for step in b["timesteps"]:
-        te = run("time", {"t": np.array([step], np.float32)})
-        o = run(bundle.dit[0], {"actions": actions, "t_proj": te["t_proj"], "tau": te["tau"],
-                                "state_features": sf, "vl": vl, "text_bias": tb, "image_bias": ib})
-        hh, temb = o["h_out"], o["temb"]
-        for name in bundle.dit[1:-1]:
-            hh = run(name, {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                            "image_bias": ib})["h_out"]
-        actions = run(bundle.dit[-1], {"h": hh, "temb": temb, "vl": vl, "text_bias": tb,
-                                       "image_bias": ib, "actions": actions})["actions_next"]
+    actions = denoise(bundle, run, {"vl": cond["vl"], "state_features": cond["state_features"],
+                                    "text_bias": bundle.text_bias,
+                                    "image_bias": bundle.image_bias}, noise)
     t3 = time.perf_counter()
     t.update(vision=(t1 - t0) * 1e3, backbone=(t2 - t1) * 1e3, denoise=(t3 - t2) * 1e3,
              total=(t3 - t0) * 1e3)
@@ -250,7 +327,7 @@ def prebuild_engines(bundle: Bundle, cache_dir: str | Path, opt_level: int = 2,
 
 
 class Engines:
-    def __init__(self, bundle: Bundle, cache_dir: str | Path):
+    def __init__(self, bundle: Bundle, cache_dir: str | Path, skip=()):
         import tensorrt as trt
 
         self.trt = trt
@@ -259,6 +336,8 @@ class Engines:
         cache = Path(cache_dir).expanduser()
         self.engines, self.contexts = {}, {}
         for name in bundle.names:
+            if name in skip:
+                continue
             blob = (cache / f"{name}.engine").read_bytes()
             self.engines[name] = self.runtime.deserialize_cuda_engine(blob)
             del blob
@@ -301,15 +380,24 @@ class Engines:
             dt = np.dtype(trt.nptype(e.get_tensor_dtype(n)))
             mode = e.get_tensor_mode(n)
             key = (n if mode == trt.TensorIOMode.INPUT else "out:" + n, shape, dt.str)
-            if key not in self.buffers:
-                self.buffers[key] = _malloc(int(np.prod(shape)) * dt.itemsize)
             out.append((n, mode, shape, dt, key))
         return out
+
+    def release_buffers(self) -> None:
+        """Free run()'s staging buffers. A device-resident chain allocates its own, and
+        these (allocated on first use, e.g. by the load-time host-chain check) would
+        otherwise stay resident beside them."""
+        for ptr in self.buffers.values():
+            _ck(_cuda().cudaFree(ctypes.c_void_p(ptr)), "cudaFree")
+        self.buffers.clear()
+        self.last_upload.clear()
 
     def run(self, name, feeds):
         trt, cu = self.trt, _cuda()
         ctx, outs = self.contexts[name], {}
         for n, mode, shape, dt, key in self.io[name]:
+            if key not in self.buffers:          # allocated on first use
+                self.buffers[key] = _malloc(int(np.prod(shape)) * dt.itemsize)
             ptr = self.buffers[key]
             ctx.set_tensor_address(n, ptr)
             if mode == trt.TensorIOMode.INPUT:

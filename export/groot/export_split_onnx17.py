@@ -9,6 +9,8 @@ Graphs (static shapes, one per TensorRT engine; see groot17_split.py for the pip
     llm_{k}     decoder-layer chunks over the padded sequence (+ DeepStack adds; no final norm)
     cond_{k}    vlln + VL self-attention chunks (+ state encoder in cond_0)
     time        the two sinusoidal encodings of t, kept FP32
+    mod_{k}     every DiT block's AdaLN modulation from t alone; run at load, then unloaded
+    kv_{k}      the cross-attention blocks' keys and values from vl; once per observation
     dit_{k}     one denoising step in chunks; the last adds the decoder and Euler update
 
 The vision engines take one frame per view. The history frame is a second pass through
@@ -31,7 +33,7 @@ import torch
 from export_split_onnx import SENSITIVE, dedupe_casts, dump, to_mixed_fp16, write_manifest
 from groot17_split import (MASK_NEG, PATCH, Cond, Contract, LlmChunk, VisionChunk,
                            layer_plans, load_policy, mrope, n_params, vlm)
-from groot_split import DitChunk, TimeEmb
+from groot_split import add_action_graphs
 
 
 def main():
@@ -98,30 +100,13 @@ def main():
             else:
                 add(f"cond_{k}", mod, (torch.zeros(1, S, D), torch.zeros(1, 1, S)),
                     ["vl", "pad_bias"], ["vl_out"])
-        add("time", TimeEmb(policy).eval(), (torch.zeros(1),), ["t"], ["t_proj", "tau"])
-        hd = policy.action_head.input_embedding_dim
-        dit_args = (torch.zeros(1, 1 + c.action_horizon, hd), torch.zeros(1, hd),
-                    torch.zeros(1, S, D), torch.zeros(1, 1, S), torch.zeros(1, 1, S))
-        names = ["h", "temb", "vl", "text_bias", "image_bias"]
-        for k, (lo, hi) in enumerate(plans["dit"]):
-            mod = DitChunk(policy, lo, hi, c).eval()
-            if mod.first:
-                args = (torch.zeros(1, c.action_horizon, c.action_dim), torch.zeros(1, 256),
-                        torch.zeros(1, 1, hd), torch.zeros(1, 1, hd), *dit_args[2:])
-                add(f"dit_{k}", mod, args,
-                    ["actions", "t_proj", "tau", "state_features", "vl", "text_bias", "image_bias"],
-                    ["h_out", "temb"])
-            elif mod.last:
-                add(f"dit_{k}", mod, (*dit_args, torch.zeros(1, c.action_horizon, c.action_dim)),
-                    names + ["actions"], ["actions_next"])
-            else:
-                add(f"dit_{k}", mod, dit_args, names, ["h_out"])
+        add_action_graphs(add, policy, c, plans, S, D)
 
     emb = m.language_model.embed_tokens.weight.detach().to(torch.float16).numpy()
     np.save(fp32 / "embed_tokens.npy", emb)
 
     bundle = {
-        "schema": "groot-n1.7-split/1",
+        "schema": "groot-n1.7-split/2",
         "model": "nvidia/GR00T-N1.7-3B",
         "checkpoint": meta["checkpoint"], "vlm_files": meta["vlm_files"],
         "embodiment": c.embodiment, "embodiment_id": c.embodiment_id,

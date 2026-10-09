@@ -177,7 +177,7 @@ gate.
 ## GR00T N1.6 base contract
 
 `export/export.sh nvidia/GR00T-N1.6-3B <out>` writes 26 graphs (vision ×5, LLM ×8,
-`cond`, `time`, DiT ×11), each about 105 M params, the size this board builds with
+`cond`, `time`, `mod` ×2, `kv`, DiT ×8), each about 105 M params, the size this board builds with
 margin. Its fixed contract:
 
 - embodiment `robocasa_panda_omron` (3 cameras), sliced from the 32-embodiment tables;
@@ -186,6 +186,14 @@ margin. Its fixed contract:
   cross-attention masks the pad, so padding is exact);
 - a 50-action chunk, 128-wide padded state and action, 4 Euler steps;
 - mixed FP16 with LayerNorm, Softmax, every Qwen3 RMSNorm and the time sinusoids FP32.
+
+Two DiT inputs never change within an inference, so they leave the per-step graphs (the
+idea comes from FlashRT's π0.5 runtime). Each block's AdaLN modulation depends only on
+the timestep: the `mod` graphs compute it for the fixed schedule at load and are then
+unloaded. Each cross-attention block's keys and values depend only on the backbone
+features: the `kv` graph computes them once per observation instead of once per step.
+The DiT blocks are fed both through stand-ins for their norm and K/V projections, so the
+stock block code runs unchanged.
 
 It runs on `trt-split`, not ORT. ORT's TensorRT EP keeps every ONNX initializer in host
 memory beside the engines, and on unified memory both count: about 5.5 bytes/param for
@@ -207,8 +215,8 @@ the full chunk. There is no PyTorch run on the board: the BF16 checkpoint alone 
 
 `export/export.sh nvidia/GR00T-N1.7-3B <out>` writes 26 graphs: vision ×4 (the Qwen3-VL
 ViT of Cosmos-Reason2-2B; the three DeepStack mergers ride in their layer's chunk), LLM
-×8, `cond` ×2 (vlln, the 4-layer VL self-attention and the state encoder), `time`, DiT
-×11. Its fixed contract:
+×8, `cond` ×2 (vlln, the 4-layer VL self-attention and the state encoder), `time`,
+`mod` ×2, `kv` and DiT ×8, split the same way as N1.6's. Its fixed contract:
 
 - embodiment `xdof_relative_eef_relative_joint` (3 cameras), the 3-camera pretrained
   N1.7 embodiment; robocasa is not one;

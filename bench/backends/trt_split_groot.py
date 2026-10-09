@@ -42,12 +42,18 @@ class TrtSplitGrootBackend(Backend):
             from ..vendor.groot_trt import Bundle, validate_fixture
             self.bundle = Bundle(self.bundle_dir)
         self.built = prebuild_engines(self.bundle, self.cache_dir)
-        self.engines = Engines(self.bundle, self.cache_dir)
+        # Timestep-only constants come from a subprocess, so the mod engines (schema 2)
+        # never load here; schema 1 bundles compute theirs from the time engine.
+        from ..vendor.groot_trt import load_step_constants
+        if self.bundle.mod:
+            load_step_constants(self.bundle, self.cache_dir)
+        self.engines = Engines(self.bundle, self.cache_dir, skip=self.bundle.mod)
         self.fixture_parity = validate_fixture(self.bundle, self.engines)
         if self.fixture_parity["status"] != "PASS":
             raise ValueError(f"GR00T fixture parity failed: {self.fixture_parity}")
         if self.chain != "host":
             self._load_device()
+            self.engines.release_buffers()
 
     def _load_device(self) -> None:
         """The device-resident chain must reproduce the host chain on the fixture inputs."""

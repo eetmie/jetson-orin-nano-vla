@@ -48,6 +48,7 @@ class TrtSplitSmolVLABackend(Backend):
             raise ValueError(f"SmolVLA fixture parity failed: {self.fixture_parity}")
         if self.chain != "host":
             self._load_device()
+            self.engines.release_buffers()
 
     def _load_device(self) -> None:
         """The device-resident chain must reproduce the host chain on the fixture inputs."""
