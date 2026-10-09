@@ -181,6 +181,7 @@ See [export/README.md](export/README.md).
 - [Model and runtime contracts](docs/03-backends.md)
 - [Metric definitions](docs/04-metrics.md)
 - [Benchmark runbook](docs/05-runbook.md)
+- [Profile: where the time goes](docs/06-profile.md)
 - [Measured results](docs/RESULTS.md)
 
 ## Scope

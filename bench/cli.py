@@ -224,29 +224,32 @@ def cmd_ort_split(args) -> int:
     return _finish(args, be, r)
 
 
-def cmd_trt_split(args) -> int:
-    bundle = Path(args.bundle) if args.bundle else None
-    if bundle is None:
-        sys.exit("--bundle is required: the split ONNX export directory (export/export.sh).")
-    r = Resolved(args, bundle)
+def trt_backend(args, r: Resolved, bundle: Path):
+    """The trt-split backend for a resolved model; shared with bench/tools/nsys_trace.py."""
     # groot-n16-base keeps the directory its published run used.
     cache = args.cache_dir or str(Path(DEFAULT_CACHE).parent / (
         "groot-trt" if args.model == "groot-n16-base" else f"{args.model}-trt"))
     if r.family == "groot":
         from .backends.trt_split_groot import TrtSplitGrootBackend
-        be = TrtSplitGrootBackend(bundle, cache_dir=cache)
-    elif r.family == "xvla":
+        return TrtSplitGrootBackend(bundle, cache_dir=cache)
+    if r.family == "xvla":
         from .backends.trt_split_xvla import TrtSplitXVLABackend
-        be = TrtSplitXVLABackend(bundle, cache_dir=cache)
-    elif r.family == "smolvla":
+        return TrtSplitXVLABackend(bundle, cache_dir=cache)
+    if r.family == "smolvla":
         from .backends.trt_split_smolvla import TrtSplitSmolVLABackend
-        be = TrtSplitSmolVLABackend(bundle, cache_dir=cache, action_dim=r.action_dim or 32)
-    elif r.family == "evo1":
+        return TrtSplitSmolVLABackend(bundle, cache_dir=cache, action_dim=r.action_dim or 32)
+    if r.family == "evo1":
         from .backends.trt_split_evo1 import TrtSplitEvo1Backend
-        be = TrtSplitEvo1Backend(bundle, cache_dir=cache)
-    else:
-        sys.exit(f"trt-split does not serve {r.family}; use ort-split.")
-    return _finish(args, be, r)
+        return TrtSplitEvo1Backend(bundle, cache_dir=cache)
+    sys.exit(f"trt-split does not serve {r.family}; use ort-split.")
+
+
+def cmd_trt_split(args) -> int:
+    bundle = Path(args.bundle) if args.bundle else None
+    if bundle is None:
+        sys.exit("--bundle is required: the split ONNX export directory (export/export.sh).")
+    r = Resolved(args, bundle)
+    return _finish(args, trt_backend(args, r, bundle), r)
 
 
 def cmd_models(args) -> int:

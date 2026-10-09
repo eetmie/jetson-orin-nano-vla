@@ -92,6 +92,16 @@ throughput measure — it says a kernel was resident, not that it was efficient.
 backend at 95% GPU and 0.2 cores of CPU is the shape this project wants; 60% GPU and
 1.5 cores is not, whatever the latency says.
 
+## Clocks and throttling
+
+`env.clock_state` records the clocks the board was set to; `system.windows.*.clock_mhz`
+records what it ran at, per tegrastats sample: every CPU core, the GPU's slowest GPC and
+the memory controller (GPU and EMC only when tegrastats can run as root through
+passwordless sudo; `system.tegrastats_root` says which). `throttle.oc_events` counts
+soctherm over-current events in the window, on each of which the hardware cuts clocks for
+a moment; `throttle.cooling_active_samples` counts samples with a thermal cooling device
+engaged. Neither shows in the target clocks.
+
 ## Power and energy
 
 Orin reports rails as `VDD_IN 4152mW/4152mW` — instantaneous / tegrastats' own running

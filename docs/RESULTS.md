@@ -89,6 +89,12 @@ The difference is on the **first action of the chunk** — the one a control loo
 
 `CPU cores busy` is per-process CPU during the measurement window — 1.0 means one of the six Orin Nano cores is gone and the robot control stack cannot have it. `CPU cores idle` is the same measure with the model loaded but not inferring, so the difference is what inference itself takes. `ΔRAM` is system-wide load minus idle: the cost of *running*, on top of the resident weights. `mJ/infer` integrates VDD_IN (whole board) over the window and divides by the inference count — the fair way to compare a fast-and-hungry backend against a slow-and-frugal one.
 
+## Clocks and throttling
+
+_no run records measured clocks yet_
+
+Measured, not targeted: CPU MHz across every core and sample, the GPU's slowest GPC and the memory controller (GPU and EMC need tegrastats as root, so passwordless sudo). `over-current events` counts soctherm OC events during the window, on each of which the hardware briefly cuts clocks; `thermal clamps` counts samples with a thermal cooling device engaged.
+
 ## Where the time goes
 
 | run | python_numpy ms | runtime.action_cache_upload ms | runtime.action_context ms | runtime.action_output_x32 ms | runtime.action_step_x32 ms | runtime.language_with_cpu_embedding ms | runtime.preprocess ms | runtime.total ms | runtime.vision ms | action_context ms | denoise ms | language ms | preprocess ms | vision ms | backbone ms | decode_trt ms | graph.action_in ms | graph.action_out ms | graph.decode ms | graph.prefill ms | graph.state_proj ms | graph.text ms | graph.time_in ms | graph.time_out ms | graph.vision ms | graphs_cpu ms | graphs_gpu ms | per_step_projectors ms | host_to_device ms | model ms | postprocess ms | prefill ms | graph.cond ms | graph.denoise_0 ms | graph.denoise_1 ms | graph.denoise_2 ms | graph.denoise_3 ms | graph.text_encoder_0 ms | graph.text_encoder_1 ms | graph.text_encoder_2 ms | graph.vision_0 ms | graph.vision_1 ms | graph.vision_2 ms | graph.vision_3 ms | runtime.cond_ms ms | runtime.denoise_ms ms | runtime.steps | runtime.text_ms ms | runtime.vision_ms ms | cond ms | text ms |

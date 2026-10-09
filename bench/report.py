@@ -134,6 +134,39 @@ def footprint_table(runs: list[dict]) -> str:
         "CPU cores idle", "CPU cores busy", "VDD_IN W", "mJ/infer", "tj max °C"])
 
 
+def clocks_table(runs: list[dict]) -> str:
+    """Measured clocks and throttle events during the measurement window.
+
+    Only runs recorded after the monitor learned to read them have values; the target
+    clocks of every run are in its `env.clock_state`.
+    """
+    rows = []
+    for r in runs:
+        if r.get("status") != "ok":
+            continue
+        load_w = _g(r, "system", "windows", "load", default={})
+        clk = load_w.get("clock_mhz") or {}
+        thr = load_w.get("throttle") or {}
+        oc = thr.get("oc_events")
+        cool = thr.get("cooling_active_samples")
+        if not clk and oc is None:
+            continue
+        rows.append([
+            r.get("label"),
+            _g(clk, "cpu", "min"), _g(clk, "cpu", "p50"),
+            _g(clk, "gpu", "min"), _g(clk, "gpu", "p50"),
+            _g(clk, "emc", "min"),
+            sum(oc.values()) if oc else (0 if oc is not None else None),
+            ", ".join(f"{k} {v}" for k, v in cool.items()) if cool else
+            ("none" if cool is not None else None),
+        ])
+    if not rows:
+        return "_no run records measured clocks yet_"
+    return _md_table(rows, [
+        "run", "CPU MHz min", "CPU MHz p50", "GPU MHz min", "GPU MHz p50",
+        "EMC MHz min", "over-current events", "thermal clamps (samples)"])
+
+
 def breakdown_table(runs: list[dict]) -> str:
     keys: list[str] = []
     for r in runs:
@@ -357,6 +390,16 @@ def build_report(paths: list[Path]) -> str:
         "weights. `mJ/infer` integrates VDD_IN (whole board) over the window and "
         "divides by the inference count — the fair way to compare a fast-and-hungry "
         "backend against a slow-and-frugal one.",
+        "",
+        "## Clocks and throttling",
+        "",
+        clocks_table(runs),
+        "",
+        "Measured, not targeted: CPU MHz across every core and sample, the GPU's slowest "
+        "GPC and the memory controller (GPU and EMC need tegrastats as root, so "
+        "passwordless sudo). `over-current events` counts soctherm OC events during the "
+        "window, on each of which the hardware briefly cuts clocks; `thermal clamps` "
+        "counts samples with a thermal cooling device engaged.",
         "",
         "## Where the time goes",
         "",
