@@ -1,8 +1,8 @@
 # 1. Host setup — Jetson Orin Nano Super 8 GB, JetPack 7.2.1
 
-Every number in this repo is only meaningful against a known board state. JetPack 7.2
-is L4T R39.2.0: Ubuntu 24.04, kernel 6.8, Python 3.12, CUDA 13.2, cuDNN 9.20,
-TensorRT 10.16.2. It is the first 7.x release to cover the whole Orin family, and the
+Every number in this repo is only meaningful against a known board state. JetPack 7.2.1
+is L4T R39.2.1: Ubuntu 24.04, kernel 6.8, Python 3.12, CUDA 13.2, cuDNN 9.20,
+TensorRT 10.16.2. The 7.2 line is the first 7.x release to cover the whole Orin family, and the
 Orin Nano dev kit no longer ships an SD-card image — flash with the USB ISO installer
 or SDK Manager.
 
