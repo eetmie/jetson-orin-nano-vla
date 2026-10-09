@@ -3,15 +3,16 @@
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 Recipes and measurements for running public base VLA models on an **8 GB Jetson
-Orin Nano Super**. The comparison covers three public base-model profiles and the
+Orin Nano Super**. The comparison covers four public base-model profiles and the
 trained EVO1 LIBERO profile:
 
 | model | upstream checkpoint | split ONNX bundle |
 |---|---|---|
 | SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
-| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
-| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
 | EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | local checksummed export; **trained** action head |
+| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
+| GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
+| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | local export with `export/export.sh`; **pure TensorRT** runtime |
 
 ## Measured fit
 
@@ -22,9 +23,10 @@ They measure inference cost, not robot-task quality.
 |---|---:|---:|---:|---:|
 | SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz |
 | SmolVLA split ONNX FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz |
+| EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz |
 | X-VLA split ONNX FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz |
-| EVO1 LIBERO split ONNX mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz |
+| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 363.82 ms | 364.87 ms | 2.75 Hz |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 349.75 ms | 366.42 ms | 2.84 Hz |
 
 Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
@@ -36,7 +38,9 @@ The split bundles fit because the large policies are divided into independently 
 TensorRT engines. A whole-policy TensorRT build exceeds the board's unified-memory
 budget. GR00T N1.6 (3.3 B, ~2.3 B deployed) also needs its weights held only once: it
 runs on the TensorRT runtime without ONNX Runtime, at 5.44 GB system RAM in use, and
-held 351.63 ms p50 / 353.05 ms p95 over a 5-minute sustained run. Full memory, power,
+held 351.63 ms p50 / 353.05 ms p95 over a 5-minute sustained run. GR00T N1.7 (3.1 B,
+~2.5 B deployed, Cosmos-Reason2 backbone) fits the same way at 5.88 GB in use and held
+365.70 ms p50 / 367.38 ms p95 over 5 minutes. Full memory, power,
 CPU, thermal, validity, and per-graph measurements are in
 [the generated results](docs/RESULTS.md).
 
@@ -55,8 +59,8 @@ within 0.49 % of the action range on the executed action**.
 `bench parity` gates the whole chunk, not only the executed action: max difference ≤ 1 %
 of range. X-VLA passes. SmolVLA's 50-step chunk stays at 0.23 % (p95) and 0.62 % (p99), but
 its single worst element reaches 2.05 %, so the command below reports FAIL for it.
-GR00T's worst element over its full chunk is 0.27 % of range against the stock PyTorch
-FP32 model, checked by its bundle fixture every time it loads.
+GR00T's worst element over its full chunk is 0.27 % (N1.6) and 0.09 % (N1.7) of range
+against the stock PyTorch FP32 model, checked by its bundle fixture every time it loads.
 
 ```bash
 python -m bench parity results/smolvla-base.torch.json results/smolvla-base.ort.json \
@@ -117,6 +121,26 @@ least 3.9 GB free. The bundle carries stock-PyTorch FP32 outputs, and loading fa
 closed if the engines miss them. The weights, and so the bundle, are under the NVIDIA
 One-Way Noncommercial License.
 
+## Run GR00T N1.7
+
+Same route, own exporter venv. N1.7 reads its tokenizer and image processor from
+[`nvidia/Cosmos-Reason2-2B`](https://huggingface.co/nvidia/Cosmos-Reason2-2B), a gated
+repository: accept its terms on Hugging Face before exporting.
+
+```bash
+# on the export machine
+export/setup.sh groot17
+export/export.sh nvidia/GR00T-N1.7-3B ~/bundles/groot-n17-base-split
+
+# on the Orin
+MODEL=groot-n17-base BUNDLE=~/bundles/groot-n17-base-split scripts/run_all.sh
+```
+
+26 engines again, about 6 minutes. N1.7 sees every camera twice, now and 30 frames
+earlier; the runtime encodes only the new frames and reuses the earlier encode of the
+history frame (an image's vision tokens depend on that image alone). The checkpoint's
+license file is the NVIDIA License with a non-commercial use limitation.
+
 ## Run EVO1 LIBERO
 
 The EVO1 LIBERO bundle comes from the companion Spark workflow and is copied over whole,
@@ -141,8 +165,8 @@ the cache. `python -m bench models` has the per-model contracts.
 
 ## Export your own checkpoint
 
-`export/` turns a LeRobot SmolVLA or X-VLA checkpoint, base or fine-tuned, into a split
-bundle. Run it on the machine you fine-tune on, not on the Jetson:
+`export/` turns a LeRobot model checkpoint, base or fine-tuned, into a split bundle.
+Run it on the machine you fine-tune on, not on the Jetson:
 
 ```
 fetch model -> (fine-tune) -> export/export.sh -> copy bundle -> benchmark on the Orin
