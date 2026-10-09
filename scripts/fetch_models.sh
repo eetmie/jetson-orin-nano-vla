@@ -26,12 +26,18 @@ case "$MODEL" in
   *) echo "unknown model $MODEL"; exit 1 ;;
 esac
 
+# `hf` ships with huggingface_hub, which every venv here installs; use the ORT one when
+# it is not already on PATH.
+HF="$(command -v hf || true)"
+[[ -z "$HF" && -x .venv-ort/bin/hf ]] && HF=.venv-ort/bin/hf
+[[ -n "$HF" ]] || { echo "hf CLI not found: run scripts/11_env_ort.sh first"; exit 1; }
+
 mkdir -p "$DEST"
 echo ">> $TORCH_REPO -> $DEST/$MODEL-torch"
-hf download "$TORCH_REPO" --local-dir "$DEST/$MODEL-torch"
+"$HF" download "$TORCH_REPO" --local-dir "$DEST/$MODEL-torch"
 
 echo ">> $SPLIT_REPO -> $DEST/$MODEL-split"
-hf download "$SPLIT_REPO" --local-dir "$DEST/$MODEL-split"
+"$HF" download "$SPLIT_REPO" --local-dir "$DEST/$MODEL-split"
 
 echo
 echo "done. Point the benchmark at them:"

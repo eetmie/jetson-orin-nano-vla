@@ -7,7 +7,7 @@
 # install reporting 0.5.1 here carries an xvla policy with a vendored Florence2.
 #
 #   pip install -r requirements/torch-xvla.txt
-#   pip install --force-reinstall --no-deps torch torchvision \
+#   pip install --force-reinstall --no-deps torch==2.11.0 torchvision==0.26.0 \
 #       --extra-index-url https://pypi.jetson-ai-lab.io/sbsa/cu130
 #   pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"     # NOT optional
 #

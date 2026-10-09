@@ -1,0 +1,7 @@
+# X-VLA exporter. lerobot 0.6.1 ships the X-VLA/Florence2 layout the exporter cuts;
+# it cannot share a venv with SmolVLA's 0.5.1.
+lerobot[xvla]==0.6.1
+transformers==5.5.4
+onnx==1.22.0
+onnxscript==0.7.1
+onnxruntime==1.28.0  # its float16 converter does the mixed-FP16 pass; CPU build is enough

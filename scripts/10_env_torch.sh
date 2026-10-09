@@ -15,7 +15,15 @@ INDEX="https://pypi.jetson-ai-lab.io/sbsa/cu130"   # CUDA 13 aarch64. There is n
 python3 -m venv "$VENV"
 "$VENV/bin/pip" install -U pip wheel
 "$VENV/bin/pip" install -r requirements/torch.txt
-"$VENV/bin/pip" install --force-reinstall --no-deps torch torchvision --extra-index-url "$INDEX"
+# PINNED, not latest: an unpinned resolve picks up torch 2.13.0, whose libtorch_cuda.so
+# wants `ncclCommResume`, a symbol JetPack 7.2 does not provide. Same pin as
+# 13_env_torch_xvla.sh.
+"$VENV/bin/pip" install --force-reinstall --no-deps \
+    "torch==2.11.0" "torchvision==0.26.0" --extra-index-url "$INDEX"
+# --no-deps leaves out the cu13 runtime wheels this torch links against (cusparseLt,
+# NCCL, ...): lerobot 0.5.1 resolved PyPI torch 2.10, which does not pull them. A
+# plain install of the same pin keeps the wheel above and adds only what it needs.
+"$VENV/bin/pip" install "torch==2.11.0" "torchvision==0.26.0" --extra-index-url "$INDEX"
 
 "$VENV/bin/python" - <<'PY'
 import torch

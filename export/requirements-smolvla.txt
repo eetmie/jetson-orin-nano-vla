@@ -1,0 +1,7 @@
+# SmolVLA exporter. Same lerobot + transformers as the board's .venv-torch, so the
+# exported graphs and the PyTorch reference come from the same modeling code.
+lerobot==0.5.1
+transformers==5.3.0
+onnx==1.21.0
+onnxscript==0.7.0
+num2words            # the SmolVLM processor imports it; lerobot does not declare it
