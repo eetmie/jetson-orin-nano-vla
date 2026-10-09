@@ -23,14 +23,14 @@ These measure inference cost, not robot-task quality.
 |---|---:|---:|---:|---:|---:|
 | SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz | 4.13 GB |
 | SmolVLA split, ORT FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz | 2.39 GB |
-| **SmolVLA** split, pure TensorRT mixed FP16 | 2 | 184.89 ms | 187.46 ms | 5.39 Hz | 1.75 GB |
+| **SmolVLA** split, pure TensorRT mixed FP16 | 2 | 148.94 ms | 149.93 ms | 6.71 Hz | 1.80 GB |
 | EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
-| **EVO1 LIBERO** split, pure TensorRT mixed FP16 | 2 | 413.99 ms | 415.50 ms | 2.41 Hz | 2.47 GB |
+| **EVO1 LIBERO** split, pure TensorRT mixed FP16 | 2 | 360.33 ms | 360.77 ms | 2.78 Hz | 2.56 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** split, pure TensorRT mixed FP16 | 3 | 405.48 ms | 407.93 ms | 2.47 Hz | 2.76 GB |
-| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 363.74 ms | 365.58 ms | 2.75 Hz | 5.94 GB |
-| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 346.99 ms | 349.95 ms | 2.88 Hz | 5.48 GB |
+| **X-VLA** split, pure TensorRT mixed FP16 | 3 | 383.68 ms | 385.10 ms | 2.61 Hz | 2.78 GB |
+| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 325.68 ms | 326.69 ms | 3.07 Hz | 6.08 GB |
+| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 314.38 ms | 316.01 ms | 3.18 Hz | 5.58 GB |
 
 Less views make the model run faster. Single cam SmolVLA was sporting almost 7hz during robot usage!
 
@@ -59,8 +59,7 @@ stage's time goes and whether it is compute- or bandwidth-bound.
 ## Parity
 
 Every pure TensorRT model reproduces the stock PyTorch FP32 actions to **cosine 0.99999
-or better, within 0.13 % of the action range on the executed action and 0.27 % over the
-whole chunk**.
+or better, within 0.27 % of the action range over the whole action chunk**.
 
 Each bundle carries the stock policy's output for seeded inputs and noise, and loading
 refuses to run if the engines miss it. Per-model values are in
