@@ -58,6 +58,21 @@ An exported bundle carries what the runtime needs and ORT does not:
 Engines are built one subprocess at a time into `~/.cache/jetson-orin-nano-vla/<model>-trt`
 and keyed by the ONNX sha256, the TensorRT and CUDA versions and the builder options.
 
+`--chain` picks how the engines are driven:
+
+| chain | what runs between engines |
+|---|---|
+| `graph` (default) | nothing on the host: the whole chain stays on the GPU and is replayed as a captured CUDA graph (GR00T N1.7: two graphs around its frame history) |
+| `device` | the same device-resident chain, enqueued call by call |
+| `host` | numpy: every output comes back to the CPU and the next input goes up again |
+
+The glue the host chain does in numpy runs on the GPU instead: device-to-device copies
+for the image-token scatter, and tiny FP32 TensorRT op engines (`bench/vendor/trt_ops.py`)
+for X-VLA's interpolation, the Euler updates and SmolVLA's SiLU. Inputs depending only
+on the schedule or the prompt (timestep embeddings, masks, prompt rows) are computed once.
+At load, `graph` and `device` must reproduce the `host` chain and the bundle fixture on
+the fixture's inputs; `meta.fixture_parity.device_chain` records both comparisons.
+
 ```bash
 .venv-ort/bin/python -m bench trt-split --model xvla-base \
     --bundle ~/bundles/xvla-base-split --iters 100

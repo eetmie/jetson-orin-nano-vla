@@ -1,5 +1,9 @@
 # Profile: where the time goes
 
+These traces are of the `host` chain, which synchronizes and copies after every engine.
+The default `graph` chain (`docs/03-backends.md`) removes most of the non-kernel time
+they show.
+
 Nsight Systems traces of every pure-TensorRT model on the bench board, 20 inferences
 each after warmup, default denoising steps, the same synthetic observations as the
 benchmark. Traced latency is 3–5 % above an untraced run's. To repeat one:
@@ -8,7 +12,7 @@ benchmark. Traced latency is 3–5 % above an untraced run's. To repeat one:
 nsys profile -t cuda,nvtx,osrt --capture-range=cudaProfilerApi --capture-range-end=stop \
     --sample=none --cpuctxsw=none -o traces/xvla-base \
     .venv-ort/bin/python -m bench.tools.nsys_trace --model xvla-base \
-    --bundle ~/bundles/xvla-base-split --sidecar traces/xvla-base.trace.json
+    --bundle ~/bundles/xvla-base-split --sidecar traces/xvla-base.trace.json  # --chain graph
 nsys export --type sqlite -o traces/xvla-base.sqlite traces/xvla-base.nsys-rep
 python -m bench.tools.nsys_trace --summarize traces/xvla-base.sqlite
 ```

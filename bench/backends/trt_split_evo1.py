@@ -21,9 +21,11 @@ class TrtSplitEvo1Backend(Backend):
     name = "trt-split-evo1"
     noise_injected = True
 
-    def __init__(self, bundle: Path, cache_dir: str) -> None:
+    def __init__(self, bundle: Path, cache_dir: str, chain: str = "host") -> None:
         self.bundle_dir = Path(bundle)
         self.cache_dir = cache_dir
+        self.chain = chain
+        self.device = None
         self.bundle = None
         self.engines = None
 
@@ -40,6 +42,31 @@ class TrtSplitEvo1Backend(Backend):
         self.fixture_parity = validate_fixture(self.bundle, self.engines)
         if self.fixture_parity["status"] != "PASS":
             raise ValueError(f"EVO1 fixture parity failed: {self.fixture_parity}")
+        if self.chain != "host":
+            self._load_device()
+
+    def _load_device(self) -> None:
+        """The device-resident chain must reproduce the host chain on the fixture inputs."""
+        from ..vendor.evo1_trt import infer
+        from ..vendor.groot_trt import _cmp
+        from ..vendor.trt_device import Evo1Device
+        from ..vendor.trt_ops import Ops
+
+        self.device = Evo1Device(self.bundle, self.engines, Ops(self.engines, self.cache_dir),
+                                 graph=self.chain == "graph")
+        r = np.load(self.bundle.root / self.bundle.b["fixture"]["file"])
+        args = (r["pixel_values"].astype(np.float32), r["input_ids"].astype(np.int64),
+                r["context_mask"].astype(bool), r["state"].astype(np.float32),
+                r["initial_noise"])
+        host = infer(self.bundle, self.engines.run, *args)["action"]
+        dev = self.device.infer(*args)
+        rep = _cmp(dev, host)
+        rep["identical"] = bool(np.array_equal(dev, host))
+        ok = _cmp(dev, r["expected_action"])
+        self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok}
+        if ok["cosine"] < self.fixture_parity["threshold"] or \
+                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
+            raise ValueError(f"device chain fails the fixture: {ok}")
 
     def artifact_paths(self) -> dict[str, Path]:
         return {"bundle": self.bundle_dir}
@@ -75,6 +102,7 @@ class TrtSplitEvo1Backend(Backend):
             "base": b.get("base"),
             "provenance": b.get("provenance"),
             "fixture_parity": self.fixture_parity,
+            "chain": self.chain,
         }
 
     def infer(self, obs: Observation) -> InferResult:
@@ -96,6 +124,13 @@ class TrtSplitEvo1Backend(Backend):
         state[0, :flat.size] = flat
         pre = (time.perf_counter() - t0) * 1000
         t = {}
-        out = infer(bd, self.engines.run, pv, ids, cmask, state, obs.noise, timings=t)
-        timings = {"total": pre + sum(t.values()), "preprocess": pre, **t}
-        return InferResult(np.asarray(out["action"][0]), timings)
+        if self.device is not None:
+            action = self.device.infer(pv, ids, cmask, state, obs.noise, timings=t)
+        else:
+            action = infer(bd, self.engines.run, pv, ids, cmask, state, obs.noise,
+                           timings=t)["action"]
+        # The device chain's stage times are GPU events; its total is the host wall.
+        total = t.pop("total", None)
+        timings = {"total": pre + (total if total is not None else sum(t.values())),
+                   "preprocess": pre, **t}
+        return InferResult(np.asarray(action[0]), timings)

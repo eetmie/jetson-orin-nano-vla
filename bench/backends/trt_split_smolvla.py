@@ -21,9 +21,12 @@ class TrtSplitSmolVLABackend(Backend):
     name = "trt-split-smolvla"
     noise_injected = True
 
-    def __init__(self, bundle: Path, cache_dir: str, action_dim: int = 32) -> None:
+    def __init__(self, bundle: Path, cache_dir: str, action_dim: int = 32,
+                 chain: str = "host") -> None:
         self.bundle_dir = Path(bundle)
         self.cache_dir = cache_dir
+        self.chain = chain
+        self.device = None
         self.action_dim = action_dim
         self.bundle = None
         self.engines = None
@@ -43,6 +46,33 @@ class TrtSplitSmolVLABackend(Backend):
         self.fixture_parity = validate_fixture(self.bundle, self.policy)
         if self.fixture_parity["status"] != "PASS":
             raise ValueError(f"SmolVLA fixture parity failed: {self.fixture_parity}")
+        if self.chain != "host":
+            self._load_device()
+
+    def _load_device(self) -> None:
+        """The device-resident chain must reproduce the host chain on the fixture inputs."""
+        from ..vendor.groot_trt import _cmp
+        from ..vendor.trt_device import SmolVLADevice
+        from ..vendor.trt_ops import Ops
+
+        b, p = self.bundle, self.policy
+        self.device = SmolVLADevice(b, self.engines, Ops(self.engines, self.cache_dir),
+                                    graph=self.chain == "graph")
+        r = np.load(b.root / b.info["fixture"]["file"])
+        pix = r["pixel_values"].astype(np.float32)
+        lang = (b.embed_ids(r["lang_tokens"]), r["lang_masks"].astype(bool))
+        state = r["model_state"].astype(np.float32)
+        host = p.sample([p.vision(pix[i:i + 1]) for i in range(len(pix))], lang, state,
+                        r["noise"])
+        dev = self.device.infer([pix[i:i + 1] for i in range(len(pix))], lang, state,
+                                r["noise"], key=("fixture",))
+        rep = _cmp(dev, host)
+        rep["identical"] = bool(np.array_equal(dev, host))
+        ok = _cmp(dev, r["action_pred"])
+        self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok}
+        if ok["cosine"] < self.fixture_parity["threshold"] or \
+                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
+            raise ValueError(f"device chain fails the fixture: {ok}")
 
     def artifact_paths(self) -> dict[str, Path]:
         return {"bundle": self.bundle_dir}
@@ -72,6 +102,7 @@ class TrtSplitSmolVLABackend(Backend):
             "engine_cache": str(Path(self.cache_dir).expanduser()),
             "engines_built_this_load_s": self.built,
             "fixture_parity": self.fixture_parity,
+            "chain": self.chain,
             # Not model_id: the exporter records the export machine's checkpoint path.
             "export_info": {k: v for k, v in b.info.items()
                             if k not in ("fixture", "model_id")},
@@ -90,12 +121,18 @@ class TrtSplitSmolVLABackend(Backend):
         state = pad_state(self.norm.normalize_state(
             np.asarray(obs.state, np.float32).reshape(-1)))
         t1 = time.perf_counter()
-        embs = [p.vision(x) for x in pix]
-        t2 = time.perf_counter()
         t = {}
-        x_t = p.sample(embs, lang, state, obs.noise, timings=t)
+        if self.device is not None:
+            # Stage times are GPU events; the total is the host wall.
+            x_t = self.device.infer(pix, lang, state, obs.noise, key=obs.task, timings=t)
+            pre, vis, total = (t1 - t0) * 1000, t["vision"], t["total"]
+        else:
+            embs = [p.vision(x) for x in pix]
+            t2 = time.perf_counter()
+            x_t = p.sample(embs, lang, state, obs.noise, timings=t)
+            pre, vis = (t1 - t0) * 1000, (t2 - t1) * 1000
+            total = vis + t["prefill"] + t["denoise"]
         chunk = self.norm.unnormalize_action(x_t[0, :, :self.action_dim])
-        pre, vis = (t1 - t0) * 1000, (t2 - t1) * 1000
-        timings = {"total": pre + vis + t["prefill"] + t["denoise"], "preprocess": pre,
+        timings = {"total": pre + total, "preprocess": pre,
                    "vision": vis, "prefill": t["prefill"], "denoise": t["denoise"]}
         return InferResult(np.asarray(chunk), timings)

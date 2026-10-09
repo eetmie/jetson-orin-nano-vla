@@ -279,6 +279,19 @@ class Engines:
         self.last_upload: dict[tuple, object] = {}
         self.io = {n: self._io(e) for n, e in self.engines.items()}
 
+    def add(self, name: str, path) -> None:
+        """Load one more engine onto the shared scratch (the chains' small op engines)."""
+        trt = self.trt
+        e = self.runtime.deserialize_cuda_engine(Path(path).read_bytes())
+        if e is None:
+            raise RuntimeError(f"could not deserialize {path}")
+        if e.device_memory_size_v2 > self.scratch_bytes:
+            raise RuntimeError(f"{name} needs more scratch than the shared buffer")
+        ctx = e.create_execution_context(trt.ExecutionContextAllocationStrategy.USER_MANAGED)
+        ctx.set_device_memory(self.scratch, self.scratch_bytes)
+        self.engines[name], self.contexts[name] = e, ctx
+        self.io[name] = self._io(e)
+
     def _io(self, e):
         trt = self.trt
         out = []
