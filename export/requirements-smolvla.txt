@@ -4,4 +4,5 @@ lerobot==0.5.1
 transformers==5.3.0
 onnx==1.21.0
 onnxscript==0.7.0
+onnxruntime==1.28.0  # its float16 converter does the mixed-FP16 pass; CPU build is enough
 num2words            # the SmolVLM processor imports it; lerobot does not declare it

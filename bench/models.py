@@ -30,6 +30,9 @@ Three deployable base families and one EVO1 bootstrap profile are wired up.
            head is deterministic random initialization, so it is an infrastructure
            benchmark only and is explicitly rejected for robot control.
 
+Every family also runs on the TensorRT runtime alone (`trt-split`) from a bundle made by
+`export/export.sh`, which carries the stock policy's reference outputs.
+
 Base weights are not task-specific robot policies. They are used here only for latency,
 memory, CPU, power, and same-weight runtime parity.
 """

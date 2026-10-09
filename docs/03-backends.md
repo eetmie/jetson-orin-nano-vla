@@ -7,15 +7,17 @@ The repository has a PyTorch reference path and split-ONNX deployment paths:
 | `torch` | run a public upstream LeRobot base checkpoint |
 | `ort-split` | run a matching split ONNX bundle through TensorRT EP |
 | `ort-split` + `evo1-bootstrap` | validate and measure the nondeployable EVO1 export |
-| `trt-split` | run a GR00T N1.6 or N1.7 split bundle on the TensorRT runtime alone |
+| `trt-split` | run a split bundle from `export/export.sh` on the TensorRT runtime alone (every family) |
 
-Five profiles are registered. The EVO1 profile is deliberately not fetchable or
-deployable because its current action head is random.
+Seven profiles are registered (`python -m bench models`). `evo-depth-libero` is a
+placeholder with no LeRobot-format weights; `evo1-bootstrap` is not deployable because its
+action head is random.
 
 | key | parameters | Torch checkpoint | split ONNX |
 |---|---:|---|---|
-| `smolvla-base` | 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
-| `xvla-base` | 880M | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
+| `smolvla-base` | 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | `export/export.sh`, or [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) for `ort-split` |
+| `xvla-base` | 880M | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | `export/export.sh`, or [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) for `ort-split` |
+| `evo1-libero` | 775M | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero), native fixture in bundle | `export/export.sh` |
 | `groot-n16-base` | 3.3B (2.3B deployed) | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B), stock-PyTorch fixture in bundle | local export (`export/export.sh`) |
 | `groot-n17-base` | 3.1B (2.5B deployed) | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B), stock-PyTorch fixture in bundle | local export (`export/export.sh`) |
 | `evo1-bootstrap` | 775M | native fixture in bundle | local checksummed export |
@@ -33,6 +35,33 @@ Each command writes the upstream checkpoint to `~/bundles/<model>-torch` and the
 matching ONNX graphs to `~/bundles/<model>-split`. `evo1-bootstrap` is not on this
 download path: export it using the companion Spark workflow and copy the complete
 bundle without copying TensorRT cache files.
+
+## Pure TensorRT (`trt-split`)
+
+Every family runs on the TensorRT runtime alone when its bundle comes from
+`export/export.sh`. ORT's TensorRT EP keeps the ONNX initializers in host memory beside
+the engines, and on unified memory both count; the engines alone hold each weight once,
+and all contexts share one scratch buffer. Against the retained ORT runs, system RAM in
+use fell from 5.41 to 2.82 GB for X-VLA, 6.00 to 2.50 GB for EVO1 LIBERO and 2.45 to
+1.74 GB for SmolVLA, at about the same latency.
+
+An exported bundle carries what the runtime needs and ORT does not:
+
+- `fixture.npz` (EVO1: `parity_fixture.npz`): the stock LeRobot policy's FP32 output for
+  seeded inputs and noise. Load runs the engines on it and fails closed below cosine
+  0.999 or above 1 % of range on the full chunk;
+- mixed-FP16 graphs whose precision the strongly typed build follows as written:
+  LayerNorm, Softmax and every RMSNorm stay FP32 (`export/vla_common/fp16_mixed.py`);
+- SmolVLA and EVO1: the token embedding as `embed_tokens.npy`, memory-mapped on the CPU,
+  instead of running the Gather-only text graph.
+
+Engines are built one subprocess at a time into `~/.cache/jetson-orin-nano-vla/<model>-trt`
+and keyed by the ONNX sha256, the TensorRT and CUDA versions and the builder options.
+
+```bash
+.venv-ort/bin/python -m bench trt-split --model xvla-base \
+    --bundle ~/bundles/xvla-base-split --iters 100
+```
 
 ## SmolVLA base contract
 
@@ -76,6 +105,13 @@ on every denoising step.
     --bundle ~/bundles/xvla-base-split \
     --views 3 --iters 100
 ```
+
+## EVO1 LIBERO contract
+
+`export/export.sh zuoxingdong/evo1_libero <out>` exports the trained LIBERO checkpoint
+with the same eleven-graph layout as the bootstrap below, at its two cameras: a
+576-token sequence (2 × 256 image tokens + 64 text), 8-wide state and 7-wide action padded
+to 24, 32 Euler steps. Its actions mean something for LIBERO's embodiment only.
 
 ## EVO1 bootstrap contract
 
@@ -195,4 +231,5 @@ whole-policy build exceeds the Orin Nano's 8 GB unified-memory budget. Building 
 loading the split graphs one at a time keeps the peak within the board's budget.
 
 Engine caches are tied to the exact JetPack, TensorRT, CUDA, GPU, graph, and precision.
-Keep them on the Jetson and use a new cache after any of those inputs changes.
+Keep them on the Jetson. `trt-split` rebuilds an engine whose ONNX, TensorRT/CUDA version
+or builder options changed; for `ort-split`, use a new cache after any of those changes.

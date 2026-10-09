@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Export a SmolVLA or X-VLA checkpoint to the split ONNX bundle the benchmark runs.
+# Export a SmolVLA, X-VLA or EVO1 checkpoint to the split ONNX bundle the benchmark runs.
 # Run it where you fine-tune, then copy the bundle to the Jetson.
 #
 #   export/export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task "..."]... [--fps N]
@@ -63,8 +63,15 @@ echo ">> $FAMILY checkpoint $CKPT -> $OUT  (views $VIEWS)"
 case "$FAMILY" in
   smolvla)
     V=$(venv_for smolvla)
-    PYTHONPATH="$HERE:$HERE/smolvla" "$V/bin/python" "$HERE/smolvla/export_split_onnx.py" \
+    export PYTHONPATH="$HERE:$HERE/smolvla"
+    "$V/bin/python" "$HERE/smolvla/export_split_onnx.py" \
         --model-id "$CKPT" --out-dir "$OUT" --views "$VIEWS" "${EXTRA[@]}"
+    # Mixed FP16 for the three heavy graphs (RMSNorms, LayerNorm, Softmax stay FP32),
+    # then the stock policy's chunk for seeded inputs and the token-embedding table.
+    "$V/bin/python" -m vla_common.fp16_mixed --bundle "$OUT" --graphs \
+        smolvlm_vision.onnx smolvlm_expert_prefill.onnx smolvlm_expert_decode.onnx
+    TASK_ARGS=(); [[ ${#TASKS[@]} -ge 1 ]] && TASK_ARGS=(--task "${TASKS[0]}")
+    "$V/bin/python" "$HERE/smolvla/reference.py" --checkpoint "$CKPT" --bundle "$OUT" "${TASK_ARGS[@]}"
     ;;
   xvla)
     V=$(venv_for xvla)
@@ -79,6 +86,29 @@ case "$FAMILY" in
     "$V/bin/python" "$HERE/xvla/export_split_onnx.py" \
         --checkpoint "$CKPT" --out-dir "$OUT" --bundle-only --views "$VIEWS" "${EXTRA[@]}"
     rm -rf "$FP32"
+    # The stock policy's chunk for seeded inputs, which the board checks its engines against.
+    TASK_ARGS=(); [[ ${#TASKS[@]} -ge 1 ]] && TASK_ARGS=(--task "${TASKS[0]}")
+    "$V/bin/python" "$HERE/xvla/reference.py" --checkpoint "$CKPT" --bundle "$OUT" "${TASK_ARGS[@]}"
+    ;;
+  evo1)
+    # LeRobot 0.6.1, the X-VLA venv. The VLM base is InternVL3-1B-hf at the revision the
+    # LIBERO recipe trained from; the exporter refuses any other.
+    V=$(venv_for xvla)
+    export PYTHONPATH="$HERE:$HERE/evo1"
+    BASE_REV=014c0583a0d4bedf29fbe2dbff4f865eb998e171
+    BASE="$HERE/.checkpoints/OpenGVLab--InternVL3-1B-hf"
+    if [[ "$(cat "$BASE/REVISION" 2>/dev/null)" != "$BASE_REV" ]]; then
+      "$V/bin/hf" download OpenGVLab/InternVL3-1B-hf --revision "$BASE_REV" --local-dir "$BASE"
+      echo "$BASE_REV" > "$BASE/REVISION"
+    fi
+    # Each view spends 256 image tokens whether or not a camera fills it; 64 are left for text.
+    "$V/bin/python" "$HERE/evo1/export_split_onnx.py" --checkpoint "$CKPT" --base "$BASE" \
+        --out-dir "$OUT" --views "$VIEWS" --seq-len $((VIEWS * 256 + 64))
+    TASK_ARGS=(); [[ ${#TASKS[@]} -ge 1 ]] && TASK_ARGS=(--task "${TASKS[0]}")
+    "$V/bin/python" "$HERE/evo1/reference.py" --bundle-dir "$OUT" --base "$BASE" "${TASK_ARGS[@]}"
+    # Mixed FP16 for every engine graph (RMSNorms, LayerNorm, Softmax stay FP32).
+    GRAPHS=$(cd "$OUT" && ls vision_*.onnx language_*.onnx action_*.onnx)
+    "$V/bin/python" -m vla_common.fp16_mixed --bundle "$OUT" --graphs $GRAPHS
     ;;
   groot)
     # Not a LeRobot policy: NVIDIA's model code (export/setup.sh groot) loads it, the
@@ -108,16 +138,16 @@ case "$FAMILY" in
     "$V/bin/python" "$HERE/groot/export_split_onnx17.py" --ref "$FIXTURE" --out "$OUT"
     rm -f "$FIXTURE"
     ;;
-  *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, GR00T N1.6, N1.7)"; exit 1 ;;
+  *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, evo1, GR00T N1.6, N1.7)"; exit 1 ;;
 esac
 
 ( cd "$OUT" && sha256sum --quiet -c MANIFEST.sha256 ) && echo ">> manifest OK"
 echo
 echo "Copy $OUT to the Jetson, then benchmark it there:"
-if [[ "$FAMILY" == groot ]]; then
-  echo "  .venv-ort/bin/python -m bench trt-split --model groot-n16-base --bundle <bundle>"
-elif [[ "$FAMILY" == groot17 ]]; then
-  echo "  .venv-ort/bin/python -m bench trt-split --model groot-n17-base --bundle <bundle>"
-else
-  echo "  .venv-ort/bin/python -m bench ort-split --model ${FAMILY}-base --bundle <bundle> --views $VIEWS"
-fi
+case "$FAMILY" in
+  groot) PROFILE=groot-n16-base ;;
+  groot17) PROFILE=groot-n17-base ;;
+  evo1) PROFILE=evo1-libero ;;
+  *) PROFILE=${FAMILY}-base ;;
+esac
+echo "  .venv-ort/bin/python -m bench trt-split --model $PROFILE --bundle <bundle>"

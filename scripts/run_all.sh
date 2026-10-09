@@ -3,6 +3,7 @@
 #
 #   MODEL=smolvla-base scripts/run_all.sh
 #   MODEL=xvla-base    scripts/run_all.sh
+#   MODEL=evo1-libero  BUNDLE=/path/to/bundle scripts/run_all.sh
 #   MODEL=evo1-bootstrap BUNDLE=/path/to/bundle scripts/run_all.sh
 #   MODEL=groot-n16-base BUNDLE=/path/to/bundle scripts/run_all.sh
 #   MODEL=groot-n17-base BUNDLE=/path/to/bundle scripts/run_all.sh
@@ -26,15 +27,15 @@ OBS="${OBS:-synthetic}"
 case "$MODEL" in
     smolvla-base) MODEL_FAMILY=smolvla ;;
     xvla-base)    MODEL_FAMILY=xvla ;;
-    evo1-bootstrap) MODEL_FAMILY=evo1 ;;
+    evo1-libero|evo1-bootstrap) MODEL_FAMILY=evo1 ;;
     groot-n16-base|groot-n17-base) MODEL_FAMILY=groot ;;
-    *) echo "MODEL must be smolvla-base, xvla-base, evo1-bootstrap, groot-n16-base or groot-n17-base"; exit 2 ;;
+    *) echo "MODEL must be smolvla-base, xvla-base, evo1-libero, evo1-bootstrap, groot-n16-base or groot-n17-base"; exit 2 ;;
 esac
 VIEWS="${VIEWS:-}"
 if [[ -z "$VIEWS" ]]; then
     case "$MODEL_FAMILY" in
         xvla|groot) VIEWS=3 ;;
-        evo1) VIEWS=1 ;;
+        evo1) [[ "$MODEL" == evo1-libero ]] && VIEWS=2 || VIEWS=1 ;;
         *) VIEWS=2 ;;
     esac
 fi
@@ -80,18 +81,22 @@ else
         "${TORCH_BUNDLE_ARGS[@]}" "${COMMON[@]}"
 fi
 
-# 2. The split path. First run builds every engine, one subprocess per graph — ~5 min
-#    for SmolVLA, ~10 for X-VLA, ~7 for GR00T. Later runs load from cache in seconds.
-#    GR00T runs on the TensorRT runtime alone (trt-split), the others on ORT.
+# 2. The split path. First run builds every engine, one subprocess per graph. Later
+#    runs load from cache in seconds. A bundle from export/export.sh carries a reference
+#    fixture and runs on the TensorRT runtime alone (trt-split); the Hugging Face SmolVLA
+#    and X-VLA bundles carry none and run on ORT (ort-split).
 SPLIT_CMD=ort-split
-[[ "$MODEL_FAMILY" == "groot" ]] && SPLIT_CMD=trt-split
+if [[ "$MODEL_FAMILY" == "groot" ]] || grep -qs '"fixture": {' "$BUNDLE/bundle.json" \
+        "$BUNDLE/export_info.json"; then
+    SPLIT_CMD=trt-split
+fi
 if [[ -d "$BUNDLE" ]]; then
     for v in $VIEWS; do
         run "$VENV_ORT" "$MODEL.$SPLIT_CMD.${v}cam" "$SPLIT_CMD" --bundle "$BUNDLE" \
             --views "$v" "${COMMON[@]}"
     done
 elif [[ "$MODEL_FAMILY" == "evo1" ]]; then
-    echo "!! no EVO1 bundle at $BUNDLE — export/copy it from spark-projects"
+    echo "!! no EVO1 bundle at $BUNDLE — export it with export/export.sh zuoxingdong/evo1_libero"
 elif [[ "$MODEL_FAMILY" == "groot" ]]; then
     echo "!! no GR00T bundle at $BUNDLE — export it with export/export.sh nvidia/GR00T-N1.6-3B (or -N1.7-3B)"
 else

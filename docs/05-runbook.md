@@ -73,6 +73,9 @@ record an apparently fast result after a parity failure.
 ```bash
 MODEL=smolvla-base scripts/run_all.sh
 MODEL=xvla-base scripts/run_all.sh
+MODEL=evo1-libero \
+    BUNDLE=~/bundles/evo1-libero-split \
+    scripts/run_all.sh
 MODEL=evo1-bootstrap \
     BUNDLE=~/bundles/evo1-bootstrap-split \
     scripts/run_all.sh
@@ -86,7 +89,9 @@ MODEL=groot-n17-base \
 
 The public-base recipes record a PyTorch FP32 reference, the split ONNX FP16
 deployment, and a sustained thermal run. EVO1 and GR00T skip PyTorch because their
-reference is the fixture embedded in the bundle; GR00T runs on `trt-split`. Set `SUSTAINED=0` to skip the five-minute sustained pass.
+reference is the fixture embedded in the bundle. A bundle from `export/export.sh` runs
+on `trt-split`, one fetched from Hugging Face on `ort-split`. Set `SUSTAINED=0` to skip the
+five-minute sustained pass.
 
 The default observation is deterministic and in memory, so no camera or robot hardware
 is needed. EVO1 synthetic observations use the policy's native uniform `[-1, 1]` flow
@@ -106,7 +111,15 @@ M=smolvla-base
     --views 2 --iters 100
 ```
 
-For X-VLA, use `.venv-torch-xvla` and `--views 3`. For EVO1:
+For X-VLA, use `.venv-torch-xvla` and `--views 3`. A bundle from `export/export.sh`
+runs on the TensorRT runtime alone:
+
+```bash
+.venv-ort/bin/python -m bench trt-split \
+    --model "$M" --bundle ~/bundles/$M-split --iters 100
+```
+
+For EVO1 on ORT:
 
 ```bash
 .venv-ort/bin/python -m bench ort-split \
