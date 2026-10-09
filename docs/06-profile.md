@@ -102,7 +102,9 @@ GPU kernels busy 84 % of the wall time. Per inference: 62 stream synchronization
   each model's latency, more for the ones with many small calls (SmolVLA, EVO1).
 - Vision is compute-bound in every model (4–12 GB/s of weights). In SmolVLA, the FP32
   softmax that the mixed-FP16 pass keeps takes 19 ms of the 86 ms vision time; the
-  vision tower does not get TensorRT's fused attention kernel, the decoder does.
+  vision tower does not get TensorRT's fused attention kernel, the decoder does. Letting
+  that softmax run in FP16 did not change it: 151 ms against 149 ms end to end, with a
+  slightly larger action error, so the export keeps it FP32.
 - GR00T's DiT (64–69 GB/s) and EVO1's action output (96 GB/s) read their weights near
   the bandwidth limit: those stages only get faster by reading fewer bytes. X-VLA's
   denoiser (23 GB/s) runs all 262 tokens every step and is compute-bound.
