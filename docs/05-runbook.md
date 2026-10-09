@@ -79,6 +79,9 @@ MODEL=evo1-bootstrap \
 MODEL=groot-n16-base \
     BUNDLE=~/bundles/groot-n16-base-split \
     scripts/run_all.sh
+MODEL=groot-n17-base \
+    BUNDLE=~/bundles/groot-n17-base-split \
+    scripts/run_all.sh
 ```
 
 The public-base recipes record a PyTorch FP32 reference, the split ONNX FP16

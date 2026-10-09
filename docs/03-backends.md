@@ -7,9 +7,9 @@ The repository has a PyTorch reference path and split-ONNX deployment paths:
 | `torch` | run a public upstream LeRobot base checkpoint |
 | `ort-split` | run a matching split ONNX bundle through TensorRT EP |
 | `ort-split` + `evo1-bootstrap` | validate and measure the nondeployable EVO1 export |
-| `trt-split` | run a GR00T N1.6 split bundle on the TensorRT runtime alone |
+| `trt-split` | run a GR00T N1.6 or N1.7 split bundle on the TensorRT runtime alone |
 
-Four profiles are registered. The EVO1 profile is deliberately not fetchable or
+Five profiles are registered. The EVO1 profile is deliberately not fetchable or
 deployable because its current action head is random.
 
 | key | parameters | Torch checkpoint | split ONNX |
@@ -17,6 +17,7 @@ deployable because its current action head is random.
 | `smolvla-base` | 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | [`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) |
 | `xvla-base` | 880M | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) |
 | `groot-n16-base` | 3.3B (2.3B deployed) | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B), stock-PyTorch fixture in bundle | local export (`export/export.sh`) |
+| `groot-n17-base` | 3.1B (2.5B deployed) | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B), stock-PyTorch fixture in bundle | local export (`export/export.sh`) |
 | `evo1-bootstrap` | 775M | native fixture in bundle | local checksummed export |
 
 Authenticate once with `hf auth login` if a published split repository is private.
@@ -150,6 +151,42 @@ the full chunk. There is no PyTorch run on the board: the BF16 checkpoint alone 
 .venv-ort/bin/python -m bench trt-split --model groot-n16-base \
     --bundle ~/bundles/groot-n16-base-split --iters 100
 ```
+
+## GR00T N1.7 base contract
+
+`export/export.sh nvidia/GR00T-N1.7-3B <out>` writes 26 graphs: vision ×4 (the Qwen3-VL
+ViT of Cosmos-Reason2-2B; the three DeepStack mergers ride in their layer's chunk), LLM
+×8, `cond` ×2 (vlln, the 4-layer VL self-attention and the state encoder), `time`, DiT
+×11. Its fixed contract:
+
+- embodiment `xdof_relative_eef_relative_joint` (3 cameras), the 3-camera pretrained
+  N1.7 embodiment; robocasa is not one;
+- each camera seen twice, now and 30 frames earlier (the checkpoint's
+  `video_delta_indices`); 256×256 per image through the stock eval transform, which
+  already lands on a multiple of 32, so Qwen3-VL's own resize is a no-op;
+- 64 tokens per image, 6 images; one prompt baked as token ids, 412 tokens right-padded
+  to 448;
+- a 40-action chunk, 132-wide padded state and action, 4 Euler steps;
+- mixed FP16 with LayerNorm, Softmax and every RMSNorm FP32, the time sinusoids FP32.
+
+What the split reproduces from stock, each checked against the PyTorch model: the
+backbone output is the last decoder layer *before* the final RMSNorm (a ~1.5e4 activation
+reaches vlln, which stays FP32); ViT layers 5/11/17 add DeepStack features to the
+hidden state after LLM layers 0/1/2; the VL self-attention gets a key bias that hides the
+padding, which stock never has.
+
+Each camera frame's vision output depends on that frame alone, so `trt-split` encodes
+the 3 current frames per call and reuses the earlier encode for the history slot: the
+newest frame at least 1 s old at an assumed 30 fps camera (`meta.history_age_ms` records
+what was used). The first call uses the current frame for both slots.
+
+```bash
+.venv-ort/bin/python -m bench trt-split --model groot-n17-base \
+    --bundle ~/bundles/groot-n17-base-split --iters 100
+```
+
+Engines go to `~/.cache/jetson-orin-nano-vla/groot-n17-base-trt` (N1.6 keeps
+`groot-trt`): graph names repeat between the two bundles.
 
 ## Why split ONNX
 

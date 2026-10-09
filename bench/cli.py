@@ -232,7 +232,10 @@ def cmd_trt_split(args) -> int:
     if r.family != "groot":
         sys.exit("trt-split serves the groot family; use ort-split for the others.")
     from .backends.trt_split_groot import TrtSplitGrootBackend
-    be = TrtSplitGrootBackend(bundle, cache_dir=args.cache_dir)
+    # groot-n16-base keeps the directory its published run used.
+    cache = args.cache_dir or str(Path(DEFAULT_CACHE).parent / (
+        "groot-trt" if args.model == "groot-n16-base" else f"{args.model}-trt"))
+    be = TrtSplitGrootBackend(bundle, cache_dir=cache)
     return _finish(args, be, r)
 
 
@@ -347,8 +350,9 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("trt-split", help="split ONNX export on the TensorRT runtime alone")
     p.add_argument("--bundle", default=None, help="the split export directory")
-    p.add_argument("--cache-dir", default=str(Path(DEFAULT_CACHE).parent / "groot-trt"),
-                   help="persistent TensorRT engine cache")
+    p.add_argument("--cache-dir", default=None,
+                   help="persistent TensorRT engine cache (default: one directory per "
+                        "model next to the ORT cache; graph names repeat across models)")
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_trt_split)

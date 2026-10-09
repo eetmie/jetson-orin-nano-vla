@@ -4,6 +4,10 @@
 #
 #   export/export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task "..."]... [--fps N]
 #   export/export.sh nvidia/GR00T-N1.6-3B <out dir> [--embodiment E] [--views N] [--task "..."]
+#   export/export.sh nvidia/GR00T-N1.7-3B <out dir> [--embodiment E] [--task "..."] [--vlm-files D]
+#
+# GR00T N1.7 takes its tokenizer/processor from nvidia/Cosmos-Reason2-2B, a gated
+# Hugging Face repo: accept its terms first, or pass --vlm-files with a local copy.
 #
 # The family comes from the checkpoint's config.json. --views defaults to the number of
 # observation.images.* inputs the checkpoint declares; it is baked into the graphs, so a
@@ -16,11 +20,12 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 SRC="${1:?usage: export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task T]... [--fps N]}"
 OUT="${2:?usage: export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task T]... [--fps N]}"
 shift 2
-VIEWS=""; EXTRA=(); EMBODIMENT=robocasa_panda_omron; TASKS=()
+VIEWS=""; EXTRA=(); EMBODIMENT=""; TASKS=(); VLM_FILES=nvidia/Cosmos-Reason2-2B
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --views) VIEWS="$2"; shift 2 ;;
     --embodiment) EMBODIMENT="$2"; shift 2 ;;
+    --vlm-files) VLM_FILES="$2"; shift 2 ;;
     --task) EXTRA+=("$1" "$2"); TASKS+=("$2"); shift 2 ;;
     --fps) EXTRA+=("$1" "$2"); shift 2 ;;
     *) echo "unknown option $1"; exit 2 ;;
@@ -44,6 +49,8 @@ import json, sys
 c = json.load(open(sys.argv[1]))
 if c.get("model_type") == "Gr00tN1d6":
     print("groot", 3)        # robocasa_panda_omron; pass --views for another embodiment
+elif c.get("model_type") == "Gr00tN1d7":
+    print("groot17", 3)      # xdof_relative_eef_relative_joint; views come from the embodiment
 else:
     print(c.get("type"), sum(k.startswith("observation.images.") for k in c.get("input_features", {})))
 PY
@@ -81,12 +88,27 @@ case "$FAMILY" in
     [[ ${#TASKS[@]} -le 1 ]] || { echo "GR00T bakes one prompt into the bundle: pass one --task"; exit 1; }
     TASK_ARGS=(); [[ ${#TASKS[@]} -eq 1 ]] && TASK_ARGS=(--task "${TASKS[0]}")
     FIXTURE="$OUT.fixture.npz"
-    "$V/bin/python" "$HERE/groot/reference.py" --checkpoint "$CKPT" --embodiment "$EMBODIMENT" \
+    "$V/bin/python" "$HERE/groot/reference.py" --checkpoint "$CKPT" \
+        --embodiment "${EMBODIMENT:-robocasa_panda_omron}" \
         --views "$VIEWS" "${TASK_ARGS[@]}" --out "$FIXTURE"
     "$V/bin/python" "$HERE/groot/export_split_onnx.py" --ref "$FIXTURE" --out "$OUT"
     rm -f "$FIXTURE"
     ;;
-  *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, GR00T N1.6)"; exit 1 ;;
+  groot17)
+    # As N1.6, with the N1.7 model code (export/setup.sh groot17). The embodiment fixes
+    # the camera count and the history frames; --views does not apply.
+    V=$(venv_for groot17)
+    export PYTHONPATH="$HERE:$HERE/groot"
+    [[ ${#TASKS[@]} -le 1 ]] || { echo "GR00T bakes one prompt into the bundle: pass one --task"; exit 1; }
+    TASK_ARGS=(); [[ ${#TASKS[@]} -eq 1 ]] && TASK_ARGS=(--task "${TASKS[0]}")
+    FIXTURE="$OUT.fixture.npz"
+    "$V/bin/python" "$HERE/groot/reference17.py" --checkpoint "$CKPT" \
+        --embodiment "${EMBODIMENT:-xdof_relative_eef_relative_joint}" --vlm-files "$VLM_FILES" \
+        "${TASK_ARGS[@]}" --out "$FIXTURE"
+    "$V/bin/python" "$HERE/groot/export_split_onnx17.py" --ref "$FIXTURE" --out "$OUT"
+    rm -f "$FIXTURE"
+    ;;
+  *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, GR00T N1.6, N1.7)"; exit 1 ;;
 esac
 
 ( cd "$OUT" && sha256sum --quiet -c MANIFEST.sha256 ) && echo ">> manifest OK"
@@ -94,6 +116,8 @@ echo
 echo "Copy $OUT to the Jetson, then benchmark it there:"
 if [[ "$FAMILY" == groot ]]; then
   echo "  .venv-ort/bin/python -m bench trt-split --model groot-n16-base --bundle <bundle>"
+elif [[ "$FAMILY" == groot17 ]]; then
+  echo "  .venv-ort/bin/python -m bench trt-split --model groot-n17-base --bundle <bundle>"
 else
   echo "  .venv-ort/bin/python -m bench ort-split --model ${FAMILY}-base --bundle <bundle> --views $VIEWS"
 fi
