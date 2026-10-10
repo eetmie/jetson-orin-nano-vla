@@ -226,9 +226,14 @@ def cmd_ort_split(args) -> int:
 
 def trt_backend(args, r: Resolved, bundle: Path):
     """The trt-split backend for a resolved model; shared with bench/tools/nsys_trace.py."""
+    from .vendor import groot_trt
+    groot_trt.ACCUMULATE = getattr(args, "accumulate", None) or groot_trt.ACCUMULATE
     # groot-n16-base keeps the directory its published run used.
+    # FP32 accumulation (the default) gets its own directory, so engines built with
+    # TensorRT's own choice (--accumulate auto) stay valid where they always were.
+    suffix = "" if groot_trt.ACCUMULATE == "auto" or r.family == "pi05" else f"-{groot_trt.ACCUMULATE}acc"
     cache = args.cache_dir or str(Path(DEFAULT_CACHE).parent / (
-        "groot-trt" if args.model == "groot-n16-base" else f"{args.model}-trt"))
+        ("groot-trt" if args.model == "groot-n16-base" else f"{args.model}-trt") + suffix))
     if r.family == "groot":
         from .backends.trt_split_groot import TrtSplitGrootBackend
         return TrtSplitGrootBackend(bundle, cache_dir=cache,
@@ -379,6 +384,11 @@ def main(argv=None) -> int:
                         "graph; device: the same chain enqueued call by call; host: numpy "
                         "between engines, the reference the other two are checked against "
                         "at load")
+    p.add_argument("--accumulate", choices=["fp32", "auto"], default="fp32",
+                   help="fp32 (default): every FP16 MatMul accumulates in FP32 and FP32 "
+                        "graphs run without TF32 (~1 %% slower, clearly more accurate); "
+                        "auto: TensorRT picks, often FP16 accumulation. Engines are cached "
+                        "per setting. pi0.5's graphs always accumulate in FP32.")
     _add_model(p)
     _add_common(p)
     p.set_defaults(func=cmd_trt_split)

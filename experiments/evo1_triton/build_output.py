@@ -15,12 +15,16 @@ import tensorrt as trt
 import tensorrt.plugin as trtp
 import plugin
 from candidate import pin, sha256
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from bench.vendor.groot_trt import configure_accumulate
 
 p = argparse.ArgumentParser()
 p.add_argument('--mode', choices=['baseline', 'gemv'], required=True)
 p.add_argument('--bundle', type=Path, required=True)
 p.add_argument('--base-cache', type=Path, required=True)
 p.add_argument('--out', type=Path, required=True)
+p.add_argument('--accumulate', choices=['fp32', 'auto'], default='fp32', help='as bench trt-split --accumulate')
 a = p.parse_args()
 bundle, base, out = (x.expanduser().resolve() for x in (a.bundle, a.base_cache, a.out))
 out.mkdir(parents=True, exist_ok=False)
@@ -83,6 +87,7 @@ if a.mode == 'gemv':
     patch = dict(matmul=mm.name, bias_add=add.name, op1=str(mm.op1))
 config = builder.create_builder_config()
 config.builder_optimization_level = 2
+accumulated = configure_accumulate(net, config, a.accumulate)
 config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 512 << 20)
 config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
 timing = base/'timing.cache'
@@ -93,7 +98,7 @@ assert blob is not None
 (out/'action_output.engine').write_bytes(blob)
 here = Path(__file__).parent
 (out/'candidate.json').write_text(json.dumps(dict(
-    mode=a.mode, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__, patch=patch,
+    mode=a.mode, accumulate=a.accumulate, fp32_accumulated_matmuls=accumulated, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__, patch=patch,
     tile=plugin.TILE, kernel_sha256=sha256(here/'kernels.py'), plugin_sha256=sha256(here/'plugin.py'),
     precision='FP32 accumulation and bias add, HALF in/out (TensorRT: FP16-accumulating tactic)',
     build_s=round(time.time()-started, 1), **pin(out, bundle)), indent=2))

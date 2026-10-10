@@ -17,6 +17,10 @@ from ..vendor.imaging import map_views
 from .base import Backend, InferResult
 
 
+def _accumulate() -> str:
+    return "fp32 (the exported templates cast every MatMul to FP32)"
+
+
 class TrtSplitPi05Backend(Backend):
     name = "trt-split-pi05"
     noise_injected = True
@@ -68,6 +72,7 @@ class TrtSplitPi05Backend(Backend):
             "components": len(b.names),
             "templates": b.kinds,
             "runtime": "tensorrt python, refitted stripped templates, no onnxruntime",
+            "accumulate": _accumulate(),
             "tensorrt": trt.__version__,
             "chain": self.chain,
             "shared_scratch_mb": round(self.engines.scratch_bytes / 2**20, 1),

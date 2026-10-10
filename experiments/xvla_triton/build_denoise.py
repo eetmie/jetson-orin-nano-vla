@@ -19,6 +19,9 @@ import tensorrt as trt
 import tensorrt.plugin as trtp
 import plugin
 from candidate import pin, sha256
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from bench.vendor.groot_trt import configure_accumulate
 
 p = argparse.ArgumentParser()
 p.add_argument('--mode', choices=['baseline', 'attention', 'actions'], required=True)
@@ -26,6 +29,7 @@ p.add_argument('--bundle', type=Path, default=Path.home()/'bundles/xvla-base-spl
 p.add_argument('--base-cache', type=Path, default=Path.home()/'.cache/jetson-orin-nano-vla/xvla-base-trt')
 p.add_argument('--out', type=Path, required=True)
 p.add_argument('--opt-level', type=int, default=2)
+p.add_argument('--accumulate', choices=['fp32', 'auto'], default='fp32', help='as bench trt-split --accumulate')
 a = p.parse_args()
 bundle, base, out = (x.expanduser().resolve() for x in (a.bundle, a.base_cache, a.out))
 meta = json.loads((bundle/'bundle.json').read_text())
@@ -222,6 +226,7 @@ def build(name, actions):
         assert [tuple(o.shape) for o in outputs] == [(1, plugin.ACTIONS, meta['max_action_dim'])], [o.shape for o in outputs]
     config = builder.create_builder_config()
     config.builder_optimization_level = a.opt_level
+    accumulated = configure_accumulate(net, config, a.accumulate)
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 512 << 20)
     config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
     timing = base/'timing.cache'
@@ -230,13 +235,13 @@ def build(name, actions):
     blob = builder.build_serialized_network(net, config)
     assert blob is not None, f'{name}: build failed'
     (out/f'{name}.engine').write_bytes(blob)
-    print('BUILT', name, len(patches), 'patches', round(time.time()-started, 1), 's', flush=True)
+    print('BUILT', name, len(patches), 'patches', accumulated, 'fp32-accumulated', round(time.time()-started, 1), 's', flush=True)
     return patches
 
 
 patches = {n: build(n, a.mode == 'actions' and n == denoise[-1]) for n in denoise}
 here = Path(__file__).parent
-manifest = dict(mode=a.mode, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__,
+manifest = dict(mode=a.mode, accumulate=a.accumulate, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__,
                 opt_level=a.opt_level, tile=plugin.TILE, scale=plugin.SCALE, patches=patches,
                 kernel_sha256=sha256(here/'kernels.py'), plugin_sha256=sha256(here/'plugin.py'),
                 precision='HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, '

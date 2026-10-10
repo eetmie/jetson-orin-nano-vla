@@ -19,12 +19,16 @@ import tensorrt as trt
 import tensorrt.plugin as trtp
 import plugin
 from candidate_cache import sha256, verify_candidate
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from bench.vendor.groot_trt import configure_accumulate
 
 p=argparse.ArgumentParser()
 p.add_argument('--mode',choices=['baseline','fp32','fp16','masked','trt-attention','triton-attention','triton-attention-aligned','triton-attention-native','triton-attention-flat','triton-attention-qkv'],required=True)
 p.add_argument('--out',type=Path,required=True)
 p.add_argument('--base-cache',type=Path,help='cache whose other engines are kept (verified if it is a candidate)')
 p.add_argument('--bundle',type=Path,default=Path.home()/'bundles/smolvla-base-split')
+p.add_argument('--accumulate', choices=['fp32', 'auto'], default='fp32', help='as bench trt-split --accumulate')
 a=p.parse_args()
 source=a.bundle.expanduser().resolve()/'smolvlm_vision.onnx'
 base=Path.home()/'.cache/jetson-orin-nano-vla/smolvla-base-trt'
@@ -287,6 +291,7 @@ for soft in (softmaxes if a.mode!='baseline' else []):
                         consumers=[l.name for l,_ in users]))
 config=builder.create_builder_config()
 config.builder_optimization_level=2
+accumulated = configure_accumulate(net, config, a.accumulate)
 config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE,512<<20)
 config.profiling_verbosity=trt.ProfilingVerbosity.DETAILED
 cache=base/'timing.cache'
@@ -296,7 +301,7 @@ plan=builder.build_serialized_network(net,config)
 assert plan is not None, 'candidate engine build failed'
 (a.out/'vision.engine').write_bytes(plan)
 (a.out/'timing.cache').write_bytes(config.get_timing_cache().serialize())
-manifest=dict(mode=a.mode,build_s=time.time()-started,tensorrt=trt.__version__,
+manifest=dict(mode=a.mode,accumulate=a.accumulate,fp32_accumulated_matmuls=accumulated,build_s=time.time()-started,tensorrt=trt.__version__,
               source_onnx_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
               engine_sha256=hashlib.sha256(bytes(plan)).hexdigest(),patches=patches,
               kernel_sha256=hashlib.sha256((Path(__file__).parent/'aot_kernel.py').read_bytes()).hexdigest(),

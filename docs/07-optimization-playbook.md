@@ -54,14 +54,22 @@ for +9.3 MB RSS).
 - π0.5's exporter already has the general fix: every MatMul is written as
   Cast(FP32) → MatMul → Cast(FP16). The operands are FP16 values, so the products are
   exact, and TensorRT turns the pattern into FP16-input / FP32-accumulate tensor-core
-  kernels (`f16f16_f16f32`, `s16816gemm`). `python -m vla_common.fp32_accumulate` applies
-  it to any mixed-FP16 bundle. On SmolVLA's plain engines (all 379 MatMuls): p50
-  133.45 → 134.95 ms (+1.1 %), engines and RAM unchanged, full-chunk mean error −21 %
-  (max 0.199 → 0.165 % of range), first-action mean error −39 %
-  ([runs](../results/all-models-20261010/smolvla-fp32-accumulate/)). Most GEMMs here are
-  bandwidth-bound or already FP32-accumulating, so the ~25 % GEMM-level gap costs ~1 %
-  end to end. The Triton build scripts match the plain chains, so a combined build
-  needs `--skip` on the MatMuls their plugins replace.
+  kernels (`f16f16_f16f32`, `s16816gemm`). **This is now the default for every engine**
+  (`groot_trt.accumulate_fp32`, applied at build time; `bench trt-split --accumulate
+  auto` and the experiment builders' `--accumulate auto` turn it off, and the two are
+  cached separately). It also clears TF32, so FP32 graphs run in real FP32.
+  `python -m vla_common.fp32_accumulate` does the same to an ONNX bundle.
+
+  | model (60 s) | p50, TensorRT's choice → FP32 | cost | full-chunk max error | mean error |
+  |---|---|---:|---|---:|
+  | SmolVLA | 102.78 → 105.16 ms | +2.3 % | 0.195 → 0.135 % | −31 % |
+  | X-VLA | 348.6 → 353.0 ms | +1.3 % | 0.048 → 0.042 % | ≈ |
+  | EVO1 | 340.7 → 351.4 ms | +3.1 % | 0.034 → 0.021 % | −47 % |
+  | GR00T N1.6 | 276.5 → 283.5 ms | +2.5 % | 0.262 → 0.060 % | −46 % |
+  | GR00T N1.7 | 279.7 → 285.1 ms | +1.9 % | 0.062 → 0.041 % | −45 % |
+
+  X-VLA's GEMMs were already mostly FP32-accumulating, hence the small change there.
+
 - `groot_trt.build_one` leaves TF32 enabled, so FP32 engines (projectors) run TF32;
   `pi05_trt` clears it.
 
@@ -69,7 +77,7 @@ for +9.3 MB RSS).
 
 | model | done | still open |
 |---|---|---|
-| SmolVLA | 126.8 → 102.9 ms ([results](../results/smolvla-native-20261010T1247Z/summary.json)) | FP32 accumulation: measured on plain engines (+1.1 %, error −21..39 %), not yet combined with the Triton build |
+| SmolVLA | 126.8 → 102.9 ms ([results](../results/smolvla-native-20261010T1247Z/summary.json)); FP32 accumulation by default | — |
 | X-VLA | 383.7 → ~349 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries ([experiment](../experiments/xvla_triton/)) | vision tower: 18.9 ms of layout copies and 10.3 ms of depthwise 3×3 convs on sm50 kernels around DaViT's NCHW↔token round trips (a token-layout depthwise conv plugin). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
 | EVO1 | 360.3 → ~340 ms: preprocessing, FP16 K/V cache, FP32-accumulating output head ([experiment](../experiments/evo1_triton/)) | GEMM-bound vision (TensorRT's 1025-token MHA is already within 7 % of a Triton kernel) |
 | GR00T N1.6 / N1.7 | 288 → ~275 / ~278 ms: preprocessing, FP16 `kv_*`/`mod_*` boundaries (bit-identical) | GEMM-bound; N1.7 `ds_*` boundaries need the deepstack scatter to work in FP16 bytes |

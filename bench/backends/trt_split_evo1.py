@@ -17,6 +17,11 @@ from ..obs import Observation
 from .base import Backend, InferResult
 
 
+def _accumulate() -> str:
+    from ..vendor import groot_trt
+    return groot_trt.ACCUMULATE
+
+
 class TrtSplitEvo1Backend(Backend):
     name = "trt-split-evo1"
     noise_injected = True
@@ -92,6 +97,7 @@ class TrtSplitEvo1Backend(Backend):
             "configured_provider_priority_per_graph": {
                 n: "TensorrtExecutionProvider" for n in bd.names},
             "runtime": "tensorrt python, no onnxruntime",
+            "accumulate": _accumulate(),
             "tensorrt": trt.__version__,
             "shared_scratch_mb": round(self.engines.scratch_bytes / 2**20, 1),
             "token_embedding": "fp32 .npy, memory-mapped on the CPU",

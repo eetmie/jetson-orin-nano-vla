@@ -1,5 +1,9 @@
 # jetson-orin-nano-vla
 
+> **Work in progress.** The numbers below are real, but the scripts are not turn-key
+> yet: expect to adapt paths, bundles and experiment caches before the tests run on
+> your own board.
+
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 Recipes and measurements for running VLA models on an **8 GB Jetson Orin Nano Super**:
@@ -22,29 +26,30 @@ These measure inference cost, not robot-task quality.
 
 | model / runtime | views | p50 | p95 | rate | RAM in use |
 |---|---:|---:|---:|---:|---:|
-| **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 102.85 ms | 103.54 ms | 9.70 Hz | 1.63 GB |
+| **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 105.11 ms | 105.91 ms | 9.51 Hz | 1.60 GB |
 | EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
-| **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 340.72 ms | 341.53 ms | 2.94 Hz | 2.53 GB |
+| **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 351.42 ms | 352.66 ms | 2.85 Hz | 2.53 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 349.31 ms | 350.36 ms | 2.86 Hz | 2.82 GB |
-| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 279.67 ms | 280.50 ms | 3.58 Hz | 5.82 GB |
-| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 276.49 ms | 277.20 ms | 3.62 Hz | 5.38 GB |
+| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 353.65 ms | 354.69 ms | 2.83 Hz | 2.80 GB |
+| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 286.80 ms | 287.42 ms | 3.49 Hz | 5.80 GB |
+| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 284.65 ms | 285.59 ms | 3.51 Hz | 5.36 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
 | **π0.5 LIBERO** split, pure TensorRT FP16, compact prefix | 2 | 447.64 ms | 447.93 ms | 2.23 Hz | 6.29 GB |
 
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
 YMMV. `RAM in use` is the whole system while inferring.
-The SmolVLA row is the selected configuration from a 300-second run; its process RSS
-averages 1.40 GB. [Its step-by-step comparison](results/smolvla-native-20261010T1247Z/summary.json)
-and [the earlier speed and RAM comparisons](results/smolvla-memory-20261010/summary.json)
-are retained. The X-VLA and EVO1 rows use the [X-VLA](experiments/xvla_triton/) and
-[EVO1](experiments/evo1_triton/) experiments; every bold row from EVO1 down is a
-300-second run from [the all-model round](results/all-models-20261010/), with exact
-host preprocessing and FP16 engine boundaries. The π0.5 padded-prefix row predates it.
-[The playbook](docs/07-optimization-playbook.md) lists what was found and what each
-model still has to go through.
+Bold rows are 300-second runs of each model's current configuration with FP32
+accumulation, the default ([runs](results/all-models-20261010/fp32-accumulate/));
+it costs 1–3 % latency against TensorRT's own GEMM choices and cuts the full-chunk
+action error by up to 4× (GR00T N1.6) — both sets are in
+[the playbook](docs/07-optimization-playbook.md). Board RAM is unchanged; process RSS
+reads 46–121 MB higher for some models with the same engine sizes. SmolVLA, X-VLA and
+EVO1 use the [SmolVLA](experiments/smolvla_triton/), [X-VLA](experiments/xvla_triton/) and
+[EVO1](experiments/evo1_triton/) experiment caches; all models use exact host
+preprocessing and FP16 engine boundaries ([all-model round](results/all-models-20261010/)).
+The π0.5 rows always accumulate in FP32; its padded-prefix row predates the round.
 
 ## What every run logs
 
@@ -108,6 +113,11 @@ scripts/11_env_ort.sh
 MODEL=smolvla-base   BUNDLE=~/bundles/smolvla-base-split   scripts/run_all.sh
 MODEL=groot-n16-base BUNDLE=~/bundles/groot-n16-base-split scripts/run_all.sh
 ```
+
+Engines accumulate every FP16 MatMul in FP32 by default (`--accumulate fp32`, ~1 %
+slower than letting TensorRT choose, and 20–40 % lower action error on SmolVLA);
+`--accumulate auto` gives TensorRT's own choice. The two are cached in separate
+directories.
 
 `run_all.sh` also runs the PyTorch reference for SmolVLA and X-VLA when its venv exists
 (`scripts/10_env_torch.sh`, `scripts/13_env_torch_xvla.sh`) and the checkpoint has been

@@ -27,6 +27,8 @@ if output.exists():
 cache=Path(args[args.index('--cache-dir')+1]).expanduser().resolve()
 bundle_dir=Path(args[args.index('--bundle')+1]).expanduser().resolve()
 manifest=verify_candidate(cache,bundle_dir)
+# Report what the cache was built with (older caches predate the option: auto).
+groot_trt.ACCUMULATE=manifest.get('expert_accumulate') or manifest.get('accumulate') or 'auto'
 source=bundle_dir/'smolvlm_vision.onnx'
 # No plugin, Torch or Triton import: the serialized AOT engine must stand alone.
 original=groot_trt.prebuild_engines

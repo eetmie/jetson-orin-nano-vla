@@ -361,6 +361,8 @@ Many TensorRT GEMM tactics accumulate in FP16 (`h16816gemm`, `f16f16_f16f16_f16`
 including the vision QKV/fc2 projections and the K=12288 connector; TensorRT 10.16 has
 no builder flag for it. That is the next quality question, not a speed one.
 
+**Accumulation.** The build scripts now default to `--accumulate fp32` (every FP16 MatMul accumulates in FP32, see the [playbook](../../docs/07-optimization-playbook.md)); the tables above were measured with TensorRT's own choice, which `--accumulate auto` reproduces.
+
 ## Rebuild the expert engine
 
 Build and measure on the Nano, from the repository root. Use unique names:
