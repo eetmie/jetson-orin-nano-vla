@@ -1,4 +1,4 @@
-# Vendored from the author's fine-tuning pipeline: vla-onnx/smolvla/export_valid_onnx.py @ 3f7793d.
+# Vendored from the author's fine-tuning pipeline: vla-onnx/smolvla/export_valid_onnx.py @ 54be8cd.
 """
 Export LeRobot SmolVLA to a validity-first ONNX graph.
 

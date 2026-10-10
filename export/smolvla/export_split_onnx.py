@@ -1,4 +1,4 @@
-# Vendored from the author's fine-tuning pipeline: vla-onnx/smolvla/export_split_onnx.py @ 3f7793d (robot-specific comments trimmed).
+# Vendored from the author's fine-tuning pipeline: vla-onnx/smolvla/export_split_onnx.py @ 54be8cd (robot-specific comments trimmed).
 """Split-graph SmolVLA export for the Orin Nano 8 GB (per-component TRT engines).
 
 WHY (see notes/orin-split-findings.md): the monolithic
@@ -378,9 +378,9 @@ def main() -> None:
     ap.add_argument("--hoist-cross-kv", action="store_true",
                     help="emit the cross-attention layers' expert K/V projections from "
                          "prefill (once per observation) instead of recomputing them in "
-                         "decode every step, and pass the KV cache in FP16. Changes what "
-                         "the present_/past_ tensors of those layers hold, so only a "
-                         "runtime that reads export_info.json `kv` may load it.")
+                         "decode every step. Changes what the present_/past_ tensors of "
+                         "those layers hold; a runtime that passes prefill outputs to decode "
+                         "inputs by name is unaffected (export.sh also keeps the cache FP16).")
     ap.add_argument("--state-blind", action="store_true",
                     help="camera-only checkpoint: the state input is dead but still wired "
                          "in, and MUST be fed zeros. run_inference reads this flag.")
@@ -556,8 +556,9 @@ def main() -> None:
     if args.hoist_cross_kv:
         # A runtime that ignores this would feed raw VLM K/V to layers expecting
         # projected ones and still produce plausible-looking actions.
-        info["kv"] = {"cross_layers": cross_layers(vlme), "cross": "expert-projected",
-                      "dtype": "float16"}
+        # (The cache's dtype is whatever the graphs say: FP32 as exported, FP16 after
+        # `fp16_mixed --half-io`, which export.sh applies with this flag.)
+        info["kv"] = {"cross_layers": cross_layers(vlme), "cross": "expert-projected"}
     (out / "export_info.json").write_text(json.dumps(info, indent=2))
     print(f"Saved export_info.json -> fps={fps} tasks={tasks!r} "
           f"state_dim={state_dim_real} action_dim={action_dim_real} chunk={chunk}")
