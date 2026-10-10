@@ -16,6 +16,11 @@ steps. Two changes here, plus one in the shared runtime:
   float table reproduces the `/255` + ImageNet normalization bit for bit and replaces
   the numpy transposes: 20.2 → 2.6 ms for three 480×640 views.
 
+- **FP16 boundaries.** The vision/denoise chunk hiddens, `vlm_features` and
+  `cond_tokens` round-tripped FP16→FP32→FP16 between engines; `vla_common.half_boundary`
+  passes them in FP16 (`xvla-base-split-h16`). Five-minute run: **349.31 ms**, 2.86 Hz,
+  process RSS 2587 MB, full chunk 0.048 % of range.
+
 `build_denoise.py` checks every link of the exported chain (index maps of every
 reshape/transpose/split, the SDPA scale subgraph, the residual) before rewiring.
 
@@ -43,6 +48,10 @@ Next: the vision tower, 89 ms for three views, spends 18.9 ms in layout copies a
 trips; see [the playbook](../../docs/07-optimization-playbook.md).
 
 ## Reproduce on the Nano
+
+For the FP16-boundary bundle, first on the export machine:
+`cp -a ~/bundles/xvla-base-split ~/bundles/xvla-base-split-h16 && (cd export && python -m vla_common.half_boundary --bundle ~/bundles/xvla-base-split-h16 --names 'hidden_in|cond_tokens|vlm_features')`,
+then pass `--bundle ~/bundles/xvla-base-split-h16` and a plain cache of it below.
 
 ```bash
 stamp=$(date -u +%Y%m%dT%H%MZ); C=~/.cache/jetson-orin-nano-vla

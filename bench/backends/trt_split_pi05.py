@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from ..obs import Observation
+from ..vendor.imaging import map_views
 from .base import Backend, InferResult
 
 
@@ -83,7 +84,7 @@ class TrtSplitPi05Backend(Backend):
             raise ValueError(f"pi0.5 LIBERO takes {b.b['valid_cameras']} cameras (base and "
                              f"wrist), got {len(obs.images)}")
         t0 = time.perf_counter()
-        imgs = [b.preprocess(im) for im in obs.images]
+        imgs = map_views(b.preprocess, obs.images)
         ids, mask = b.tokens(obs.task)
         pre = (time.perf_counter() - t0) * 1000
         t = {}

@@ -35,6 +35,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .imaging import lookup, normalize_table
+
 FIXTURE_MAX_PCT_RANGE = 1.0      # the README's full-chunk gate
 FIXTURE_MIN_COSINE = 0.999
 
@@ -111,6 +113,7 @@ class Bundle:
         self.image_positions = img
         self.text_bias = np.where(~img & valid, 0.0, neg).astype(np.float32)[None, None]
         self.image_bias = np.where(img & valid, 0.0, neg).astype(np.float32)[None, None]
+        self._normalize = None      # (x/255 - mean)/std as a lookup table, built on first use
         # The prompt never changes within a bundle, so its embedded rows are gathered once.
         self.prompt_embeds = np.asarray(self.embed[ids], dtype=np.float32)[None]
 
@@ -147,9 +150,10 @@ class Bundle:
         img = smallest_max(img[y0:y0 + ch, x0:x0 + cw])
         th, tw = self.b["image_hw"]
         img = np.asarray(Image.fromarray(img).resize((tw, th), Image.BICUBIC))
-        x = img.astype(np.float32) / 255.0
-        x = (x - self.b["image_mean"]) / self.b["image_std"]
-        return np.ascontiguousarray(x.transpose(2, 0, 1))
+        if self._normalize is None:
+            mean, std = self.b["image_mean"], self.b["image_std"]
+            self._normalize = normalize_table(lambda u: (u.astype(np.float32) / 255.0 - mean) / std)
+        return np.ascontiguousarray(lookup(img, self._normalize).transpose(2, 0, 1))
 
 
 def _pool_name(output: str) -> str:

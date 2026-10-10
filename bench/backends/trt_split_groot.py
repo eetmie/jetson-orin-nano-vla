@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from ..obs import Observation
+from ..vendor.imaging import map_views
 from .base import Backend, InferResult
 
 
@@ -182,7 +183,7 @@ class TrtSplitGrootBackend(Backend):
         from ..vendor.groot_trt import infer
 
         t0 = time.perf_counter()
-        pv = np.stack([self.bundle.preprocess(im) for im in obs.images])
+        pv = np.stack(map_views(self.bundle.preprocess, obs.images))
         state = self._state(obs)
         pre = (time.perf_counter() - t0) * 1000
         t = {}
@@ -198,7 +199,7 @@ class TrtSplitGrootBackend(Backend):
         from ..vendor.groot17_trt import encode_frames, infer
 
         t0 = time.perf_counter()
-        pv = np.stack([self.bundle.preprocess(im) for im in obs.images])
+        pv = np.stack(map_views(self.bundle.preprocess, obs.images))
         state = self._state(obs)
         t1 = time.perf_counter()
         if self.device is not None:

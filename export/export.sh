@@ -110,7 +110,10 @@ case "$FAMILY" in
     "$V/bin/python" "$HERE/evo1/reference.py" --bundle-dir "$OUT" --base "$BASE" "${TASK_ARGS[@]}"
     # Mixed FP16 for every engine graph (RMSNorms, LayerNorm, Softmax stay FP32).
     GRAPHS=$(cd "$OUT" && ls vision_*.onnx language_*.onnx action_*.onnx)
-    "$V/bin/python" -m vla_common.fp16_mixed --bundle "$OUT" --graphs $GRAPHS
+    # The per-observation key/value cache crosses from action_context to action_step in
+    # FP16: action_step cast every one of them to FP16 on each of its steps anyway.
+    "$V/bin/python" -m vla_common.fp16_mixed --bundle "$OUT" --graphs $GRAPHS \
+        --half-io 'key_mask|(key|value)_[0-9]+'
     ;;
   groot)
     # Not a LeRobot policy: NVIDIA's model code (export/setup.sh groot) loads it, the

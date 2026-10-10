@@ -120,11 +120,15 @@ def _linear_taps(n_in: int, n_out: int) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _resize_axis(x: np.ndarray, n_out: int, axis: int) -> np.ndarray:
+    """Weighted sum of the taps, accumulated tap by tap in the order numpy's reduction
+    over the tap axis uses (bit-identical), without materializing every tap at once."""
     idx, w = _linear_taps(x.shape[axis], n_out)
-    taps = np.take(x, idx, axis=axis)                  # axis -> [n_out, taps]
-    shape = [1] * taps.ndim
-    shape[axis], shape[axis + 1] = w.shape
-    return (taps * w.reshape(shape)).sum(axis=axis + 1)
+    shape = [1] * x.ndim
+    shape[axis] = n_out
+    acc = np.take(x, idx[:, 0], axis=axis) * w[:, 0].reshape(shape)
+    for k in range(1, idx.shape[1]):
+        acc += np.take(x, idx[:, k], axis=axis) * w[:, k].reshape(shape)
+    return acc
 
 
 def resize_with_pad(img: np.ndarray, height: int, width: int) -> np.ndarray:

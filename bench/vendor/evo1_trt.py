@@ -27,9 +27,12 @@ from pathlib import Path
 import numpy as np
 
 from .groot_trt import FIXTURE_MAX_PCT_RANGE, FIXTURE_MIN_COSINE, _cmp
+from .imaging import lookup, map_views, normalize_table
 
 IMAGENET_MEAN = np.asarray((0.485, 0.456, 0.406), dtype=np.float32)
 IMAGENET_STD = np.asarray((0.229, 0.224, 0.225), dtype=np.float32)
+# x/255 then ImageNet normalization, exactly as written below it used to be.
+_NORMALIZE = normalize_table(lambda u: (u.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD)
 IMG_CONTEXT_TOKEN = "<IMG_CONTEXT>"
 IMG_START_TOKEN = "<img>"
 IMG_END_TOKEN = "</img>"
@@ -76,11 +79,13 @@ class Bundle:
 
         size = int(self.b["image_size"])
         out = np.empty((len(images_u8), 3, size, size), np.float32)
-        for i, view in enumerate(images_u8):
-            r = Image.fromarray(np.ascontiguousarray(view)).resize(
+
+        def one(i):
+            r = Image.fromarray(np.ascontiguousarray(images_u8[i])).resize(
                 (size, size), Image.Resampling.BICUBIC)
-            x = np.asarray(r, np.float32) / 255.0
-            out[i] = ((x - IMAGENET_MEAN) / IMAGENET_STD).transpose(2, 0, 1)
+            out[i] = lookup(np.asarray(r), _NORMALIZE).transpose(2, 0, 1)
+
+        map_views(one, range(len(images_u8)))
         return out
 
     def prompt(self, task: str) -> tuple[np.ndarray, np.ndarray]:

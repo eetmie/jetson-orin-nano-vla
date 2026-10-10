@@ -31,6 +31,7 @@ from pathlib import Path
 import numpy as np
 
 from .groot_trt import FIXTURE_MAX_PCT_RANGE, FIXTURE_MIN_COSINE, _cmp, denoise
+from .imaging import lookup, normalize_table
 
 
 class Bundle:
@@ -57,6 +58,7 @@ class Bundle:
         self.text_bias = np.where(~img & valid, 0.0, neg).astype(np.float32)[None, None]
         self.image_bias = np.where(img & valid, 0.0, neg).astype(np.float32)[None, None]
         self.pad_bias = np.where(valid, 0.0, neg).astype(np.float32)[None, None]
+        self._normalize = None      # (x/255 - mean)/std as a lookup table, built on first use
         # The prompt never changes within a bundle, so its embedded rows are gathered once.
         self.prompt_embeds = np.asarray(self.embed[ids], dtype=np.float32)[None]
 
@@ -93,9 +95,10 @@ class Bundle:
         if list(img.shape[:2]) != list(self.b["image_hw"]):
             raise ValueError(f"preprocessed frame is {img.shape[:2]}, the bundle expects "
                              f"{self.b['image_hw']}")
-        x = img.astype(np.float32) / 255.0
-        x = (x - self.b["image_mean"]) / self.b["image_std"]
-        return np.ascontiguousarray(x.transpose(2, 0, 1))
+        if self._normalize is None:
+            mean, std = self.b["image_mean"], self.b["image_std"]
+            self._normalize = normalize_table(lambda u: (u.astype(np.float32) / 255.0 - mean) / std)
+        return np.ascontiguousarray(lookup(img, self._normalize).transpose(2, 0, 1))
 
 
 def encode_frames(bundle: Bundle, run, pixel_values: np.ndarray) -> list[np.ndarray]:
