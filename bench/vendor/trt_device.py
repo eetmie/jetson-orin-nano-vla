@@ -594,6 +594,11 @@ class SmolVLADevice:
         d, bd = self.d, bundle
         self.use_graph = graph
         self.pix = [d.buf_for("vision", "image") for _ in range(bd.n_cam_slots)]
+        # Cameras may arrive as the uint8 [512,512,3] canvas instead: a quarter of the
+        # upload, and SigLIP's float scaling runs on the GPU as an exact table gather.
+        size = self.pix[0].shape[-1]
+        self.canvas = [DevBuf((size, size, 3), np.uint8) for _ in range(bd.n_cam_slots)]
+        self.to_pix = ops.get("siglip_u8", self.canvas[0].shape)
         self.img = d.outputs("vision")["img_embeds"]           # [1,64,960], unscaled
         hidden = self.img.shape[-1]
         self.row = hidden * 4
@@ -709,9 +714,14 @@ class SmolVLADevice:
     def result(self) -> DevBuf:
         return self.x[self.b.num_steps % 2]
 
+    def canvas_buffer(self, i: int) -> np.ndarray:
+        """Pinned uint8 [512,512,3] staging array of camera i, to preprocess into."""
+        return self.canvas[i].host()
+
     def infer(self, pixels: list, lang, state: np.ndarray, noise: np.ndarray,
               key=None, timings: dict | None = None) -> np.ndarray:
-        """pixels: [1,3,512,512] per real camera; lang: (embedding rows, mask);
+        """pixels: per real camera, [1,3,512,512] float in [-1,1] or the uint8
+        [512,512,3] canvas (optionally canvas_buffer(i) itself); lang: (embedding rows, mask);
         state [1,32] normalized; key identifies the task (prompt rows are re-uploaded
         when it changes). Omitting key disables prompt caching."""
         d = self.d
@@ -719,8 +729,15 @@ class SmolVLADevice:
         if key is None or (key, len(pixels)) != (self.key, self.n_real):
             self._set_contract(lang, len(pixels))
             self.key = key
-        for buf, p in zip(self.pix, pixels):
-            d.upload(buf, p)
+        for i, p in enumerate(pixels):
+            if p.dtype != np.uint8:
+                d.upload(self.pix[i], p)
+                continue
+            if p is self.canvas[i].host():           # filled in place by the caller
+                d.upload_staged(self.canvas[i])
+            else:
+                d.upload(self.canvas[i], p)
+            d.enqueue(self.to_pix, {"x": self.canvas[i], "out": self.pix[i]})
         d.upload(self.state, state)
         d.upload(self.x[0], noise)
         if self.graph is not None:

@@ -25,8 +25,9 @@ output=Path(args[args.index('--out')+1]).expanduser()
 if output.exists():
     raise FileExistsError(f'{output} already exists; use a unique output per run')
 cache=Path(args[args.index('--cache-dir')+1]).expanduser().resolve()
-manifest=verify_candidate(cache)
-source=Path.home()/'bundles/smolvla-base-split/smolvlm_vision.onnx'
+bundle_dir=Path(args[args.index('--bundle')+1]).expanduser().resolve()
+manifest=verify_candidate(cache,bundle_dir)
+source=bundle_dir/'smolvlm_vision.onnx'
 # No plugin, Torch or Triton import: the serialized AOT engine must stand alone.
 original=groot_trt.prebuild_engines
 

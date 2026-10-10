@@ -107,6 +107,10 @@ class OrtSplitBackend(Backend):
         self.tokenizer = tokenizer
         self.iobinding = iobinding
         self._info = load_export_info(self.bundle)
+        if self._info.get("kv"):
+            # Its cross-layer cache holds expert K/V projections, not VLM K/V.
+            raise ValueError(f"{self.bundle} was exported with --hoist-cross-kv; "
+                             "only trt-split runs it")
         self.num_steps = (num_steps if num_steps is not None
                           else int(self._info.get("num_steps", 10)))
         if self.num_steps <= 0:

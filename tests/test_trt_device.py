@@ -112,6 +112,7 @@ class FakeDevice:
         self.capture = Mock(return_value=object())
         self.launch = Mock()
         self.d2d = Mock()
+        self.enqueue = Mock()
 
     def upload(self, dst, arr):
         dst.data = np.array(arr, copy=True)
@@ -212,6 +213,47 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(model._set_contract.call_count, 3)
         model.infer(*args, key="place")
         self.assertEqual(model._set_contract.call_count, 4)
+
+    def smolvla_uint8(self):
+        model = SmolVLADevice.__new__(SmolVLADevice)
+        model.d = FakeDevice()
+        model.pix = [Buffer((1, 3, 4, 4)), Buffer((1, 3, 4, 4))]
+        model.canvas = [Buffer((4, 4, 3), np.uint8), Buffer((4, 4, 3), np.uint8)]
+        model.to_pix = "op_siglip_u8"
+        model.state, model.x = Buffer(), [Buffer(), Buffer()]
+        model.b = SimpleNamespace(num_steps=2)
+        model.key, model.n_real, model.graph = "pick", 2, object()
+        model._set_contract = Mock()
+        return model
+
+    def test_smolvla_uint8_canvas_converts_on_gpu_and_float_does_not(self):
+        model = self.smolvla_uint8()
+        lang = (np.zeros((1, 1, 2)), np.ones((1, 1), bool))
+        staged = model.canvas_buffer(0)
+        staged[...] = 7
+        given = np.full((4, 4, 3), 9, np.uint8)
+        model.infer([staged, given], lang, np.zeros(1), np.zeros((1, 2, 2)), key="pick")
+        # Camera 0 was written in place (no copy), camera 1 copied into its canvas.
+        self.assertIs(model.d.uploads[0], model.canvas[0])
+        np.testing.assert_array_equal(model.canvas[1].data, given)
+        calls = [c.args for c in model.d.enqueue.call_args_list]
+        self.assertEqual(calls, [("op_siglip_u8", {"x": model.canvas[0], "out": model.pix[0]}),
+                                 ("op_siglip_u8", {"x": model.canvas[1], "out": model.pix[1]})])
+        model.d.enqueue.reset_mock()
+        model.infer([np.zeros((1, 3, 4, 4), np.float32)] * 2, lang, np.zeros(1),
+                    np.zeros((1, 2, 2)), key="pick")
+        model.d.enqueue.assert_not_called()
+        self.assertIs(model.d.uploads[-4], model.pix[0])
+
+    def test_siglip_lut_matches_host_conversion(self):
+        from bench.vendor.smolvla_split import resize_pad_canvas, siglip_lut, siglip_normalize
+        img = np.random.default_rng(3).integers(0, 256, (48, 64, 3), dtype=np.uint8)
+        canvas = resize_pad_canvas(img, 32)
+        np.testing.assert_array_equal(siglip_lut()[canvas].transpose(2, 0, 1)[None],
+                                      siglip_normalize(canvas))
+        reused = np.full((32, 32, 3), 5, np.uint8)
+        resize_pad_canvas(img, 32, out=reused)
+        np.testing.assert_array_equal(reused, canvas)
 
     def test_smolvla_camera_change_retires_graph_but_prompt_change_reuses_it(self):
         model = SmolVLADevice.__new__(SmolVLADevice)

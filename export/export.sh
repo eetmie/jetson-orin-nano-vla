@@ -3,6 +3,7 @@
 # Run it where you fine-tune, then copy the bundle to the Jetson.
 #
 #   export/export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task "..."]... [--fps N]
+#                    [--hoist-cross-kv]   (SmolVLA: cross-attention K/V once per observation)
 #   export/export.sh nvidia/GR00T-N1.6-3B <out dir> [--embodiment E] [--views N] [--task "..."]
 #   export/export.sh nvidia/GR00T-N1.7-3B <out dir> [--embodiment E] [--task "..."] [--vlm-files D]
 #
@@ -20,7 +21,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 SRC="${1:?usage: export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task T]... [--fps N]}"
 OUT="${2:?usage: export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task T]... [--fps N]}"
 shift 2
-VIEWS=""; EXTRA=(); EMBODIMENT=""; TASKS=(); VLM_FILES=nvidia/Cosmos-Reason2-2B
+VIEWS=""; EXTRA=(); HALF_IO=(); EMBODIMENT=""; TASKS=(); VLM_FILES=nvidia/Cosmos-Reason2-2B
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --views) VIEWS="$2"; shift 2 ;;
@@ -28,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --vlm-files) VLM_FILES="$2"; shift 2 ;;
     --task) EXTRA+=("$1" "$2"); TASKS+=("$2"); shift 2 ;;
     --fps) EXTRA+=("$1" "$2"); shift 2 ;;
+    --hoist-cross-kv) EXTRA+=("$1"); HALF_IO=(--half-io '(present|past)_(key|value)_[0-9]+'); shift ;;
     *) echo "unknown option $1"; exit 2 ;;
   esac
 done
@@ -69,7 +71,7 @@ case "$FAMILY" in
     # Mixed FP16 for the three heavy graphs (RMSNorms, LayerNorm, Softmax stay FP32),
     # then the stock policy's chunk for seeded inputs and the token-embedding table.
     "$V/bin/python" -m vla_common.fp16_mixed --bundle "$OUT" --graphs \
-        smolvlm_vision.onnx smolvlm_expert_prefill.onnx smolvlm_expert_decode.onnx
+        smolvlm_vision.onnx smolvlm_expert_prefill.onnx smolvlm_expert_decode.onnx "${HALF_IO[@]}"
     TASK_ARGS=(); [[ ${#TASKS[@]} -ge 1 ]] && TASK_ARGS=(--task "${TASKS[0]}")
     "$V/bin/python" "$HERE/smolvla/reference.py" --checkpoint "$CKPT" --bundle "$OUT" "${TASK_ARGS[@]}"
     ;;

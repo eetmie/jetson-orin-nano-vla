@@ -271,8 +271,8 @@ OC3 events continue (63,066 during this window).
 [`selection.json`](../../results/smolvla-memory-20261010/selection.json) records
 the chosen engine cache, runtime flags, precision and lower-RAM fallback.
 
-The largest remaining speed target is vision's feed-forward/matmul work: the
-vision stage still takes approximately 64 ms for two cameras. Inspect and measure
+The largest remaining speed target was vision's feed-forward/matmul work: the
+vision stage took approximately 64 ms for two cameras (see the next section). Inspect and measure
 any wider GEMM/activation fusion against the existing TensorRT implementation.
 Expert attention and most normalization/residual chains are already fused;
 replacing their small operators separately is unlikely to be the best use of RAM
@@ -280,6 +280,86 @@ or development time. Weight quantization is a potential larger memory reduction,
 but changes numerical behavior and needs [calibration and accuracy validation](https://docs.nvidia.com/deeplearning/tensorrt/10.x.x/inference-library/work-quantized-types.html), full-action checks and robot
 task evaluation before adoption. Keep camera resolution and ten denoising steps
 fixed in these comparisons so model workload remains comparable.
+
+## Layout, cross-attention K/V and RoPE
+
+Second round, from an audit of the selected configuration's trace and exported graphs.
+Each row adds one change to the row above; 60-second two-view windows, same flags as
+the selected run. Fixture is the full-chunk error against stock LeRobot FP32.
+
+| change | p50 ms | rate | process RSS MB | fixture |
+|---|---:|---:|---:|---:|
+| selected configuration above | 126.87 | 7.87 Hz | 1484 | 0.166 % |
+| vision attention on the flat projections, constant mask not read | 120.79 | 8.27 Hz | 1451 | 0.166 % |
+| cross-attention K/V once per observation, FP16 KV cache | 118.70 | 8.41 Hz | 1458 | 0.177 % |
+| uint8 canvas upload, SigLIP scaling on the GPU | 113.72 | 8.78 Hz | 1451 | 0.177 % |
+| RoPE by concatenation instead of ScatterND | 106.26 | 9.40 Hz | 1415 | 0.177 % |
+| attention tile 128×64 | 103.65 | 9.63 Hz | 1419 | 0.177 % |
+| patch embedding as patchify + MatMul | **102.81** | **9.71 Hz** | 1413 | 0.195 % |
+
+- **Vision attention.** The exported vision mask is built from constants only and is
+  all-true for a full image, so adding it is exact; `attention_native_aot` does not read
+  it, applies the HALF 0.3535 Q/K scale itself and reads Q/K/V and writes O in the
+  projections' own layout. That removes four transposes per layer and, fed the
+  `[1,1024,768]` projection outputs (`--mode triton-attention-flat`), three reshape
+  copies too. Actions are bit-identical in all twelve stress cases.
+- **Cross-attention K/V.** In the eight cross-attention layers the expert re-projects
+  the fixed prefix K/V through its own `k_proj`/`v_proj` on every denoise step.
+  `export.sh --hoist-cross-kv` emits those projections from prefill instead and keeps
+  the KV cache FP16 between the engines (decode cast every input to FP16 anyway).
+  PyTorch difference against the per-step projection: 0.0.
+- **GPU image conversion.** 95 % of the CPU preprocessing was the float conversion.
+  The device chain now uploads the uint8 canvas and a table gather does the scaling; a
+  load-time gate checks it is bit-identical to the host conversion.
+- **RoPE.** LeRobot's `apply_rope` writes its halves by slice assignment, which exports
+  as 110 ScatterND nodes that TensorRT runs unfused on every Q and K. The concatenated
+  form is bit-equal in PyTorch; denoising falls from 42.9 to 37.6 ms, prefill from 11.2
+  to 9.6 ms.
+- **Tile.** With the scale as a compile-time constant, 128×64 / 4 warps / 3 stages
+  takes 0.477 ms per call against 0.58 ms for 64×64 (bit-identical).
+- **Patch embedding.** The stride-16 conv ran on an sm75 implicit-GEMM kernel; the
+  MatMul form matches it to FP32 rounding (1.5e-6). Both use FP16-accumulating kernels.
+
+The paired five-minute check (both with the new GPU image conversion, so this isolates
+the engine changes):
+
+| 300-second policy | p50 ms | p95 ms | p99 ms | rate | process RSS MB | energy/inference |
+|---|---:|---:|---:|---:|---:|---:|
+| selected engines above | 121.54 | 122.57 | 122.97 | 8.22 Hz | 1460 | 2.54 J |
+| this round | **102.85** | **103.54** | **103.90** | **9.70 Hz** | **1405** | **2.22 J** |
+
+2,912 calls, quartile means 102.94 / 102.92 / 102.99 / 102.97 ms; GPU clocks average
+1008.8 vs 1009.1 MHz, existing OC3 events in both windows, no thermal clamps.
+Tried and not kept: decode at builder optimization level 5 (−0.08 ms) and one fused
+QKV projection feeding the plugin (−0.38 ms for +9.3 MB RSS). An isolated trtexec
+sweep found levels 3–5 worth ≤1 % per engine, and prefill slower at level 3.
+
+Reproduce on the Nano (the bundle is exported on the fine-tuning machine):
+
+```bash
+export/export.sh lerobot/smolvla_base ~/bundles/smolvla-base-split-kv3 --views 2 --hoist-cross-kv
+# on the Nano
+stamp=$(date -u +%Y%m%dT%H%MZ); C=~/.cache/jetson-orin-nano-vla; B=~/bundles/smolvla-base-split-kv3
+.venv-ort/bin/python -m bench trt-split --model smolvla-base --bundle $B \
+  --cache-dir $C/smolvla-kv3-trt --chain graph --views 2 --duration-s 20 --label plain
+.venv-torch-xvla/bin/python experiments/smolvla_triton/build_vision.py --mode triton-attention-flat \
+  --bundle $B --base-cache $C/smolvla-kv3-trt --out $C/smolvla-kv3-flat-$stamp
+.venv-torch-xvla/bin/python experiments/smolvla_triton/build_expert.py --mode ffn \
+  --bundle $B --base-cache $C/smolvla-kv3-flat-$stamp --out $C/smolvla-kv3-ffn-$stamp
+.venv-ort/bin/python experiments/smolvla_triton/run_candidate.py trt-split --model smolvla-base \
+  --bundle $B --cache-dir $C/smolvla-kv3-ffn-$stamp --chain graph --views 2 \
+  --warmup 10 --idle-s 3 --duration-s 300 --lean-tokenizer --trim-host-heap \
+  --label smolvla-kv3-new --out results/smolvla-kv3-new.json
+```
+
+[Runs, stress checks, manifests, trace, microbenchmarks and the opt-level sweep](../../results/smolvla-native-20261010T1247Z/)
+are summarized in its [`summary.json`](../../results/smolvla-native-20261010T1247Z/summary.json).
+
+The new trace has the GPU busy 99 % of each call: 63 ms of GEMMs, 12.8 ms vision
+attention, 11.9 ms expert gate/up, 6.8 ms fused MHA, 4.9 ms norms, 4.4 ms layout.
+Many TensorRT GEMM tactics accumulate in FP16 (`h16816gemm`, `f16f16_f16f16_f16`),
+including the vision QKV/fc2 projections and the K=12288 connector; TensorRT 10.16 has
+no builder flag for it. That is the next quality question, not a speed one.
 
 ## Rebuild the expert engine
 

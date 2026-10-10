@@ -3,7 +3,9 @@
 FP32 replaces only Softmax. FP16 also covers surrounding casts. Masked covers
 Add/Cast/Softmax/Cast/IsNaN/Where, preserving FP16 Add rounding and FP32 softmax
 math. Baseline rebuilds the original vision graph as a control. All modes use a
-new cache; the baseline bundle and cache are read only.
+new cache; the baseline bundle and cache are read only. triton-attention-native
+takes Q/K/V before their transposes and replaces the output transpose too; with
+--base-cache it rebuilds only vision.engine on top of a verified candidate cache.
 """
 import argparse
 import hashlib
@@ -16,13 +18,21 @@ import time
 import tensorrt as trt
 import tensorrt.plugin as trtp
 import plugin
+from candidate_cache import sha256, verify_candidate
 
 p=argparse.ArgumentParser()
-p.add_argument('--mode',choices=['baseline','fp32','fp16','masked','trt-attention','triton-attention','triton-attention-aligned'],required=True)
+p.add_argument('--mode',choices=['baseline','fp32','fp16','masked','trt-attention','triton-attention','triton-attention-aligned','triton-attention-native','triton-attention-flat','triton-attention-qkv'],required=True)
 p.add_argument('--out',type=Path,required=True)
+p.add_argument('--base-cache',type=Path,help='cache whose other engines are kept (verified if it is a candidate)')
+p.add_argument('--bundle',type=Path,default=Path.home()/'bundles/smolvla-base-split')
 a=p.parse_args()
-source=Path.home()/'bundles/smolvla-base-split/smolvlm_vision.onnx'
+source=a.bundle.expanduser().resolve()/'smolvlm_vision.onnx'
 base=Path.home()/'.cache/jetson-orin-nano-vla/smolvla-base-trt'
+base_manifest=None
+if a.base_cache:
+    base=a.base_cache.expanduser().resolve()
+    if (base/'candidate.json').exists():
+        base_manifest=verify_candidate(base,source.parent)
 a.out=a.out.expanduser().resolve()
 assert a.out!=base.resolve(), 'Use a separate experimental cache'
 if (a.out/'vision.engine').exists():
@@ -45,6 +55,111 @@ patches=[]
 def consumers(t):
     return [(l,j) for l in original for j in range(l.num_inputs)
             if l.get_input(j) is not None and l.get_input(j).name==t.name]
+
+
+NATIVE=(1,1024,12,64)
+network_inputs={net.get_input(i).name for i in range(net.num_inputs)}
+
+
+def emulate(layer,arr):
+    """Apply one parsed Reshape/Transpose shuffle to an index array."""
+    layer.__class__=trt.IShuffleLayer
+    assert layer.num_inputs==1 or layer.get_input(1) is None, f'{layer.name}: dynamic reshape'
+    arr=arr.transpose(tuple(layer.first_transpose)[:arr.ndim])
+    try:
+        dims=tuple(layer.reshape_dims)
+    except ValueError:  # nbDims -1: no reshape set
+        dims=()
+    if dims:
+        if layer.zero_is_placeholder:
+            dims=tuple(arr.shape[i] if d==0 else d for i,d in enumerate(dims))
+        arr=arr.reshape(dims)
+    return arr.transpose(tuple(layer.second_transpose)[:arr.ndim])
+
+
+def constant_value(t):
+    layer=producers[t.name]
+    while layer.type in [trt.LayerType.SHUFFLE,trt.LayerType.CAST]:
+        layer=producers[layer.get_input(0).name]
+    assert layer.type==trt.LayerType.CONSTANT, layer.name
+    layer.__class__=trt.IConstantLayer
+    return np.asarray(layer.weights)
+
+
+def native(t,perm):
+    """Walk t back to the [1,S,H,D] projection view; check the shuffles equal perm."""
+    shuffles,scale=[],None
+    while tuple(t.shape)!=NATIVE:
+        layer=producers[t.name]
+        if layer.type==trt.LayerType.SHUFFLE:
+            shuffles.append(layer)
+            t=layer.get_input(0)
+            continue
+        assert layer.type==trt.LayerType.ELEMENTWISE and scale is None, layer.name
+        layer.__class__=trt.IElementWiseLayer
+        assert layer.op==trt.ElementWiseOperation.PROD
+        x,c=layer.get_input(0),layer.get_input(1)
+        try:
+            value=constant_value(c)
+        except AssertionError:
+            x,c=c,x
+            value=constant_value(c)
+        assert value.size==1 and value.dtype==np.float16, value
+        scale=float(value.reshape(-1)[0])
+        t=x
+    idx=np.arange(np.prod(NATIVE)).reshape(NATIVE)
+    arr=idx
+    for layer in reversed(shuffles):
+        arr=emulate(layer,arr)
+    assert np.array_equal(arr,idx.transpose(perm)), (t.name,perm)
+    return t,scale
+
+
+def flat_source(t):
+    """The [1,1024,768] tensor a [1,1024,12,64] view was reshaped from (pure reshape)."""
+    layer=producers[t.name]
+    assert layer.type==trt.LayerType.SHUFFLE, layer.name
+    src=layer.get_input(0)
+    assert tuple(src.shape)==(1,1024,768), tuple(src.shape)
+    idx=np.arange(np.prod(NATIVE)).reshape(1,1024,768)
+    assert np.array_equal(emulate(layer,idx),idx.reshape(NATIVE))
+    return src
+
+
+keep_alive=[]
+
+
+def projection(t):
+    """(x, W[768,768], b[768]) of t = MatMul(x, W) + b, all HALF constants."""
+    add=producers[t.name]
+    assert add.type==trt.LayerType.ELEMENTWISE, add.name
+    add.__class__=trt.IElementWiseLayer
+    assert add.op==trt.ElementWiseOperation.SUM
+    mm,bias=add.get_input(0),add.get_input(1)
+    if producers[mm.name].type!=trt.LayerType.MATRIX_MULTIPLY:
+        mm,bias=bias,mm
+    mm=producers[mm.name]
+    assert mm.type==trt.LayerType.MATRIX_MULTIPLY, mm.name
+    mm.__class__=trt.IMatrixMultiplyLayer
+    assert mm.op0==mm.op1==trt.MatrixOperation.NONE
+    w=constant_value(mm.get_input(1))
+    b=constant_value(bias)
+    assert w.dtype==b.dtype==np.float16 and w.size==768*768 and b.size==768, (w.shape,b.shape)
+    return mm.get_input(0),w.reshape(768,768),b.reshape(768)
+
+
+def constant_only(t):
+    stack,seen=[t],set()
+    while stack:
+        x=stack.pop()
+        if x.name in seen:
+            continue
+        seen.add(x.name)
+        assert x.name not in network_inputs, f'mask depends on network input {x.name}'
+        layer=producers.get(x.name)
+        if layer is not None:
+            stack+=[layer.get_input(i) for i in range(layer.num_inputs) if layer.get_input(i) is not None]
+    return True
 
 
 for soft in (softmaxes if a.mode!='baseline' else []):
@@ -115,11 +230,51 @@ for soft in (softmaxes if a.mode!='baseline' else []):
                 custom=net.add_attention(q,k,v,trt.AttentionNormalizationOp.SOFTMAX,False)
                 custom.mask=mask
                 custom.decomposable=False  # A failed fusion must fail this experiment.
+            elif a.mode in ['triton-attention-native','triton-attention-flat','triton-attention-qkv']:
+                # The mask is built from constants only (all-true for a full image),
+                # so it adds exact zeros; the kernel does not read it.
+                assert constant_only(mask)
+                qn,q_scale=native(q,(0,2,1,3))
+                kn,k_scale=native(kt,(0,2,3,1))
+                vn,v_scale=native(v,(0,2,1,3))
+                assert q_scale==k_scale==plugin.VISION_SCALE and v_scale is None, (q_scale,k_scale,v_scale)
+                after=consumers(pv.get_output(0))
+                assert len(after)==1 and after[0][0].type==trt.LayerType.SHUFFLE
+                transpose=after[0][0]
+                idx=np.arange(np.prod(NATIVE)).reshape(1,12,1024,64)
+                assert np.array_equal(emulate(transpose,idx),idx.transpose(0,2,1,3))
+                if a.mode in ['triton-attention-flat','triton-attention-qkv']:
+                    # Read the [1,1024,768] projections and write what o_proj reads.
+                    qn,kn,vn=[flat_source(t) for t in (qn,kn,vn)]
+                    reshape=consumers(transpose.get_output(0))
+                    assert len(reshape)==1 and reshape[0][0].type==trt.LayerType.SHUFFLE
+                    reshape=reshape[0][0]
+                    idx=np.arange(np.prod(NATIVE)).reshape(NATIVE)
+                    assert np.array_equal(emulate(reshape,idx),idx.reshape(1,1024,768))
+                    transpose=reshape
+                    if a.mode=='triton-attention-qkv':
+                        # One [768,2304] projection instead of three, as the original
+                        # engine's fused QKV GEMM; the kernel reads Q|K|V columns.
+                        parts=[projection(t) for t in (qn,kn,vn)]
+                        assert len({x.name for x,_,_ in parts})==1
+                        w=np.ascontiguousarray(np.concatenate([w for _,w,_ in parts],1)[None])
+                        b=np.ascontiguousarray(np.concatenate([b for _,_,b in parts])[None,None])
+                        keep_alive+=[w,b]
+                        mm=net.add_matrix_multiply(parts[0][0],trt.MatrixOperation.NONE,
+                                                   net.add_constant(w.shape,trt.Weights(w)).get_output(0),trt.MatrixOperation.NONE)
+                        qkv=net.add_elementwise(mm.get_output(0),net.add_constant(b.shape,trt.Weights(b)).get_output(0),
+                                                trt.ElementWiseOperation.SUM).get_output(0)
+                        assert tuple(qkv.shape)==(1,1024,2304) and qkv.dtype==trt.float16
+                        custom=net.add_plugin(trtp.op.nano_vla.vision_attention_qkv(qkv),aot=True)
+                    else:
+                        custom=net.add_plugin(trtp.op.nano_vla.vision_attention_flat(qn,kn,vn),aot=True)
+                else:
+                    custom=net.add_plugin(trtp.op.nano_vla.vision_attention_native(qn,kn,vn),aot=True)
             else:
                 op=(trtp.op.nano_vla.vision_attention_aligned if a.mode.endswith('-aligned')
                     else trtp.op.nano_vla.vision_attention)
                 custom=net.add_plugin(op(q,kt,v,mask),aot=True)
-            old=pv.get_output(0)
+            old=transpose.get_output(0) if a.mode in ['triton-attention-native','triton-attention-flat','triton-attention-qkv'] else pv.get_output(0)
     else:
         custom=net.add_plugin(trtp.op.nano_vla.row_softmax(inp),aot=True)
     users=consumers(old)
@@ -153,5 +308,19 @@ if a.mode.startswith('triton-attention'):
     manifest.update(attention_kernel_sha256=hashlib.sha256((Path(__file__).parent/'attention_kernel.py').read_bytes()).hexdigest(),
                     block_m=128,block_n=64,stages=2,alignment16=a.mode.endswith('-aligned'),
                     precision_note='HALF score/Add rounding retained; online probabilities round before global normalization')
+if a.mode in ['triton-attention-native','triton-attention-flat','triton-attention-qkv']:
+    tile=plugin.NATIVE_TILE
+    manifest.update(block_m=tile['BLOCK_M'],block_n=tile['BLOCK_N'],stages=tile['num_stages'],
+                    warps=tile['num_warps'],alignment16=True,layout='[1,S,H,D] projection views, no transposes',
+                    mask='constant all-true, not read')
+if a.base_cache and base_manifest is None:
+    # A plain prebuilt cache: pin every engine and every other graph it was built from.
+    manifest.update(base_cache=str(base),all_engine_sha256={p.name:sha256(p) for p in a.out.glob('*.engine')},
+                    additional_source_sha256={p.name:sha256(p) for p in source.parent.glob('*.onnx') if p!=source})
+elif base_manifest is not None:
+    vision=manifest
+    manifest=dict(base_manifest)
+    manifest.update(mode=base_manifest['mode']+'+vision-'+a.mode,vision_rebuilt=vision,engine_sha256=vision['engine_sha256'],base_cache=str(base),
+                    all_engine_sha256={p.name:sha256(p) for p in a.out.glob('*.engine')})
 (a.out/'candidate.json').write_text(json.dumps(manifest,indent=2))
-print('BUILT',a.mode,manifest['build_s'],flush=True)
+print('BUILT',a.mode,round(time.time()-started,1),flush=True)
