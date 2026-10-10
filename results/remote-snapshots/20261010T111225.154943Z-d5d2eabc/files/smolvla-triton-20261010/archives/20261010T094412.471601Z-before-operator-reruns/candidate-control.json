@@ -1,0 +1,13 @@
+{
+  "mode": "baseline",
+  "build_s": 6.540053606033325,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "eae5dd811f7437fa04bb0a7c3ebfefbedb5031e181cb130a21b71128d34e7c2b",
+  "patches": [],
+  "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+  "plugin_sha256": "78a9d0188647ed8cd8813f89ebc2bca2bc4653ad6c007c78ec16ef604b06b796",
+  "accumulation": "FP32",
+  "warps": 4,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-base-trt"
+}

@@ -1,0 +1,4 @@
+[10/10/2026-14:54:14] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+
+[smolvla.memory.control-env] ok  p50=127.97 ms  p95=128.89 ms  7.81 Hz  -> results/smolvla-memory-20261010/policy-control-env-60s.json

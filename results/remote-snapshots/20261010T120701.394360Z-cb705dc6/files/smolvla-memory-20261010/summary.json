@@ -1,0 +1,3916 @@
+{
+  "scope": "Two-camera SmolVLA, ten denoising steps; unchanged verified AOT engines with optional runtime memory changes",
+  "units": "Board RAM and process RSS are reported by the existing monitor in MB; probe byte counts are converted explicitly to MiB.",
+  "memory_accounting": "CPU RSS and CUDA allocations overlap on this unified-memory board: do not add them. Disk engine-cache size is not runtime RAM.",
+  "tokenizer": {
+    "status": "PASS",
+    "cases": 215,
+    "seed": 20261010,
+    "token_ids_bit_identical": true,
+    "masks_bit_identical": true,
+    "embeddings_bit_identical": true,
+    "prompt_cache_limit": 8,
+    "evicted_prompt_reuse_bit_identical": true,
+    "tokenizer_sha256": {
+      "tokenizer_config.json": "fd87e003eef34b916fce3386cfe07c513a56c5bdc7b83e2c7da93cad2efee9c3",
+      "tokenizer.json": "2500f374cdc89040032a7d8437b6ed0fe745667b1194c17914d062ee31701605"
+    },
+    "fixture_tokens_shape": [
+      1,
+      48
+    ]
+  },
+  "runs": [
+    {
+      "file": "policy-control-60s.json",
+      "label": "smolvla.memory.control",
+      "duration_s": 60.0,
+      "metadata_collection": "framework imports",
+      "used_for_selection": false,
+      "latency_ms": {
+        "n": 468,
+        "mean": 128.07,
+        "p50": 128.05,
+        "p90": 128.8,
+        "p95": 129.0,
+        "p99": 129.27,
+        "min": 126.9,
+        "max": 130.58,
+        "std": 0.53,
+        "hz_mean": 7.81,
+        "quartile_means_in_order": [
+          128.05,
+          128.09,
+          128.18,
+          127.94
+        ],
+        "drift_q4_vs_q1_pct": -0.1
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 468,
+        "window_s": 60.002112,
+        "achieved_hz": 7.7997
+      },
+      "board_ram_mb": {
+        "mean": 1783.7,
+        "p50": 1780.0,
+        "p95": 1807.0,
+        "max": 1826.0,
+        "min": 1779.0
+      },
+      "process_rss_mb": {
+        "mean": 1502.7,
+        "max": 1502.9
+      },
+      "stages_ms": {
+        "denoise": 46.884,
+        "prefill": 10.9,
+        "preprocess": 3.891,
+        "vision": 64.329
+      },
+      "telemetry": {
+        "duration_s": 60.0,
+        "n": 526,
+        "ram_used_mb": {
+          "mean": 1783.7,
+          "p50": 1780.0,
+          "p95": 1807.0,
+          "max": 1826.0,
+          "min": 1779.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 13.53,
+          "p50": 9.0,
+          "p95": 39.0,
+          "max": 92.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.14,
+        "gpu_pct": {
+          "mean": 94.49,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 63.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1665.14,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1010.4,
+            "p50": 1010.0,
+            "p95": 1016.0,
+            "max": 1019.0,
+            "min": 1004.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12705
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 47.5,
+            "max": 51.0
+          },
+          "soc2": {
+            "mean": 46.5,
+            "max": 49.8
+          },
+          "soc0": {
+            "mean": 46.4,
+            "max": 50.1
+          },
+          "gpu": {
+            "mean": 50.5,
+            "max": 54.4
+          },
+          "tj": {
+            "mean": 50.5,
+            "max": 54.4
+          },
+          "soc1": {
+            "mean": 47.3,
+            "max": 50.8
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20298.32,
+            "p50": 20394.0,
+            "p95": 20551.0,
+            "max": 20630.0,
+            "min": 10047.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9968.13,
+            "p50": 10010.0,
+            "p95": 10189.0,
+            "max": 10228.0,
+            "min": 3576.0
+          },
+          "VDD_SOC": {
+            "mean": 4804.33,
+            "p50": 4825.0,
+            "p95": 4864.0,
+            "max": 4864.0,
+            "min": 3025.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1217950.7,
+          "VDD_CPU_GPU_CV": 598113.0,
+          "VDD_SOC": 288272.3
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": false,
+        "trim_host_heap": false,
+        "host_heap_trim_released": null,
+        "prompt_cache_limit": null,
+        "runtime_imported_transformers": true,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999980087333327,
+            "max_abs": 0.004579637199640274,
+            "mean_abs": 0.0004403550046845339,
+            "max_pct_range": 0.1482966622194528
+          },
+          "chunk": {
+            "cosine": 0.9999982422827867,
+            "max_abs": 0.0053804367780685425,
+            "mean_abs": 0.000379983185994206,
+            "max_pct_range": 0.17422795315162215
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997155517633,
+            "max_abs": 0.0014600753784179688,
+            "mean_abs": 0.00020768143917422323,
+            "max_pct_range": 0.04725871297794174,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999983713383139,
+            "max_abs": 0.005893386900424957,
+            "mean_abs": 0.0003630091299416449,
+            "max_pct_range": 0.19083817525316576
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-control-env-60s.json",
+      "label": "smolvla.memory.control-env",
+      "duration_s": 60.0,
+      "metadata_collection": "distribution metadata",
+      "used_for_selection": true,
+      "latency_ms": {
+        "n": 469,
+        "mean": 128.0,
+        "p50": 127.97,
+        "p90": 128.65,
+        "p95": 128.89,
+        "p99": 129.4,
+        "min": 126.87,
+        "max": 131.19,
+        "std": 0.57,
+        "hz_mean": 7.81,
+        "quartile_means_in_order": [
+          127.98,
+          128.05,
+          127.93,
+          128.05
+        ],
+        "drift_q4_vs_q1_pct": 0.1
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 469,
+        "window_s": 60.097061,
+        "achieved_hz": 7.804
+      },
+      "board_ram_mb": {
+        "mean": 1803.23,
+        "p50": 1801.0,
+        "p95": 1829.0,
+        "max": 1844.0,
+        "min": 1795.0
+      },
+      "process_rss_mb": {
+        "mean": 1494.2,
+        "max": 1494.2
+      },
+      "stages_ms": {
+        "denoise": 46.851,
+        "prefill": 10.831,
+        "preprocess": 3.9,
+        "vision": 64.387
+      },
+      "telemetry": {
+        "duration_s": 60.1,
+        "n": 527,
+        "ram_used_mb": {
+          "mean": 1803.23,
+          "p50": 1801.0,
+          "p95": 1829.0,
+          "max": 1844.0,
+          "min": 1795.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 13.87,
+          "p50": 9.0,
+          "p95": 33.0,
+          "max": 97.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.14,
+        "gpu_pct": {
+          "mean": 94.56,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 63.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1667.69,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1009.89,
+            "p50": 1009.0,
+            "p95": 1015.0,
+            "max": 1019.0,
+            "min": 1003.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12658
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 49.6,
+            "max": 52.4
+          },
+          "soc2": {
+            "mean": 48.6,
+            "max": 51.1
+          },
+          "soc0": {
+            "mean": 48.6,
+            "max": 51.4
+          },
+          "gpu": {
+            "mean": 52.7,
+            "max": 55.7
+          },
+          "tj": {
+            "mean": 52.7,
+            "max": 55.7
+          },
+          "soc1": {
+            "mean": 49.5,
+            "max": 52.0
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20287.28,
+            "p50": 20361.0,
+            "p95": 20518.0,
+            "max": 20596.0,
+            "min": 9968.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9954.15,
+            "p50": 9994.0,
+            "p95": 10189.0,
+            "max": 10228.0,
+            "min": 3576.0
+          },
+          "VDD_SOC": {
+            "mean": 4816.23,
+            "p50": 4825.0,
+            "p95": 4864.0,
+            "max": 4904.0,
+            "min": 3025.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1219215.0,
+          "VDD_CPU_GPU_CV": 598219.7,
+          "VDD_SOC": 289443.7
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": false,
+        "trim_host_heap": false,
+        "host_heap_trim_released": null,
+        "prompt_cache_limit": null,
+        "runtime_imported_transformers": true,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999980087333327,
+            "max_abs": 0.004579637199640274,
+            "mean_abs": 0.0004403550046845339,
+            "max_pct_range": 0.1482966622194528
+          },
+          "chunk": {
+            "cosine": 0.9999982422827867,
+            "max_abs": 0.0053804367780685425,
+            "mean_abs": 0.000379983185994206,
+            "max_pct_range": 0.17422795315162215
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997155517633,
+            "max_abs": 0.0014600753784179688,
+            "mean_abs": 0.00020768143917422323,
+            "max_pct_range": 0.04725871297794174,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999983713383139,
+            "max_abs": 0.005893386900424957,
+            "mean_abs": 0.0003630091299416449,
+            "max_pct_range": 0.19083817525316576
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-control-lean-60s.json",
+      "label": "smolvla.memory.control-lean",
+      "duration_s": 60.0,
+      "metadata_collection": "framework imports",
+      "used_for_selection": false,
+      "latency_ms": {
+        "n": 469,
+        "mean": 128.04,
+        "p50": 128.02,
+        "p90": 128.72,
+        "p95": 128.93,
+        "p99": 129.26,
+        "min": 126.91,
+        "max": 130.46,
+        "std": 0.52,
+        "hz_mean": 7.81,
+        "quartile_means_in_order": [
+          128.0,
+          128.04,
+          128.1,
+          128.04
+        ],
+        "drift_q4_vs_q1_pct": 0.0
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 469,
+        "window_s": 60.119279,
+        "achieved_hz": 7.8012
+      },
+      "board_ram_mb": {
+        "mean": 1765.8,
+        "p50": 1761.0,
+        "p95": 1792.0,
+        "max": 1815.0,
+        "min": 1760.0
+      },
+      "process_rss_mb": {
+        "mean": 1469.8,
+        "max": 1470.6
+      },
+      "stages_ms": {
+        "denoise": 46.798,
+        "prefill": 10.912,
+        "preprocess": 3.886,
+        "vision": 64.387
+      },
+      "telemetry": {
+        "duration_s": 60.12,
+        "n": 528,
+        "ram_used_mb": {
+          "mean": 1765.8,
+          "p50": 1761.0,
+          "p95": 1792.0,
+          "max": 1815.0,
+          "min": 1760.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 13.48,
+          "p50": 9.0,
+          "p95": 32.0,
+          "max": 128.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.13,
+        "gpu_pct": {
+          "mean": 94.15,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 62.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1667.55,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1009.44,
+            "p50": 1009.0,
+            "p95": 1015.0,
+            "max": 1019.0,
+            "min": 1003.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12702
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 52.5,
+            "max": 53.8
+          },
+          "soc2": {
+            "mean": 51.5,
+            "max": 52.5
+          },
+          "soc0": {
+            "mean": 51.7,
+            "max": 52.9
+          },
+          "gpu": {
+            "mean": 55.7,
+            "max": 57.3
+          },
+          "tj": {
+            "mean": 55.7,
+            "max": 57.3
+          },
+          "soc1": {
+            "mean": 52.4,
+            "max": 53.4
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20285.79,
+            "p50": 20394.0,
+            "p95": 20512.0,
+            "max": 20669.0,
+            "min": 9688.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9909.86,
+            "p50": 9955.0,
+            "p95": 10111.0,
+            "max": 10267.0,
+            "min": 3378.0
+          },
+          "VDD_SOC": {
+            "mean": 4834.03,
+            "p50": 4864.0,
+            "p95": 4864.0,
+            "max": 4904.0,
+            "min": 2990.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1219575.5,
+          "VDD_CPU_GPU_CV": 595777.6,
+          "VDD_SOC": 290620.7
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": true,
+        "trim_host_heap": true,
+        "host_heap_trim_released": true,
+        "prompt_cache_limit": 8,
+        "runtime_imported_transformers": true,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999980087333327,
+            "max_abs": 0.004579637199640274,
+            "mean_abs": 0.0004403550046845339,
+            "max_pct_range": 0.1482966622194528
+          },
+          "chunk": {
+            "cosine": 0.9999982422827867,
+            "max_abs": 0.0053804367780685425,
+            "mean_abs": 0.000379983185994206,
+            "max_pct_range": 0.17422795315162215
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997155517633,
+            "max_abs": 0.0014600753784179688,
+            "mean_abs": 0.00020768143917422323,
+            "max_pct_range": 0.04725871297794174,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999983713383139,
+            "max_abs": 0.005893386900424957,
+            "mean_abs": 0.0003630091299416449,
+            "max_pct_range": 0.19083817525316576
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-control-lean-env-60s.json",
+      "label": "smolvla.memory.control-lean-env",
+      "duration_s": 60.0,
+      "metadata_collection": "distribution metadata",
+      "used_for_selection": true,
+      "latency_ms": {
+        "n": 469,
+        "mean": 127.95,
+        "p50": 127.86,
+        "p90": 128.67,
+        "p95": 128.79,
+        "p99": 129.24,
+        "min": 126.94,
+        "max": 131.76,
+        "std": 0.54,
+        "hz_mean": 7.82,
+        "quartile_means_in_order": [
+          127.97,
+          127.84,
+          127.94,
+          128.04
+        ],
+        "drift_q4_vs_q1_pct": 0.1
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 469,
+        "window_s": 60.073592,
+        "achieved_hz": 7.8071
+      },
+      "board_ram_mb": {
+        "mean": 1759.05,
+        "p50": 1755.0,
+        "p95": 1789.0,
+        "max": 1799.0,
+        "min": 1752.0
+      },
+      "process_rss_mb": {
+        "mean": 1428.7,
+        "max": 1429.4
+      },
+      "stages_ms": {
+        "denoise": 46.857,
+        "prefill": 10.705,
+        "preprocess": 3.918,
+        "vision": 64.383
+      },
+      "telemetry": {
+        "duration_s": 60.07,
+        "n": 528,
+        "ram_used_mb": {
+          "mean": 1759.05,
+          "p50": 1755.0,
+          "p95": 1789.0,
+          "max": 1799.0,
+          "min": 1752.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 14.11,
+          "p50": 9.0,
+          "p95": 38.0,
+          "max": 97.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.14,
+        "gpu_pct": {
+          "mean": 94.42,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 0.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1669.24,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1009.62,
+            "p50": 1009.0,
+            "p95": 1015.0,
+            "max": 1019.0,
+            "min": 1003.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12389
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 52.3,
+            "max": 53.8
+          },
+          "soc2": {
+            "mean": 51.3,
+            "max": 52.5
+          },
+          "soc0": {
+            "mean": 51.5,
+            "max": 52.9
+          },
+          "gpu": {
+            "mean": 55.5,
+            "max": 57.2
+          },
+          "tj": {
+            "mean": 55.5,
+            "max": 57.2
+          },
+          "soc1": {
+            "mean": 52.2,
+            "max": 53.5
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20232.23,
+            "p50": 20355.0,
+            "p95": 20473.0,
+            "max": 20518.0,
+            "min": 7360.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9908.06,
+            "p50": 9955.0,
+            "p95": 10111.0,
+            "max": 10150.0,
+            "min": 1876.0
+          },
+          "VDD_SOC": {
+            "mean": 4821.95,
+            "p50": 4825.0,
+            "p95": 4864.0,
+            "max": 4904.0,
+            "min": 2595.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1215431.6,
+          "VDD_CPU_GPU_CV": 595217.3,
+          "VDD_SOC": 289673.9
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": true,
+        "trim_host_heap": true,
+        "host_heap_trim_released": true,
+        "prompt_cache_limit": 8,
+        "runtime_imported_transformers": false,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999980087333327,
+            "max_abs": 0.004579637199640274,
+            "mean_abs": 0.0004403550046845339,
+            "max_pct_range": 0.1482966622194528
+          },
+          "chunk": {
+            "cosine": 0.9999982422827867,
+            "max_abs": 0.0053804367780685425,
+            "mean_abs": 0.000379983185994206,
+            "max_pct_range": 0.17422795315162215
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997155517633,
+            "max_abs": 0.0014600753784179688,
+            "mean_abs": 0.00020768143917422323,
+            "max_pct_range": 0.04725871297794174,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999983713383139,
+            "max_abs": 0.005893386900424957,
+            "mean_abs": 0.0003630091299416449,
+            "max_pct_range": 0.19083817525316576
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-ffn-60s.json",
+      "label": "smolvla.memory.ffn",
+      "duration_s": 60.0,
+      "metadata_collection": "framework imports",
+      "used_for_selection": false,
+      "latency_ms": {
+        "n": 472,
+        "mean": 127.11,
+        "p50": 126.9,
+        "p90": 127.89,
+        "p95": 129.52,
+        "p99": 131.42,
+        "min": 125.44,
+        "max": 132.69,
+        "std": 1.11,
+        "hz_mean": 7.87,
+        "quartile_means_in_order": [
+          127.97,
+          126.79,
+          126.8,
+          126.87
+        ],
+        "drift_q4_vs_q1_pct": -0.9
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 472,
+        "window_s": 60.063352,
+        "achieved_hz": 7.8584
+      },
+      "board_ram_mb": {
+        "mean": 1834.48,
+        "p50": 1824.0,
+        "p95": 1869.0,
+        "max": 1976.0,
+        "min": 1824.0
+      },
+      "process_rss_mb": {
+        "mean": 1536.9,
+        "max": 1537.0
+      },
+      "stages_ms": {
+        "denoise": 45.777,
+        "prefill": 10.865,
+        "preprocess": 3.874,
+        "vision": 64.521
+      },
+      "telemetry": {
+        "duration_s": 60.06,
+        "n": 528,
+        "ram_used_mb": {
+          "mean": 1834.48,
+          "p50": 1824.0,
+          "p95": 1869.0,
+          "max": 1976.0,
+          "min": 1824.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 20.28,
+          "p50": 9.0,
+          "p95": 108.0,
+          "max": 414.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.2,
+        "gpu_pct": {
+          "mean": 94.15,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 0.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1664.27,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1009.83,
+            "p50": 1009.0,
+            "p95": 1014.0,
+            "max": 1019.0,
+            "min": 1003.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12895
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 51.6,
+            "max": 53.4
+          },
+          "soc2": {
+            "mean": 50.5,
+            "max": 52.1
+          },
+          "soc0": {
+            "mean": 50.6,
+            "max": 52.5
+          },
+          "gpu": {
+            "mean": 54.7,
+            "max": 56.8
+          },
+          "tj": {
+            "mean": 54.7,
+            "max": 56.8
+          },
+          "soc1": {
+            "mean": 51.4,
+            "max": 53.1
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20327.56,
+            "p50": 20433.0,
+            "p95": 20792.0,
+            "max": 21146.0,
+            "min": 7040.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9974.52,
+            "p50": 10033.0,
+            "p95": 10384.0,
+            "max": 10657.0,
+            "min": 1637.0
+          },
+          "VDD_SOC": {
+            "mean": 4812.66,
+            "p50": 4825.0,
+            "p95": 4864.0,
+            "max": 4864.0,
+            "min": 2560.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1220970.9,
+          "VDD_CPU_GPU_CV": 599117.9,
+          "VDD_SOC": 289071.8
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": false,
+        "trim_host_heap": false,
+        "host_heap_trim_released": null,
+        "prompt_cache_limit": null,
+        "runtime_imported_transformers": true,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999978907682893,
+            "max_abs": 0.004764493554830551,
+            "mean_abs": 0.0003998146712547168,
+            "max_pct_range": 0.1542826343106318
+          },
+          "chunk": {
+            "cosine": 0.999998227465005,
+            "max_abs": 0.005564764142036438,
+            "mean_abs": 0.00037912485327979084,
+            "max_pct_range": 0.1801967955818252
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997582658351,
+            "max_abs": 0.0013282299041748047,
+            "mean_abs": 0.00019342006534429858,
+            "max_pct_range": 0.04300043297599852,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999984360202316,
+            "max_abs": 0.005134104751050472,
+            "mean_abs": 0.00035708043015461046,
+            "max_pct_range": 0.1662512912869222
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-ffn-lean-60s.json",
+      "label": "smolvla.memory.ffn-lean",
+      "duration_s": 60.0,
+      "metadata_collection": "framework imports",
+      "used_for_selection": false,
+      "latency_ms": {
+        "n": 473,
+        "mean": 126.79,
+        "p50": 126.8,
+        "p90": 127.45,
+        "p95": 127.63,
+        "p99": 128.07,
+        "min": 125.76,
+        "max": 128.96,
+        "std": 0.5,
+        "hz_mean": 7.89,
+        "quartile_means_in_order": [
+          126.82,
+          126.73,
+          126.75,
+          126.85
+        ],
+        "drift_q4_vs_q1_pct": 0.0
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 473,
+        "window_s": 60.034513,
+        "achieved_hz": 7.8788
+      },
+      "board_ram_mb": {
+        "mean": 1795.9,
+        "p50": 1790.0,
+        "p95": 1831.0,
+        "max": 1843.0,
+        "min": 1789.0
+      },
+      "process_rss_mb": {
+        "mean": 1494.7,
+        "max": 1495.4
+      },
+      "stages_ms": {
+        "denoise": 45.769,
+        "prefill": 10.73,
+        "preprocess": 3.857,
+        "vision": 64.37
+      },
+      "telemetry": {
+        "duration_s": 60.03,
+        "n": 527,
+        "ram_used_mb": {
+          "mean": 1795.9,
+          "p50": 1790.0,
+          "p95": 1831.0,
+          "max": 1843.0,
+          "min": 1789.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 13.67,
+          "p50": 9.0,
+          "p95": 33.0,
+          "max": 95.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.14,
+        "gpu_pct": {
+          "mean": 94.13,
+          "p50": 99.0,
+          "p95": 100.0,
+          "max": 100.0,
+          "min": 62.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1669.68,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1009.73,
+            "p50": 1009.0,
+            "p95": 1014.0,
+            "max": 1019.0,
+            "min": 1003.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12579
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 52.9,
+            "max": 54.3
+          },
+          "soc2": {
+            "mean": 51.9,
+            "max": 52.9
+          },
+          "soc0": {
+            "mean": 52.1,
+            "max": 53.4
+          },
+          "gpu": {
+            "mean": 56.1,
+            "max": 57.8
+          },
+          "tj": {
+            "mean": 56.1,
+            "max": 57.8
+          },
+          "soc1": {
+            "mean": 52.8,
+            "max": 53.9
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20305.24,
+            "p50": 20400.0,
+            "p95": 20518.0,
+            "max": 20675.0,
+            "min": 9011.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9961.94,
+            "p50": 10033.0,
+            "p95": 10150.0,
+            "max": 10345.0,
+            "min": 3025.0
+          },
+          "VDD_SOC": {
+            "mean": 4822.3,
+            "p50": 4825.0,
+            "p95": 4864.0,
+            "max": 4864.0,
+            "min": 2870.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1219024.0,
+          "VDD_CPU_GPU_CV": 598064.7,
+          "VDD_SOC": 289506.3
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": true,
+        "trim_host_heap": true,
+        "host_heap_trim_released": true,
+        "prompt_cache_limit": 8,
+        "runtime_imported_transformers": true,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999978907682893,
+            "max_abs": 0.004764493554830551,
+            "mean_abs": 0.0003998146712547168,
+            "max_pct_range": 0.1542826343106318
+          },
+          "chunk": {
+            "cosine": 0.999998227465005,
+            "max_abs": 0.005564764142036438,
+            "mean_abs": 0.00037912485327979084,
+            "max_pct_range": 0.1801967955818252
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997582658351,
+            "max_abs": 0.0013282299041748047,
+            "mean_abs": 0.00019342006534429858,
+            "max_pct_range": 0.04300043297599852,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999984360202316,
+            "max_abs": 0.005134104751050472,
+            "mean_abs": 0.00035708043015461046,
+            "max_pct_range": 0.1662512912869222
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-ffn-lean-env-300s.json",
+      "label": "smolvla.memory.balanced-300s",
+      "duration_s": 300.0,
+      "metadata_collection": "distribution metadata",
+      "used_for_selection": true,
+      "latency_ms": {
+        "n": 2364,
+        "mean": 126.82,
+        "p50": 126.78,
+        "p90": 127.52,
+        "p95": 127.71,
+        "p99": 128.29,
+        "min": 125.63,
+        "max": 131.86,
+        "std": 0.61,
+        "hz_mean": 7.89,
+        "quartile_means_in_order": [
+          126.94,
+          126.82,
+          126.78,
+          126.73
+        ],
+        "drift_q4_vs_q1_pct": -0.2
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 2364,
+        "window_s": 300.122455,
+        "achieved_hz": 7.8768
+      },
+      "board_ram_mb": {
+        "mean": 1814.96,
+        "p50": 1815.0,
+        "p95": 1828.0,
+        "max": 1984.0,
+        "min": 1783.0
+      },
+      "process_rss_mb": {
+        "mean": 1458.6,
+        "max": 1479.8
+      },
+      "stages_ms": {
+        "denoise": 45.688,
+        "prefill": 10.767,
+        "preprocess": 3.883,
+        "vision": 64.4
+      },
+      "telemetry": {
+        "duration_s": 300.12,
+        "n": 2636,
+        "ram_used_mb": {
+          "mean": 1814.96,
+          "p50": 1815.0,
+          "p95": 1828.0,
+          "max": 1984.0,
+          "min": 1783.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 165.72,
+          "p50": 164.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 164.0
+        },
+        "cpu_pct_total": {
+          "mean": 14.12,
+          "p50": 9.0,
+          "p95": 38.0,
+          "max": 125.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.14,
+        "gpu_pct": {
+          "mean": 94.22,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 0.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1666.3,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 860.0
+          },
+          "gpu": {
+            "mean": 1009.66,
+            "p50": 1009.0,
+            "p95": 1015.0,
+            "max": 1019.0,
+            "min": 1002.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 63066
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 53.2,
+            "max": 55.3
+          },
+          "soc2": {
+            "mean": 52.1,
+            "max": 53.8
+          },
+          "soc0": {
+            "mean": 52.4,
+            "max": 54.3
+          },
+          "gpu": {
+            "mean": 56.4,
+            "max": 58.5
+          },
+          "tj": {
+            "mean": 56.4,
+            "max": 58.5
+          },
+          "soc1": {
+            "mean": 53.0,
+            "max": 54.8
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20346.05,
+            "p50": 20361.0,
+            "p95": 20518.0,
+            "max": 21028.0,
+            "min": 6920.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 10023.86,
+            "p50": 10033.0,
+            "p95": 10189.0,
+            "max": 10579.0,
+            "min": 1597.0
+          },
+          "VDD_SOC": {
+            "mean": 4778.59,
+            "p50": 4747.0,
+            "p95": 4864.0,
+            "max": 4904.0,
+            "min": 2520.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 6106314.2,
+          "VDD_CPU_GPU_CV": 3008391.1,
+          "VDD_SOC": 1434164.5
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": true,
+        "trim_host_heap": true,
+        "host_heap_trim_released": true,
+        "prompt_cache_limit": 8,
+        "runtime_imported_transformers": false,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999978907682893,
+            "max_abs": 0.004764493554830551,
+            "mean_abs": 0.0003998146712547168,
+            "max_pct_range": 0.1542826343106318
+          },
+          "chunk": {
+            "cosine": 0.999998227465005,
+            "max_abs": 0.005564764142036438,
+            "mean_abs": 0.00037912485327979084,
+            "max_pct_range": 0.1801967955818252
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997582658351,
+            "max_abs": 0.0013282299041748047,
+            "mean_abs": 0.00019342006534429858,
+            "max_pct_range": 0.04300043297599852,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999984360202316,
+            "max_abs": 0.005134104751050472,
+            "mean_abs": 0.00035708043015461046,
+            "max_pct_range": 0.1662512912869222
+          }
+        }
+      }
+    },
+    {
+      "file": "policy-ffn-lean-env-60s.json",
+      "label": "smolvla.memory.ffn-lean-env",
+      "duration_s": 60.0,
+      "metadata_collection": "distribution metadata",
+      "used_for_selection": true,
+      "latency_ms": {
+        "n": 473,
+        "mean": 126.9,
+        "p50": 126.86,
+        "p90": 127.6,
+        "p95": 127.81,
+        "p99": 128.25,
+        "min": 125.62,
+        "max": 130.02,
+        "std": 0.55,
+        "hz_mean": 7.88,
+        "quartile_means_in_order": [
+          126.84,
+          126.96,
+          126.97,
+          126.85
+        ],
+        "drift_q4_vs_q1_pct": 0.0
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 473,
+        "window_s": 60.091217,
+        "achieved_hz": 7.8714
+      },
+      "board_ram_mb": {
+        "mean": 1790.62,
+        "p50": 1788.0,
+        "p95": 1813.0,
+        "max": 1818.0,
+        "min": 1781.0
+      },
+      "process_rss_mb": {
+        "mean": 1455.2,
+        "max": 1459.4
+      },
+      "stages_ms": {
+        "denoise": 45.746,
+        "prefill": 10.798,
+        "preprocess": 3.874,
+        "vision": 64.41
+      },
+      "telemetry": {
+        "duration_s": 60.09,
+        "n": 527,
+        "ram_used_mb": {
+          "mean": 1790.62,
+          "p50": 1788.0,
+          "p95": 1813.0,
+          "max": 1818.0,
+          "min": 1781.0
+        },
+        "ram_total_mb": 7546.0,
+        "swap_used_mb": {
+          "mean": 180.0,
+          "p50": 180.0,
+          "p95": 180.0,
+          "max": 180.0,
+          "min": 180.0
+        },
+        "cpu_pct_total": {
+          "mean": 13.69,
+          "p50": 9.0,
+          "p95": 33.0,
+          "max": 114.0,
+          "min": 0.0
+        },
+        "cpu_cores_busy": 0.14,
+        "gpu_pct": {
+          "mean": 94.26,
+          "p50": 99.0,
+          "p95": 99.0,
+          "max": 100.0,
+          "min": 61.0
+        },
+        "clock_mhz": {
+          "cpu": {
+            "mean": 1677.41,
+            "p50": 1728.0,
+            "p95": 1728.0,
+            "max": 1728.0,
+            "min": 861.0
+          },
+          "gpu": {
+            "mean": 1009.63,
+            "p50": 1009.0,
+            "p95": 1014.0,
+            "max": 1019.0,
+            "min": 1003.0
+          },
+          "emc": {
+            "mean": 3199.0,
+            "p50": 3199.0,
+            "p95": 3199.0,
+            "max": 3199.0,
+            "min": 3199.0
+          }
+        },
+        "throttle": {
+          "cooling_active_samples": {},
+          "oc_events": {
+            "oc1": 0,
+            "oc2": 0,
+            "oc3": 12650
+          }
+        },
+        "temp_c": {
+          "cpu": {
+            "mean": 53.0,
+            "max": 54.3
+          },
+          "soc2": {
+            "mean": 52.0,
+            "max": 53.0
+          },
+          "soc0": {
+            "mean": 52.2,
+            "max": 53.3
+          },
+          "gpu": {
+            "mean": 56.2,
+            "max": 57.7
+          },
+          "tj": {
+            "mean": 56.2,
+            "max": 57.7
+          },
+          "soc1": {
+            "mean": 52.9,
+            "max": 53.9
+          }
+        },
+        "power_mw": {
+          "VDD_IN": {
+            "mean": 20312.61,
+            "p50": 20400.0,
+            "p95": 20518.0,
+            "max": 20557.0,
+            "min": 9952.0
+          },
+          "VDD_CPU_GPU_CV": {
+            "mean": 9963.66,
+            "p50": 10033.0,
+            "p95": 10150.0,
+            "max": 10189.0,
+            "min": 3537.0
+          },
+          "VDD_SOC": {
+            "mean": 4824.54,
+            "p50": 4825.0,
+            "p95": 4864.0,
+            "max": 4864.0,
+            "min": 3025.0
+          }
+        },
+        "energy_mj": {
+          "VDD_IN": 1220643.4,
+          "VDD_CPU_GPU_CV": 598745.4,
+          "VDD_SOC": 289920.9
+        }
+      },
+      "runtime": {
+        "lean_tokenizer": true,
+        "trim_host_heap": true,
+        "host_heap_trim_released": true,
+        "prompt_cache_limit": 8,
+        "runtime_imported_transformers": false,
+        "runtime_has_torch": false,
+        "runtime_has_triton": false,
+        "shared_scratch_mb": 20.0
+      },
+      "fixture_gate": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999978907682893,
+            "max_abs": 0.004764493554830551,
+            "mean_abs": 0.0003998146712547168,
+            "max_pct_range": 0.1542826343106318
+          },
+          "chunk": {
+            "cosine": 0.999998227465005,
+            "max_abs": 0.005564764142036438,
+            "mean_abs": 0.00037912485327979084,
+            "max_pct_range": 0.1801967955818252
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997582658351,
+            "max_abs": 0.0013282299041748047,
+            "mean_abs": 0.00019342006534429858,
+            "max_pct_range": 0.04300043297599852,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999984360202316,
+            "max_abs": 0.005134104751050472,
+            "mean_abs": 0.00035708043015461046,
+            "max_pct_range": 0.1662512912869222
+          }
+        }
+      }
+    }
+  ],
+  "saved_action_parity": [
+    {
+      "reference": "smolvla.memory.control",
+      "candidate": "smolvla.memory.control-env",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0,
+      "mean_abs_diff": 0.0,
+      "reference_action_range": 25.694,
+      "max_abs_diff_pct_of_range": 0.0,
+      "first_action_max_abs_diff": 0.0,
+      "verdict": "PASS",
+      "file": "policy-control-env-60s.json",
+      "reference_file": "policy-control-60s.json",
+      "actions_bit_identical": true
+    },
+    {
+      "reference": "smolvla.memory.control",
+      "candidate": "smolvla.memory.control-lean",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0,
+      "mean_abs_diff": 0.0,
+      "reference_action_range": 25.694,
+      "max_abs_diff_pct_of_range": 0.0,
+      "first_action_max_abs_diff": 0.0,
+      "verdict": "PASS",
+      "file": "policy-control-lean-60s.json",
+      "reference_file": "policy-control-60s.json",
+      "actions_bit_identical": true
+    },
+    {
+      "reference": "smolvla.memory.control",
+      "candidate": "smolvla.memory.control-lean-env",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0,
+      "mean_abs_diff": 0.0,
+      "reference_action_range": 25.694,
+      "max_abs_diff_pct_of_range": 0.0,
+      "first_action_max_abs_diff": 0.0,
+      "verdict": "PASS",
+      "file": "policy-control-lean-env-60s.json",
+      "reference_file": "policy-control-60s.json",
+      "actions_bit_identical": true
+    },
+    {
+      "reference": "smolvla.memory.ffn",
+      "candidate": "smolvla.memory.ffn-lean",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0,
+      "mean_abs_diff": 0.0,
+      "reference_action_range": 25.6922,
+      "max_abs_diff_pct_of_range": 0.0,
+      "first_action_max_abs_diff": 0.0,
+      "verdict": "PASS",
+      "file": "policy-ffn-lean-60s.json",
+      "reference_file": "policy-ffn-60s.json",
+      "actions_bit_identical": true
+    },
+    {
+      "reference": "smolvla.memory.ffn",
+      "candidate": "smolvla.memory.balanced-300s",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0,
+      "mean_abs_diff": 0.0,
+      "reference_action_range": 25.6922,
+      "max_abs_diff_pct_of_range": 0.0,
+      "first_action_max_abs_diff": 0.0,
+      "verdict": "PASS",
+      "file": "policy-ffn-lean-env-300s.json",
+      "reference_file": "policy-ffn-60s.json",
+      "actions_bit_identical": true
+    },
+    {
+      "reference": "smolvla.memory.ffn",
+      "candidate": "smolvla.memory.ffn-lean-env",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 1.0,
+      "cosine_mean": 1.0,
+      "max_abs_diff": 0.0,
+      "mean_abs_diff": 0.0,
+      "reference_action_range": 25.6922,
+      "max_abs_diff_pct_of_range": 0.0,
+      "first_action_max_abs_diff": 0.0,
+      "verdict": "PASS",
+      "file": "policy-ffn-lean-env-60s.json",
+      "reference_file": "policy-ffn-60s.json",
+      "actions_bit_identical": true
+    }
+  ],
+  "fresh_process_probes": [
+    {
+      "file": "probe-control.json",
+      "cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-control-20261010T1041Z",
+      "lean_tokenizer": false,
+      "runtime_imported_transformers": true,
+      "actions_bit_identical": true,
+      "trim_rss_released_mib": 21.21484375,
+      "snapshots": [
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1463271424,
+            "MemAvailable": 6363430912,
+            "Buffers": 37691392,
+            "Cached": 5040582656,
+            "SwapCached": 28524544,
+            "Active": 4451954688,
+            "Inactive": 711827456,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 100847616,
+            "Active(file)": 4408242176,
+            "Inactive(file)": 610979840,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 40960,
+            "Writeback": 0,
+            "AnonPages": 111919104,
+            "Mapped": 70328320,
+            "Shmem": 30363648,
+            "KReclaimable": 86429696,
+            "Slab": 185413632,
+            "SReclaimable": 86429696,
+            "SUnreclaim": 98983936,
+            "KernelStack": 5324800,
+            "PageTables": 5885952,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 1644584960,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 40845312,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 20971520,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 320266240,
+            "VmSize": 318164992,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 32374784,
+            "VmRSS": 30384128,
+            "RssAnon": 16281600,
+            "RssFile": 14102528,
+            "RssShmem": 0,
+            "VmData": 262729728,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 36048896,
+            "VmPTE": 172032,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 30388224,
+            "Pss": 27049984,
+            "Pss_Dirty": 16285696,
+            "Pss_Anon": 16285696,
+            "Pss_File": 10764288,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4354048,
+            "Shared_Dirty": 0,
+            "Private_Clean": 9748480,
+            "Private_Dirty": 16285696,
+            "Referenced": 29433856,
+            "Anonymous": 16285696,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "before_load",
+          "cuda_free_bytes": 6332989440,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 142061568
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 965292032,
+            "MemAvailable": 5865644032,
+            "Buffers": 37883904,
+            "Cached": 5040586752,
+            "SwapCached": 28524544,
+            "Active": 4452151296,
+            "Inactive": 1105891328,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 494927872,
+            "Active(file)": 4408438784,
+            "Inactive(file)": 610963456,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1642496,
+            "Writeback": 0,
+            "AnonPages": 506073088,
+            "Mapped": 295362560,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185495552,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99037184,
+            "KernelStack": 5636096,
+            "PageTables": 8560640,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2468286464,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42827776,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 132120576,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12689051648,
+            "VmSize": 12644995072,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1536221184,
+            "VmRSS": 1525022720,
+            "RssAnon": 1262694400,
+            "RssFile": 262328320,
+            "RssShmem": 0,
+            "VmData": 1052528640,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2850816,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 672780288,
+            "Pss": 657833984,
+            "Pss_Dirty": 421666816,
+            "Pss_Anon": 410451968,
+            "Pss_File": 247382016,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5115904,
+            "Shared_Dirty": 22429696,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 410451968,
+            "Referenced": 635396096,
+            "Anonymous": 410451968,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 111149056,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_load",
+          "cuda_free_bytes": 5858197504,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1536221184
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 988135424,
+            "MemAvailable": 5888487424,
+            "Buffers": 37892096,
+            "Cached": 5040586752,
+            "SwapCached": 28524544,
+            "Active": 4452151296,
+            "Inactive": 1105903616,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 494940160,
+            "Active(file)": 4408438784,
+            "Inactive(file)": 610963456,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1654784,
+            "Writeback": 0,
+            "AnonPages": 506077184,
+            "Mapped": 295362560,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185495552,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99037184,
+            "KernelStack": 5636096,
+            "PageTables": 8560640,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2468286464,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42827776,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 130023424,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12689051648,
+            "VmSize": 12644995072,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1536221184,
+            "VmRSS": 1525026816,
+            "RssAnon": 1262669824,
+            "RssFile": 262356992,
+            "RssShmem": 0,
+            "VmData": 1052528640,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2850816,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 672813056,
+            "Pss": 657852416,
+            "Pss_Dirty": 421685248,
+            "Pss_Anon": 410456064,
+            "Pss_File": 247396352,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5115904,
+            "Shared_Dirty": 22458368,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 410456064,
+            "Referenced": 635428864,
+            "Anonymous": 410456064,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 109051904,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_warmup",
+          "cuda_free_bytes": 5881016320,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1536221184
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 988135424,
+            "MemAvailable": 5888487424,
+            "Buffers": 37892096,
+            "Cached": 5040586752,
+            "SwapCached": 28524544,
+            "Active": 4452151296,
+            "Inactive": 1105903616,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 494940160,
+            "Active(file)": 4408438784,
+            "Inactive(file)": 610963456,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1654784,
+            "Writeback": 0,
+            "AnonPages": 506077184,
+            "Mapped": 295362560,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185495552,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99037184,
+            "KernelStack": 5636096,
+            "PageTables": 8560640,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2468286464,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42827776,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 130023424,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12689051648,
+            "VmSize": 12644995072,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1536221184,
+            "VmRSS": 1525026816,
+            "RssAnon": 1262669824,
+            "RssFile": 262356992,
+            "RssShmem": 0,
+            "VmData": 1052528640,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2850816,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 672813056,
+            "Pss": 657852416,
+            "Pss_Dirty": 421685248,
+            "Pss_Anon": 410456064,
+            "Pss_File": 247396352,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5115904,
+            "Shared_Dirty": 22458368,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 410456064,
+            "Referenced": 635432960,
+            "Anonymous": 410456064,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 109051904,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_gc",
+          "cuda_free_bytes": 5881016320,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1536221184
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1012416512,
+            "MemAvailable": 5912768512,
+            "Buffers": 37892096,
+            "Cached": 5040586752,
+            "SwapCached": 28524544,
+            "Active": 4452151296,
+            "Inactive": 1084272640,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 473309184,
+            "Active(file)": 4408438784,
+            "Inactive(file)": 610963456,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1654784,
+            "Writeback": 0,
+            "AnonPages": 483897344,
+            "Mapped": 295362560,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185495552,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99037184,
+            "KernelStack": 5636096,
+            "PageTables": 8560640,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2465333248,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42827776,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 121634816,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12689051648,
+            "VmSize": 12642041856,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1536221184,
+            "VmRSS": 1502781440,
+            "RssAnon": 1240424448,
+            "RssFile": 262356992,
+            "RssShmem": 0,
+            "VmData": 1049575424,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2838528,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 650567680,
+            "Pss": 635607040,
+            "Pss_Dirty": 399439872,
+            "Pss_Anon": 388210688,
+            "Pss_File": 247396352,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5115904,
+            "Shared_Dirty": 22458368,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 388210688,
+            "Referenced": 613187584,
+            "Anonymous": 388210688,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 100663296,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_trim",
+          "cuda_free_bytes": 5905272832,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1536221184
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1045098496,
+            "MemAvailable": 5945479168,
+            "Buffers": 37892096,
+            "Cached": 5040590848,
+            "SwapCached": 28524544,
+            "Active": 4452175872,
+            "Inactive": 1084272640,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 473305088,
+            "Active(file)": 4408463360,
+            "Inactive(file)": 610967552,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1658880,
+            "Writeback": 0,
+            "AnonPages": 483844096,
+            "Mapped": 295362560,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185495552,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99037184,
+            "KernelStack": 5619712,
+            "PageTables": 8548352,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2465333248,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42811392,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 121634816,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12689051648,
+            "VmSize": 12642041856,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1536221184,
+            "VmRSS": 1502793728,
+            "RssAnon": 1240416256,
+            "RssFile": 262377472,
+            "RssShmem": 0,
+            "VmData": 1049575424,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2838528,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 650600448,
+            "Pss": 635629568,
+            "Pss_Dirty": 399462400,
+            "Pss_Anon": 388222976,
+            "Pss_File": 247406592,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5115904,
+            "Shared_Dirty": 22478848,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 388222976,
+            "Referenced": 613220352,
+            "Anonymous": 388222976,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 100663296,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_post_trim_inference",
+          "cuda_free_bytes": 5937950720,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1536221184
+        }
+      ],
+      "engines": {
+        "vision": {
+          "scratch_bytes": 20971520,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 201819876
+        },
+        "prefill": {
+          "scratch_bytes": 4724224,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 298197516
+        },
+        "decode": {
+          "scratch_bytes": 1523712,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 198130956
+        },
+        "state_proj": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 137604
+        },
+        "action_in": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 120116
+        },
+        "time_in": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 4175196
+        },
+        "time_out": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 2101012
+        },
+        "action_out": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 108804
+        },
+        "op_axpy_4afaa4added7": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 10940
+        },
+        "op_silu_3ec14fc460d7": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 11132
+        },
+        "op_axpy_2bf70fd1c0f9": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 209204
+        }
+      }
+    },
+    {
+      "file": "probe-ffn-lean.json",
+      "cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-ffn-20261010T1041Z",
+      "lean_tokenizer": true,
+      "runtime_imported_transformers": false,
+      "actions_bit_identical": true,
+      "trim_rss_released_mib": 17.859375,
+      "snapshots": [
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1436712960,
+            "MemAvailable": 6338473984,
+            "Buffers": 38105088,
+            "Cached": 5041762304,
+            "SwapCached": 28516352,
+            "Active": 4452855808,
+            "Inactive": 713089024,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 101425152,
+            "Active(file)": 4409143296,
+            "Inactive(file)": 611663872,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 430080,
+            "Writeback": 0,
+            "AnonPages": 112545792,
+            "Mapped": 70668288,
+            "Shmem": 30371840,
+            "KReclaimable": 86462464,
+            "Slab": 185450496,
+            "SReclaimable": 86462464,
+            "SUnreclaim": 98988032,
+            "KernelStack": 5357568,
+            "PageTables": 5906432,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 1644748800,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 40943616,
+            "VmallocChunk": 0,
+            "Percpu": 3710976,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 20971520,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 320552960,
+            "VmSize": 318316544,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 33128448,
+            "VmRSS": 30953472,
+            "RssAnon": 16842752,
+            "RssFile": 14110720,
+            "RssShmem": 0,
+            "VmData": 262881280,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 36048896,
+            "VmPTE": 176128,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 30957568,
+            "Pss": 27619328,
+            "Pss_Dirty": 16846848,
+            "Pss_Anon": 16846848,
+            "Pss_File": 10772480,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4354048,
+            "Shared_Dirty": 0,
+            "Private_Clean": 9756672,
+            "Private_Dirty": 16846848,
+            "Referenced": 30076928,
+            "Anonymous": 16846848,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "before_load",
+          "cuda_free_bytes": 6308589568,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 142942208
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1003397120,
+            "MemAvailable": 5905190912,
+            "Buffers": 38121472,
+            "Cached": 5041778688,
+            "SwapCached": 28516352,
+            "Active": 4452872192,
+            "Inactive": 1065291776,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 453611520,
+            "Active(file)": 4409159680,
+            "Inactive(file)": 611680256,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 131072,
+            "Writeback": 0,
+            "AnonPages": 464760832,
+            "Mapped": 293281792,
+            "Shmem": 30371840,
+            "KReclaimable": 86462464,
+            "Slab": 185528320,
+            "SReclaimable": 86462464,
+            "SUnreclaim": 99065856,
+            "KernelStack": 5668864,
+            "PageTables": 8478720,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2430275584,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42942464,
+            "VmallocChunk": 0,
+            "Percpu": 3710976,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 119537664,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12667084800,
+            "VmSize": 12593623040,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1496055808,
+            "VmRSS": 1482104832,
+            "RssAnon": 1221763072,
+            "RssFile": 260341760,
+            "RssShmem": 0,
+            "VmData": 1014722560,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 829169664,
+            "VmPTE": 2752512,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 629374976,
+            "Pss": 614283264,
+            "Pss_Dirty": 380747776,
+            "Pss_Anon": 369033216,
+            "Pss_File": 245250048,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4427776,
+            "Shared_Dirty": 23429120,
+            "Private_Clean": 232484864,
+            "Private_Dirty": 369033216,
+            "Referenced": 592646144,
+            "Anonymous": 369033216,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 98566144,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_load",
+          "cuda_free_bytes": 5897703424,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1496055808
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1017016320,
+            "MemAvailable": 5918810112,
+            "Buffers": 38129664,
+            "Cached": 5041778688,
+            "SwapCached": 28516352,
+            "Active": 4452872192,
+            "Inactive": 1071403008,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 459722752,
+            "Active(file)": 4409159680,
+            "Inactive(file)": 611680256,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 470880256,
+            "Mapped": 293396480,
+            "Shmem": 30371840,
+            "KReclaimable": 86462464,
+            "Slab": 185528320,
+            "SReclaimable": 86462464,
+            "SUnreclaim": 99065856,
+            "KernelStack": 5668864,
+            "PageTables": 8491008,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2436567040,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42942464,
+            "VmallocChunk": 0,
+            "Percpu": 3710976,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 123731968,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12667084800,
+            "VmSize": 12599914496,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1496055808,
+            "VmRSS": 1488285696,
+            "RssAnon": 1227915264,
+            "RssFile": 260370432,
+            "RssShmem": 0,
+            "VmData": 1021014016,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 829169664,
+            "VmPTE": 2764800,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 635580416,
+            "Pss": 620474368,
+            "Pss_Dirty": 386938880,
+            "Pss_Anon": 375209984,
+            "Pss_File": 245264384,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4427776,
+            "Shared_Dirty": 23457792,
+            "Private_Clean": 232484864,
+            "Private_Dirty": 375209984,
+            "Referenced": 598851584,
+            "Anonymous": 375209984,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 102760448,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_warmup",
+          "cuda_free_bytes": 5911310336,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1496055808
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1017016320,
+            "MemAvailable": 5918810112,
+            "Buffers": 38129664,
+            "Cached": 5041778688,
+            "SwapCached": 28516352,
+            "Active": 4452872192,
+            "Inactive": 1071403008,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 459722752,
+            "Active(file)": 4409159680,
+            "Inactive(file)": 611680256,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 470880256,
+            "Mapped": 293396480,
+            "Shmem": 30371840,
+            "KReclaimable": 86462464,
+            "Slab": 185528320,
+            "SReclaimable": 86462464,
+            "SUnreclaim": 99065856,
+            "KernelStack": 5668864,
+            "PageTables": 8491008,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2436567040,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42942464,
+            "VmallocChunk": 0,
+            "Percpu": 3710976,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 123731968,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12667084800,
+            "VmSize": 12599914496,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1496055808,
+            "VmRSS": 1488285696,
+            "RssAnon": 1227915264,
+            "RssFile": 260370432,
+            "RssShmem": 0,
+            "VmData": 1021014016,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 829169664,
+            "VmPTE": 2764800,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 635580416,
+            "Pss": 620474368,
+            "Pss_Dirty": 386938880,
+            "Pss_Anon": 375209984,
+            "Pss_File": 245264384,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4427776,
+            "Shared_Dirty": 23457792,
+            "Private_Clean": 232484864,
+            "Private_Dirty": 375209984,
+            "Referenced": 598859776,
+            "Anonymous": 375209984,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 102760448,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_gc",
+          "cuda_free_bytes": 5911310336,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1496055808
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1034276864,
+            "MemAvailable": 5936070656,
+            "Buffers": 38129664,
+            "Cached": 5041778688,
+            "SwapCached": 28516352,
+            "Active": 4452872192,
+            "Inactive": 1057136640,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 445456384,
+            "Active(file)": 4409159680,
+            "Inactive(file)": 611680256,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 452210688,
+            "Mapped": 293396480,
+            "Shmem": 30371840,
+            "KReclaimable": 86462464,
+            "Slab": 185528320,
+            "SReclaimable": 86462464,
+            "SUnreclaim": 99065856,
+            "KernelStack": 5668864,
+            "PageTables": 8491008,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2436435968,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42942464,
+            "VmallocChunk": 0,
+            "Percpu": 3710976,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 117440512,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12667084800,
+            "VmSize": 12599783424,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1496055808,
+            "VmRSS": 1469558784,
+            "RssAnon": 1209188352,
+            "RssFile": 260370432,
+            "RssShmem": 0,
+            "VmData": 1020882944,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 829169664,
+            "VmPTE": 2764800,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 616853504,
+            "Pss": 601747456,
+            "Pss_Dirty": 368211968,
+            "Pss_Anon": 356483072,
+            "Pss_File": 245264384,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4427776,
+            "Shared_Dirty": 23457792,
+            "Private_Clean": 232484864,
+            "Private_Dirty": 356483072,
+            "Referenced": 580132864,
+            "Anonymous": 356483072,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 96468992,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_trim",
+          "cuda_free_bytes": 5928554496,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1496055808
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1056468992,
+            "MemAvailable": 5958270976,
+            "Buffers": 38129664,
+            "Cached": 5041778688,
+            "SwapCached": 28516352,
+            "Active": 4452880384,
+            "Inactive": 1057120256,
+            "Active(anon)": 43712512,
+            "Inactive(anon)": 445440000,
+            "Active(file)": 4409167872,
+            "Inactive(file)": 611680256,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 452169728,
+            "Mapped": 293396480,
+            "Shmem": 30371840,
+            "KReclaimable": 86462464,
+            "Slab": 185524224,
+            "SReclaimable": 86462464,
+            "SUnreclaim": 99061760,
+            "KernelStack": 5652480,
+            "PageTables": 8491008,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2436435968,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42926080,
+            "VmallocChunk": 0,
+            "Percpu": 3710976,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 117440512,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12667084800,
+            "VmSize": 12599783424,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1496055808,
+            "VmRSS": 1469575168,
+            "RssAnon": 1209184256,
+            "RssFile": 260390912,
+            "RssShmem": 0,
+            "VmData": 1020882944,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 829169664,
+            "VmPTE": 2764800,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 616890368,
+            "Pss": 601774080,
+            "Pss_Dirty": 368238592,
+            "Pss_Anon": 356499456,
+            "Pss_File": 245274624,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4427776,
+            "Shared_Dirty": 23478272,
+            "Private_Clean": 232484864,
+            "Private_Dirty": 356499456,
+            "Referenced": 580169728,
+            "Anonymous": 356499456,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 96468992,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_post_trim_inference",
+          "cuda_free_bytes": 5950472192,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1496055808
+        }
+      ],
+      "engines": {
+        "vision": {
+          "scratch_bytes": 20971520,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 201819876
+        },
+        "prefill": {
+          "scratch_bytes": 4724224,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 298197516
+        },
+        "decode": {
+          "scratch_bytes": 1897984,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 201372340
+        },
+        "state_proj": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 137604
+        },
+        "action_in": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 120116
+        },
+        "time_in": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 4175196
+        },
+        "time_out": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 2101012
+        },
+        "action_out": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 108804
+        },
+        "op_axpy_4afaa4added7": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 10940
+        },
+        "op_silu_3ec14fc460d7": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 11132
+        },
+        "op_axpy_2bf70fd1c0f9": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 209204
+        }
+      }
+    },
+    {
+      "file": "probe-ffn.json",
+      "cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-ffn-20261010T1041Z",
+      "lean_tokenizer": false,
+      "runtime_imported_transformers": true,
+      "actions_bit_identical": true,
+      "trim_rss_released_mib": 18.82421875,
+      "snapshots": [
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1447804928,
+            "MemAvailable": 6348251136,
+            "Buffers": 37920768,
+            "Cached": 5040635904,
+            "SwapCached": 28524544,
+            "Active": 4452343808,
+            "Inactive": 711725056,
+            "Active(anon)": 43708416,
+            "Inactive(anon)": 100864000,
+            "Active(file)": 4408635392,
+            "Inactive(file)": 610861056,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1703936,
+            "Writeback": 0,
+            "AnonPages": 111931392,
+            "Mapped": 70361088,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185458688,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99000320,
+            "KernelStack": 5308416,
+            "PageTables": 5890048,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 1644580864,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 40861696,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 20971520,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 320262144,
+            "VmSize": 318160896,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 32395264,
+            "VmRSS": 30400512,
+            "RssAnon": 16297984,
+            "RssFile": 14102528,
+            "RssShmem": 0,
+            "VmData": 262725632,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 36048896,
+            "VmPTE": 172032,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 30404608,
+            "Pss": 27066368,
+            "Pss_Dirty": 16302080,
+            "Pss_Anon": 16302080,
+            "Pss_File": 10764288,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 4354048,
+            "Shared_Dirty": 0,
+            "Private_Clean": 9748480,
+            "Private_Dirty": 16302080,
+            "Referenced": 29491200,
+            "Anonymous": 16302080,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "before_load",
+          "cuda_free_bytes": 6324269056,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 142090240
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 944611328,
+            "MemAvailable": 5845069824,
+            "Buffers": 37920768,
+            "Cached": 5040640000,
+            "SwapCached": 28524544,
+            "Active": 4452352000,
+            "Inactive": 1122627584,
+            "Active(anon)": 43708416,
+            "Inactive(anon)": 511762432,
+            "Active(file)": 4408643584,
+            "Inactive(file)": 610865152,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 1703936,
+            "Writeback": 0,
+            "AnonPages": 520851456,
+            "Mapped": 295395328,
+            "Shmem": 30363648,
+            "KReclaimable": 86458368,
+            "Slab": 185544704,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99086336,
+            "KernelStack": 5619712,
+            "PageTables": 8601600,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2487214080,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42844160,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 130023424,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12746440704,
+            "VmSize": 12663922688,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1555369984,
+            "VmRSS": 1540812800,
+            "RssAnon": 1277976576,
+            "RssFile": 262836224,
+            "RssShmem": 0,
+            "VmData": 1071456256,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2887680,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 688078848,
+            "Pss": 672878592,
+            "Pss_Dirty": 436744192,
+            "Pss_Anon": 425242624,
+            "Pss_File": 247635968,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5050368,
+            "Shared_Dirty": 23003136,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 425242624,
+            "Referenced": 650887168,
+            "Anonymous": 425242624,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 109051904,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_load",
+          "cuda_free_bytes": 5837643776,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1555369984
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 963825664,
+            "MemAvailable": 5864284160,
+            "Buffers": 37933056,
+            "Cached": 5040644096,
+            "SwapCached": 28524544,
+            "Active": 4452352000,
+            "Inactive": 1128914944,
+            "Active(anon)": 43708416,
+            "Inactive(anon)": 518049792,
+            "Active(file)": 4408643584,
+            "Inactive(file)": 610865152,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 527089664,
+            "Mapped": 295395328,
+            "Shmem": 30367744,
+            "KReclaimable": 86458368,
+            "Slab": 185552896,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99094528,
+            "KernelStack": 5619712,
+            "PageTables": 8609792,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2493509632,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42844160,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 132120576,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12746440704,
+            "VmSize": 12670214144,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1555369984,
+            "VmRSS": 1547051008,
+            "RssAnon": 1284186112,
+            "RssFile": 262864896,
+            "RssShmem": 0,
+            "VmData": 1077747712,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2895872,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 694345728,
+            "Pss": 679131136,
+            "Pss_Dirty": 442996736,
+            "Pss_Anon": 431480832,
+            "Pss_File": 247650304,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5050368,
+            "Shared_Dirty": 23031808,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 431480832,
+            "Referenced": 657154048,
+            "Anonymous": 431480832,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 111149056,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_warmup",
+          "cuda_free_bytes": 5856837632,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1555369984
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 963825664,
+            "MemAvailable": 5864284160,
+            "Buffers": 37933056,
+            "Cached": 5040644096,
+            "SwapCached": 28524544,
+            "Active": 4452352000,
+            "Inactive": 1128914944,
+            "Active(anon)": 43708416,
+            "Inactive(anon)": 518049792,
+            "Active(file)": 4408643584,
+            "Inactive(file)": 610865152,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 527089664,
+            "Mapped": 295395328,
+            "Shmem": 30367744,
+            "KReclaimable": 86458368,
+            "Slab": 185552896,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99094528,
+            "KernelStack": 5619712,
+            "PageTables": 8609792,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2493509632,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42844160,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 132120576,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12746440704,
+            "VmSize": 12670214144,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1555369984,
+            "VmRSS": 1547051008,
+            "RssAnon": 1284186112,
+            "RssFile": 262864896,
+            "RssShmem": 0,
+            "VmData": 1077747712,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2895872,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 694345728,
+            "Pss": 679131136,
+            "Pss_Dirty": 442996736,
+            "Pss_Anon": 431480832,
+            "Pss_File": 247650304,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5050368,
+            "Shared_Dirty": 23031808,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 431480832,
+            "Referenced": 657158144,
+            "Anonymous": 431480832,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 111149056,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_gc",
+          "cuda_free_bytes": 5856837632,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1555369984
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 984432640,
+            "MemAvailable": 5884891136,
+            "Buffers": 37933056,
+            "Cached": 5040644096,
+            "SwapCached": 28524544,
+            "Active": 4452352000,
+            "Inactive": 1110425600,
+            "Active(anon)": 43708416,
+            "Inactive(anon)": 499560448,
+            "Active(file)": 4408643584,
+            "Inactive(file)": 610865152,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 61440,
+            "Writeback": 0,
+            "AnonPages": 507367424,
+            "Mapped": 295395328,
+            "Shmem": 30367744,
+            "KReclaimable": 86458368,
+            "Slab": 185552896,
+            "SReclaimable": 86458368,
+            "SUnreclaim": 99094528,
+            "KernelStack": 5619712,
+            "PageTables": 8609792,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2493378560,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42844160,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 123731968,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12746440704,
+            "VmSize": 12670083072,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1555369984,
+            "VmRSS": 1527312384,
+            "RssAnon": 1264447488,
+            "RssFile": 262864896,
+            "RssShmem": 0,
+            "VmData": 1077616640,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2891776,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 674607104,
+            "Pss": 659392512,
+            "Pss_Dirty": 423258112,
+            "Pss_Anon": 411742208,
+            "Pss_File": 247650304,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5050368,
+            "Shared_Dirty": 23031808,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 411742208,
+            "Referenced": 637419520,
+            "Anonymous": 411742208,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 102760448,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_trim",
+          "cuda_free_bytes": 5877424128,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1555369984
+        },
+        {
+          "meminfo": {
+            "MemTotal": 7912701952,
+            "MemFree": 1012416512,
+            "MemAvailable": 5912895488,
+            "Buffers": 37941248,
+            "Cached": 5040648192,
+            "SwapCached": 28520448,
+            "Active": 4452372480,
+            "Inactive": 1110343680,
+            "Active(anon)": 43708416,
+            "Inactive(anon)": 499474432,
+            "Active(file)": 4408664064,
+            "Inactive(file)": 610869248,
+            "Unevictable": 28688384,
+            "Mlocked": 0,
+            "SwapTotal": 4294963200,
+            "SwapFree": 4105957376,
+            "Dirty": 90112,
+            "Writeback": 0,
+            "AnonPages": 507359232,
+            "Mapped": 295399424,
+            "Shmem": 30367744,
+            "KReclaimable": 86450176,
+            "Slab": 185643008,
+            "SReclaimable": 86450176,
+            "SUnreclaim": 99192832,
+            "KernelStack": 5619712,
+            "PageTables": 8605696,
+            "SecPageTables": 0,
+            "NFS_Unstable": 0,
+            "Bounce": 0,
+            "WritebackTmp": 0,
+            "CommitLimit": 8251314176,
+            "Committed_AS": 2493378560,
+            "VmallocTotal": 136337025925120,
+            "VmallocUsed": 42926080,
+            "VmallocChunk": 0,
+            "Percpu": 3637248,
+            "HardwareCorrupted": 0,
+            "AnonHugePages": 123731968,
+            "ShmemHugePages": 0,
+            "ShmemPmdMapped": 0,
+            "FileHugePages": 0,
+            "FilePmdMapped": 0,
+            "CmaTotal": 268435456,
+            "CmaFree": 1581056,
+            "Hugepagesize": 2097152,
+            "Hugetlb": 0
+          },
+          "self/status": {
+            "VmPeak": 12746440704,
+            "VmSize": 12670083072,
+            "VmLck": 0,
+            "VmPin": 0,
+            "VmHWM": 1555369984,
+            "VmRSS": 1527316480,
+            "RssAnon": 1264431104,
+            "RssFile": 262885376,
+            "RssShmem": 0,
+            "VmData": 1077616640,
+            "VmStk": 135168,
+            "VmExe": 6348800,
+            "VmLib": 838594560,
+            "VmPTE": 2891776,
+            "VmSwap": 0,
+            "HugetlbPages": 0
+          },
+          "self/smaps_rollup": {
+            "Rss": 674631680,
+            "Pss": 659406848,
+            "Pss_Dirty": 423272448,
+            "Pss_Anon": 411746304,
+            "Pss_File": 247660544,
+            "Pss_Shmem": 0,
+            "Shared_Clean": 5050368,
+            "Shared_Dirty": 23052288,
+            "Private_Clean": 234782720,
+            "Private_Dirty": 411746304,
+            "Referenced": 637448192,
+            "Anonymous": 411746304,
+            "KSM": 0,
+            "LazyFree": 0,
+            "AnonHugePages": 102760448,
+            "ShmemPmdMapped": 0,
+            "FilePmdMapped": 0,
+            "Shared_Hugetlb": 0,
+            "Private_Hugetlb": 0,
+            "Swap": 0,
+            "SwapPss": 0,
+            "Locked": 0
+          },
+          "label": "after_post_trim_inference",
+          "cuda_free_bytes": 5905399808,
+          "cuda_total_bytes": 7912701952,
+          "peak_rss_bytes": 1555369984
+        }
+      ],
+      "engines": {
+        "vision": {
+          "scratch_bytes": 20971520,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 201819876
+        },
+        "prefill": {
+          "scratch_bytes": 4724224,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 298197516
+        },
+        "decode": {
+          "scratch_bytes": 1897984,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 201372340
+        },
+        "state_proj": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 137604
+        },
+        "action_in": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 120116
+        },
+        "time_in": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 4175196
+        },
+        "time_out": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 2101012
+        },
+        "action_out": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 108804
+        },
+        "op_axpy_4afaa4added7": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 10940
+        },
+        "op_silu_3ec14fc460d7": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 11132
+        },
+        "op_axpy_2bf70fd1c0f9": {
+          "scratch_bytes": 0,
+          "streamable_weights_bytes": 0,
+          "serialized_bytes": 209204
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Numerical checks do not measure robot task success.",
+    "Existing MAXN_SUPER clocks and board power conditions retained.",
+    "Board RAM includes other processes and varies between windows.",
+    "The initial policy-ffn-60s window may overlap a CPU-only tokenizer parity check; use corrected -env runs for RAM/speed selection."
+  ]
+}

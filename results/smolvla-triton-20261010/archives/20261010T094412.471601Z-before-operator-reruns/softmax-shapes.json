@@ -1,0 +1,122 @@
+[
+  {
+    "name": "node_Softmax_299",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_371",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_443",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_515",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_587",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_659",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_731",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_803",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_875",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_947",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_1019",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  },
+  {
+    "name": "node_Softmax_1091",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "dtype": "DataType.FLOAT"
+  }
+]

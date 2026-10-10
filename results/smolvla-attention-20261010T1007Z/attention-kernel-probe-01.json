@@ -1,0 +1,208 @@
+{
+  "status": "PASS",
+  "shape": [
+    1,
+    12,
+    1024,
+    64
+  ],
+  "torch": "2.11.0+cu130",
+  "triton": "3.6.0",
+  "capability": [
+    8,
+    7
+  ],
+  "cases": [
+    {
+      "case": "unmasked",
+      "block_m": 32,
+      "block_n": 64,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "unmasked",
+      "block_m": 64,
+      "block_n": 64,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "unmasked",
+      "block_m": 64,
+      "block_n": 128,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "unmasked",
+      "block_m": 128,
+      "block_n": 64,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "partial_mask",
+      "block_m": 32,
+      "block_n": 64,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "partial_mask",
+      "block_m": 64,
+      "block_n": 64,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "partial_mask",
+      "block_m": 64,
+      "block_n": 128,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "partial_mask",
+      "block_m": 128,
+      "block_n": 64,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "fully_masked_rows",
+      "block_m": 32,
+      "block_n": 64,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "fully_masked_rows",
+      "block_m": 64,
+      "block_n": 64,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "fully_masked_rows",
+      "block_m": 64,
+      "block_n": 128,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "fully_masked_rows",
+      "block_m": 128,
+      "block_n": 64,
+      "max_abs": 0.00048828125,
+      "status": "PASS"
+    },
+    {
+      "case": "infinities",
+      "block_m": 32,
+      "block_n": 64,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "infinities",
+      "block_m": 64,
+      "block_n": 64,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "infinities",
+      "block_m": 64,
+      "block_n": 128,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    },
+    {
+      "case": "infinities",
+      "block_m": 128,
+      "block_n": 64,
+      "max_abs": 0.000244140625,
+      "status": "PASS"
+    }
+  ],
+  "timings": [
+    {
+      "block_m": 32,
+      "block_n": 64,
+      "warps": 4,
+      "stages": 2,
+      "median_ms": 0.8841343688964843,
+      "batches_ms": [
+        0.8839167785644532,
+        0.8841343688964843,
+        0.8840370941162109,
+        0.8838796997070313,
+        0.8841490936279297,
+        0.8842451477050781,
+        0.8841331481933594,
+        0.8921778869628906,
+        0.8842393493652344
+      ],
+      "shared_memory_bytes": 28672
+    },
+    {
+      "block_m": 64,
+      "block_n": 64,
+      "warps": 4,
+      "stages": 2,
+      "median_ms": 0.7758041381835937,
+      "batches_ms": [
+        0.7765727996826172,
+        0.776578598022461,
+        0.7769254302978515,
+        0.7757791900634765,
+        0.7755833435058593,
+        0.7752435302734375,
+        0.7766329956054687,
+        0.7756275177001953,
+        0.7758041381835937
+      ],
+      "shared_memory_bytes": 32768
+    },
+    {
+      "block_m": 64,
+      "block_n": 128,
+      "warps": 4,
+      "stages": 2,
+      "median_ms": 0.7295999908447266,
+      "batches_ms": [
+        0.729653091430664,
+        0.7293606567382812,
+        0.7300863647460938,
+        0.7295999908447266,
+        0.7289977264404297,
+        0.7296160125732422,
+        0.7293824005126953,
+        0.729208984375,
+        0.7298432159423828
+      ],
+      "shared_memory_bytes": 57344
+    },
+    {
+      "block_m": 128,
+      "block_n": 64,
+      "warps": 4,
+      "stages": 2,
+      "median_ms": 0.7096326446533203,
+      "batches_ms": [
+        0.7095545959472657,
+        0.709994888305664,
+        0.7096153259277344,
+        0.7085453033447265,
+        0.7097427368164062,
+        0.7098336029052734,
+        0.7096326446533203,
+        0.7099577331542969,
+        0.7096089935302734
+      ],
+      "shared_memory_bytes": 49152
+    }
+  ],
+  "caveat": "Online probabilities round before global normalization; full-action gates required"
+}

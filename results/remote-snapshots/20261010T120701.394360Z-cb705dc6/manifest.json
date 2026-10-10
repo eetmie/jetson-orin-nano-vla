@@ -1,0 +1,1363 @@
+{
+  "status": "COMPLETE",
+  "archived_utc": "20261010T120701.394360Z",
+  "host": "joel@192.168.8.230",
+  "remote_results": "~/jetson-orin-nano-vla/results",
+  "rsync_exit": 0,
+  "files": [
+    {
+      "path": ".gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "README.md",
+      "bytes": 918,
+      "sha256": "1bd6f04ab10d806daeb984b36e420482e833c52f325128e76b99e4956f1bbfb9"
+    },
+    {
+      "path": "evo1-bootstrap.ort.json",
+      "bytes": 324723,
+      "sha256": "408e829455a1911d582aa303ee9a85f9eb323cedde7cb21eb8dde470015ac2ab",
+      "label": "evo1-bootstrap.ort",
+      "status": "ok",
+      "run_utc": "2026-09-03T18:33:59+00:00"
+    },
+    {
+      "path": "evo1-libero.ort.json",
+      "bytes": 324635,
+      "sha256": "91bf2fee55396ec9871067076cbf2fba3d0f953af75aff0257137a46cdf88f46",
+      "label": "evo1-libero.ort",
+      "status": "ok",
+      "run_utc": "2026-09-05T12:45:36+00:00"
+    },
+    {
+      "path": "evo1-libero.trt.json",
+      "bytes": 326569,
+      "sha256": "f295d200ad9b8c4f332c5cda1653a864f01fd8a88e389757c71849a08ba8e662",
+      "label": "evo1-libero.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:26:18+00:00"
+    },
+    {
+      "path": "evo1-libero.trt.sustained.json",
+      "bytes": 326587,
+      "sha256": "53527d7e014b5a4715d5f146827a96d9b115fdb01694dfebd78314932b2b70a6",
+      "label": "evo1-libero.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:27:17+00:00"
+    },
+    {
+      "path": "groot-n16-base.trt.json",
+      "bytes": 1305950,
+      "sha256": "d269128ff5bf219019c07671617e3ea5783ae985471f206cc14e9210799d470a",
+      "label": "groot-n16-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:00:38+00:00"
+    },
+    {
+      "path": "groot-n16-base.trt.sustained.json",
+      "bytes": 1306031,
+      "sha256": "7e5ee693adb62093a5ba553edf6f588b6aa2909c917e61ec324c1e7ec029223a",
+      "label": "groot-n16-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:01:42+00:00"
+    },
+    {
+      "path": "groot-n17-base.trt.json",
+      "bytes": 1073157,
+      "sha256": "45ce99c2e7135f31267030a58019189dbcde6d991821c6944f19cdaa9377760f",
+      "label": "groot-n17-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:07:17+00:00"
+    },
+    {
+      "path": "groot-n17-base.trt.sustained.json",
+      "bytes": 1073226,
+      "sha256": "7c4c7e05ae237ff65b4c3682bfe35f9cb81f2716de42f8fb0f7d4708ec56a2ef",
+      "label": "groot-n17-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:08:30+00:00"
+    },
+    {
+      "path": "pi05-libero.padded.trt.json",
+      "bytes": 197869,
+      "sha256": "62f7634bf0169c1a40c3b675703013ab05b155a041f8c70ee6bb1558679affdc",
+      "label": "pi05-libero.padded.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:56:39+00:00"
+    },
+    {
+      "path": "pi05-libero.padded.trt.sustained.json",
+      "bytes": 197891,
+      "sha256": "195693fa819b8f5ab9e1371d7271166bcee8ecf19086b7bd6a9bc9cc7902f4a6",
+      "label": "pi05-libero.padded.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:58:39+00:00"
+    },
+    {
+      "path": "pi05-libero.trt.json",
+      "bytes": 195584,
+      "sha256": "364f2d86d175d870dbe27d3ddcd636401861109ea2192d453da5574fb3fa4658",
+      "label": "pi05-libero.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:49:22+00:00"
+    },
+    {
+      "path": "pi05-libero.trt.sustained.json",
+      "bytes": 195609,
+      "sha256": "386dc7136a23e04dec079cb9bf077d73efe3041927e7894ac1d1dc3966a3529a",
+      "label": "pi05-libero.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:50:51+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/check_prompt_layouts.py",
+      "bytes": 8694,
+      "sha256": "e1c5ead2fd922aa75451e09b2a49618759e34c69ebd8db32ddf9d28a352f1d03"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.prompt-layouts.json",
+      "bytes": 10679,
+      "sha256": "2a439139d3a1df9d6b09c3372fb6e443f974da3a81f226c74ebdde2b7ea680af"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.prompt-layouts.log",
+      "bytes": 394,
+      "sha256": "2f3c54c4dcfb7de8f27f4084f72447adc4edc2eb1bdef15a484b06bf4d87f433"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.baseline.json",
+      "bytes": 326758,
+      "sha256": "66db16e303139604f7c22bae9df59b6ff8ee78667e2abbfe3bba474746b4f9ea",
+      "label": "evo1-libero.runtime-update.baseline",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:05:22+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.baseline.log",
+      "bytes": 546,
+      "sha256": "ae8176d21f908141f6a9efe99c0fcc98914787dd46b3b043282bc9ed51b3416e"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.candidate.json",
+      "bytes": 326758,
+      "sha256": "c98ce979ca5706853daadba5eec9a206838328c5f8787037575a573722b7db43",
+      "label": "evo1-libero.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:06:47+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.candidate.log",
+      "bytes": 549,
+      "sha256": "3ea952c5e0c42e22e8b5d231acf91096fabff0dc636d895065e1fc314e8ef1a7"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n16-base.runtime-update.candidate.json",
+      "bytes": 824162,
+      "sha256": "2c5d952ae934aba17c9d2b2bf86e8c39ae6ae371cefd64a6ff8511c3f8317c32",
+      "label": "groot-n16-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:08:15+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n16-base.runtime-update.candidate.log",
+      "bytes": 554,
+      "sha256": "9bf5ba886f7ad297a0d96a09d9a9e5256e22e863f4924cb119dbf18345ba94fb"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n17-base.runtime-update.candidate.json",
+      "bytes": 679701,
+      "sha256": "f083f222d26a8be1bdb251db6be9c666f4317a258e507b544bfd3c467d82e39e",
+      "label": "groot-n17-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:08:51+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n17-base.runtime-update.candidate.log",
+      "bytes": 555,
+      "sha256": "22428dc76ca42f686e9e3415bc08233e20108abf051dada51f47233a164489da"
+    },
+    {
+      "path": "runtime-updates-20261010/pi05-libero.runtime-update.candidate.json",
+      "bytes": 187262,
+      "sha256": "690e94594b4c7fe009320f518beb00833421c154fe8e0e0d6848c920b93f1812",
+      "label": "pi05-libero.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:09:30+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/pi05-libero.runtime-update.candidate.log",
+      "bytes": 549,
+      "sha256": "af81242ec05731b8441ade3ddc8f5c0253e7f5959efebd1fc3705102c5355ec0"
+    },
+    {
+      "path": "runtime-updates-20261010/run_probes.py",
+      "bytes": 1258,
+      "sha256": "02187dc1334c261cc1288365003dc2a7fceaa4c549734c1a25753ac4b4fb64e7"
+    },
+    {
+      "path": "runtime-updates-20261010/run_validation.py",
+      "bytes": 2765,
+      "sha256": "c158df23acb20bba5f0f5dba6612e2983b5438ed54695ae5a572a685aedd3652"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.prompt-layouts.json",
+      "bytes": 13453,
+      "sha256": "5a4850127c4d8af95028fc52733653ca8c20d61352ede5c8d4ba7afc0f584402"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.prompt-layouts.log",
+      "bytes": 396,
+      "sha256": "7ab4483545312701beac22db6b5ba8bda780e6effa43d85d7bce9bed89f235c4"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.baseline.json",
+      "bytes": 440441,
+      "sha256": "233a97c53b44f500c91486b278f96211f02fbff28d9ed72a11ccdd4f5a5edd75",
+      "label": "smolvla-base.runtime-update.baseline",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:00:07+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.baseline.log",
+      "bytes": 549,
+      "sha256": "55b9415e7daabf1186064205be68ac84f010b169a88f1048d1eecbaba88d5f43"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.candidate.json",
+      "bytes": 440439,
+      "sha256": "6552d6d4a60a62721900b73cfa5e61f7fbc2f45186b9ae94b9b65def76a1f4ad",
+      "label": "smolvla-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:01:22+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.candidate.log",
+      "bytes": 550,
+      "sha256": "f2673af71c2c73ae498117a4965de2785102ec38e8a8ef4a77dee94f1297d499"
+    },
+    {
+      "path": "runtime-updates-20261010/summarize.py",
+      "bytes": 3485,
+      "sha256": "08a8110136d63a8805168223b6a5bf419c333a269772e14218119b809136826c"
+    },
+    {
+      "path": "runtime-updates-20261010/summary.json",
+      "bytes": 25128,
+      "sha256": "80158935f1f7bbd9d30e05986ff71674b452097e7445a40ecce0fb432a1ea257"
+    },
+    {
+      "path": "runtime-updates-20261010/validation-manifest.json",
+      "bytes": 8499,
+      "sha256": "c765c46fc985c307c81c7ba10ae5066c677d6dc5fdb027adb4e8529b8fc00a71"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.prompt-layouts.json",
+      "bytes": 11686,
+      "sha256": "2cbd25b31aae700f98d872c08cee6c37ccdcd6e690359607d149485182de23fb"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.prompt-layouts.log",
+      "bytes": 390,
+      "sha256": "9996854a210f99a9f00c77e579325d52acb6c7068343813bb573597dd6de04e7"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.baseline.json",
+      "bytes": 159870,
+      "sha256": "2bd40497afc467e783b7d0888f3edeaaa1168d9fa9a0db31a95b3896c8bffc1e",
+      "label": "xvla-base.runtime-update.baseline",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:02:36+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.baseline.log",
+      "bytes": 543,
+      "sha256": "f2beca32b8788e4b9b1ff972f1d7121f2414b4fd11e5d03f1148f5313f2d4587"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.candidate.json",
+      "bytes": 159866,
+      "sha256": "438f2dc7d8cdc2611c9ab2ca83ab938f7c8ffa93689ce2cbf6ebc2cb5260a459",
+      "label": "xvla-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:04:00+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.candidate.log",
+      "bytes": 545,
+      "sha256": "3b3e2e24efd97f28848db4bf748314d281b37282d78bd42b7bb491b28b872cb0"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/attention-aot-attributes-01.json",
+      "bytes": 886,
+      "sha256": "3a2fb6bf5f3c0d567edce5fbcf9a144ac0d06cf580769f0ea0babcb2ef3e5d82"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/attention-aot-attributes-01.log",
+      "bytes": 1179,
+      "sha256": "3073380f654aeb354b455bce3597f852d472defa5f02f0b2bc8a9d3660b64a31"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/attention-kernel-probe-01.json",
+      "bytes": 4329,
+      "sha256": "5d453d572e6aab9ce5742d385676f286133fe66f2ea3724352582cccb85dbb58"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/attention-kernel-probe-01.log",
+      "bytes": 3562,
+      "sha256": "8c8aa3c2ddad8fcaad1b4359d4737e63bd9916c0a4f7da1df6925e999ecc5a39"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/build-triton-attention-aligned.log",
+      "bytes": 1787,
+      "sha256": "03220f5005096c9e47e53b19c2819da59f8d44aa2d7ebb8bcce2b2ce6f5ae286"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/build-triton-attention.log",
+      "bytes": 1779,
+      "sha256": "b5c74fafa13e284063b9ee0c02d1292ca07495bdc4862432d9252e0f6512976c"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/build-trt-attention.log",
+      "bytes": 1189,
+      "sha256": "a1ac37acd8f9e027e2889af170dad7e7595832c7721f6203412e9c54e0ac82b3"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/engine-inspection-01.json",
+      "bytes": 669817,
+      "sha256": "ebb0eb3ffa2e941b3e4057e11720aa8b22fdaf648aaedd4dce0f83e0e0cd18f5"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/engine-inspection-01.log",
+      "bytes": 75,
+      "sha256": "17dca360f31d7516faafbf7b9e4618de37d6c38c840bc04bf7dd742c425241b2"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-control-300s.json",
+      "bytes": 441314,
+      "sha256": "f505a7c9925d842b36470baa569c5dd24ced089e0032ce720897c0d8846a72ef",
+      "label": "smolvla-base.control.20261010T1007Z.300s",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:22:16+00:00"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-control-300s.log",
+      "bytes": 520,
+      "sha256": "ed1a52c9f9e93ee6bfe928e27a8d83f2ec75316424979135ecd66bf0afdc706a"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-triton-attention-60s.json",
+      "bytes": 445426,
+      "sha256": "9e79a72f456fa300f315aff3bed695be7e8b2e6e180c11787b333a663a375f9d",
+      "label": "smolvla-base.triton-attention.20261010T1007Z",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:13:39+00:00"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-triton-attention-60s.log",
+      "bytes": 748,
+      "sha256": "c941556539110f70000f1446b5e4908ea8951dfec9fe82f107d35f7755f48df8"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-triton-attention-aligned-300s.json",
+      "bytes": 445455,
+      "sha256": "ef8e085f7cde2fe447384a0a0519f5cd6e821a742b5dfb37bb29324fb436ee25",
+      "label": "smolvla-base.triton-attention-aligned.20261010T1007Z.300s",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:27:30+00:00"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-triton-attention-aligned-300s.log",
+      "bytes": 769,
+      "sha256": "37603f6dab67f0047a61cf3c42c2d2f7691260c1ba16edbfd3f706f6323d3191"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-triton-attention-aligned-60s.json",
+      "bytes": 445431,
+      "sha256": "faa4225f6a17c800ec32435caa178876f7f02c6b0fd964ff01162d61f7976501",
+      "label": "smolvla-base.triton-attention-aligned.20261010T1007Z",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:19:02+00:00"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-triton-attention-aligned-60s.log",
+      "bytes": 764,
+      "sha256": "f93c308df2f1b5b8bf24c9411f1cacffd1a018e394b27b3f9b0731e5813647bd"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-trt-attention-60s.json",
+      "bytes": 445195,
+      "sha256": "05514e3ce4dcb9329342c81e7c52181578d05e0bac04b933e11bd3f1ed2ca044",
+      "label": "smolvla-base.trt-attention.20261010T1007Z",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:08:29+00:00"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-trt-attention-60s.log",
+      "bytes": 526,
+      "sha256": "13e81fd4ac9a2f4b68222e8fbeb9310a95cbd9fdb391d0ae1ba9171986c2619d"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-variants-01.json",
+      "bytes": 2169900,
+      "sha256": "2e76b61fd3bbbd89a4754d5c296aba48e5db79cee9fe7c2fd493442cd2e91300"
+    },
+    {
+      "path": "smolvla-attention-20261010T1007Z/policy-variants-01.log",
+      "bytes": 5160,
+      "sha256": "69917bfbb072c233b27d9e52788f4a9b54959e860959f97f9f9fb1ec3b1b08ba"
+    },
+    {
+      "path": "smolvla-base.ort.json",
+      "bytes": 439408,
+      "sha256": "8c5579828469121d4f12fe95997b4c77cb79073b1dc4504ffd70b4bce06f2f81",
+      "label": "smolvla-base.ort",
+      "status": "ok",
+      "run_utc": "2026-08-26T17:33:52+00:00"
+    },
+    {
+      "path": "smolvla-base.torch.json",
+      "bytes": 445219,
+      "sha256": "acbaec8662beacbebf322b2e70efb828c7b87208b9df495d447c5c23ac90df18",
+      "label": "smolvla-base.torch",
+      "status": "ok",
+      "run_utc": "2026-08-26T17:32:10+00:00"
+    },
+    {
+      "path": "smolvla-base.trt.json",
+      "bytes": 440704,
+      "sha256": "64969330ca3ac34de7312bdcc687d94091e029a0259cfed68f5db0579f6d315b",
+      "label": "smolvla-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:20:30+00:00"
+    },
+    {
+      "path": "smolvla-base.trt.sustained.json",
+      "bytes": 440729,
+      "sha256": "cecc131f1bcc674086ccbd48a3142a1b97eac07f34f2b73db8b1c9625148db45",
+      "label": "smolvla-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:21:03+00:00"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/aligned-graph.log",
+      "bytes": 1589,
+      "sha256": "91c966e4236acd4f610c094bc70fc8263a4ad56a1c8676816f5e4e884b9dd517"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/aligned-graph.nsys-rep",
+      "bytes": 2482181,
+      "sha256": "dffb8ab8cdefbc6404ce1d8a0437b3288e1168eca9280b5377a9432b5f4c6a42"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/aligned-graph.sqlite",
+      "bytes": 8040448,
+      "sha256": "5dda38e801f9d9aa78aff85c322ced7273f0efc9b694c17f476ea8a72c8a6e3f"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/aligned-graph.trace.json",
+      "bytes": 527,
+      "sha256": "f5f50fa9301f8648ece038dfa37ebde750c34ceba0188187561f3df1fe0cf47b"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/build-control.log",
+      "bytes": 1305,
+      "sha256": "a41be1e75ed1b44e7cb2e84bb381864a7ffdeab0c318d591170354cbdd395ede"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/build-ffn.log",
+      "bytes": 1887,
+      "sha256": "0ec8780aa262cd2b82a812cfd09a67b07d33d32897ecdbc61dfbc8c93a38512c"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/cache-tests.log",
+      "bytes": 102,
+      "sha256": "d52cbb1058abf83e3acb402d1c2b8ee089749613d6075f5d973dd66c8ef09200"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/decode-engine-inspection.json",
+      "bytes": 14516,
+      "sha256": "295f221ced862c4874b1977a26c296954ef6454243c2cd54f61c15d6ef39f324"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/decode-layer-profile.json",
+      "bytes": 56770,
+      "sha256": "fed26ba55fbaf5b05308cf0a25ada175e9336b79e662dcc1a38f5e89a8ec0f96"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/decode-layer-profile.log",
+      "bytes": 1268,
+      "sha256": "5b30675a3f15b6b616b6a50e28b9bdbe2c6ec209cad48840f7fc8d566f01e716"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/expert-engine-inspection.json",
+      "bytes": 783406,
+      "sha256": "446fc96107bd8e4f8e3c257bb5e165ae90ae1623c99ccf848aef6ad4c7ea6a59"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/expert-engine-inspection.log",
+      "bytes": 210,
+      "sha256": "6d7546fb5afd466fe31a2df84045d252562c0e2d4c62ed7ea5ed65c96f94b943"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/export.log",
+      "bytes": 8127,
+      "sha256": "11e8f62aa48b23ebd1644da8f4bd39115bd19d8cb3a6b7959e15ac731d47b7ef"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/ffn-operator-01.json",
+      "bytes": 6080,
+      "sha256": "192353d8f4e369b78b4bb3bc5688d3951085b0b8c56b65b2d1ae80a55619a273"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/ffn-operator-01.log",
+      "bytes": 3605,
+      "sha256": "246ed87fc40ac44245ac784b7391a892448300892398632390ba7e62cf0a7d6c"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/ffn-operator-extended-03.json",
+      "bytes": 6396,
+      "sha256": "e3ac27f67e3ab1f7adcd11ef4678a02ca5d7c98c022c17e126b90cbf16442906"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/ffn-operator-extended-03.log",
+      "bytes": 3929,
+      "sha256": "cc3dc568a685767b2c806047d298720a62e596fc67f091bf14a80a97f92af228"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/ffn-operator-packed-02.json",
+      "bytes": 10225,
+      "sha256": "2bce82a2cdf5204a79540c77acb72faa920694108c529c08ee44ba55ad7d3e5d"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/ffn-operator-packed-02.log",
+      "bytes": 6654,
+      "sha256": "57cc7abfe123bab360d7911fc31266c674878447651959dbc9be1f6d447710c3"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/kernel-summary.json",
+      "bytes": 10290,
+      "sha256": "b1e0d296ac6fa59a76344573c1e04cf0237a6261d04075f5bed75a99d8751b21"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-aligned-60s.json",
+      "bytes": 445415,
+      "sha256": "d66965ece067a3d119d16fbf3b462c17c9b99c9b50cd8e689e9ce3565789a43f",
+      "label": "smolvla-base.aligned.20261010T1041Z.60s",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:51:17+00:00"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-aligned-60s.log",
+      "bytes": 731,
+      "sha256": "3228fe532bf3c2d724e9ae58bfe6d83b8b3800aac723549d6a6dc85386754d32"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-control-300s.json",
+      "bytes": 452160,
+      "sha256": "82e8810be09e8d38a9dee4a063a48b989e0a17f33c3a17efe5b064808e76d238",
+      "label": "smolvla-base.expert-control.20261010T1041Z.300s",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:57:15+00:00"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-control-300s.log",
+      "bytes": 745,
+      "sha256": "56818e22969d5740cf5e0981eba50da877ce6b83fab157ec2e6b8add77049eb0"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-control-60s.json",
+      "bytes": 452150,
+      "sha256": "25b3a3cc7af9d09e240ed70b4bc79043388cd1ed7863b9cec52a365ce774215b",
+      "label": "smolvla-base.expert-control.20261010T1041Z.60s",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:52:32+00:00"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-control-60s.log",
+      "bytes": 745,
+      "sha256": "cea634580769593df5a1000fa895b390cc9d8844e7f254bf0abdf225b650660e"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-ffn-300s.json",
+      "bytes": 456784,
+      "sha256": "0bca8c9c759259a48fdf3908d0b19180fd319ef4827c9d6c1aaa7042c861c308",
+      "label": "smolvla-base.expert-ffn.20261010T1041Z.300s",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:02:29+00:00"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-ffn-300s.log",
+      "bytes": 739,
+      "sha256": "267ee25eaa46562227cb649c8f814ecdf7388d189b7fe6ee1963d099fee1463d"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-ffn-60s.json",
+      "bytes": 456762,
+      "sha256": "7af3b5576f113ac5d108e3e43d632b9f9c496a4b20aa9d9608de5152b2c0dccd",
+      "label": "smolvla-base.expert-ffn.20261010T1041Z.60s",
+      "status": "ok",
+      "run_utc": "2026-10-10T10:53:47+00:00"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-expert-ffn-60s.log",
+      "bytes": 737,
+      "sha256": "17d532f7f01312cb10a4a391e565b41f4e537e3e5eecdcd49b7d3d12e562fa7b"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-variants-01.json",
+      "bytes": 2191123,
+      "sha256": "6baf77031080486626343e70d578a812655b43dd620df466fd4df27cc27c8d59"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/policy-variants-01.log",
+      "bytes": 4284,
+      "sha256": "96d788c8ab1a5dbc1bed21e9c78fe0760434bf9fd8e53510c441d040cbdee1de"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/profile-summary.txt",
+      "bytes": 1139,
+      "sha256": "82fc20fd34ea93e836a1a1b51f4c795a77744d0d2000888494331613dac6a8f2"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/source-manifest.json",
+      "bytes": 2006,
+      "sha256": "fdec639fa46ef5f88db44cfe72f0ed9d2d99706c1c0a571356f60e02af5b6a1b"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/README.md",
+      "bytes": 13279,
+      "sha256": "6d607bb1d2b287752a9f4b0e2c9008d306d55c69881bc8f002a239a609115cb0"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/aot_kernel.py",
+      "bytes": 1356,
+      "sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/attention_kernel.py",
+      "bytes": 2374,
+      "sha256": "05b78f54a4679b5320c579032c89c4480a3c019f5e166d0efcb34dd04ae21014"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/bench_ffn.py",
+      "bytes": 5971,
+      "sha256": "04cf0952da88d800897fdb99f73fa6102de14bf16f5fc88fdf7ab22c622e7b47"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/bench_softmax.py",
+      "bytes": 6210,
+      "sha256": "a4b3a84ed6054ac680368e14238d2abaacd0bafa7cf582d5ee57ab720d53273b"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/build_expert.py",
+      "bytes": 6207,
+      "sha256": "ee05ed3d2b50d014ac79932ee667931f0c5ae8aec86ed8777d41e939af5c1243"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/build_vision.py",
+      "bytes": 8520,
+      "sha256": "12ed7f94398280d025270aba9fa9c06a214668450736374b93517f2561c0320f"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/candidate_cache.py",
+      "bytes": 1492,
+      "sha256": "bc47a8adfbc17e0caab3b5aab3a0e1867c1161bbe888619056195f52edc57bba"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/check_attention.py",
+      "bytes": 4536,
+      "sha256": "d3ad26ed1bab85008bfe5eba5e4556ab5c505974aac4eb1338306a3fcf77b72d"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/check_attention_aot.py",
+      "bytes": 2782,
+      "sha256": "19789d097b330f245e4e8ddfa75f525203caebf57f6fa8bad9d51605916f7b0d"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/check_masked.py",
+      "bytes": 4153,
+      "sha256": "1f71cb5b4abc02fafc0f62390fa614fb000468d0d72e2ba6b81e0ca21c2e3488"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/check_policy_variants.py",
+      "bytes": 4852,
+      "sha256": "2af3f48181239bf528bea8f036ee40930b7d7355114de9d1768583825957e08e"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/ffn_kernel.py",
+      "bytes": 2489,
+      "sha256": "4d88ae4a84bf86a8b7a8a4c0cfa9bb0fb9eb1e83ab7229c62b65f94fd7f44602"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/ffn_plugin.py",
+      "bytes": 1612,
+      "sha256": "3a7425f5de69a715f19008f70e84b76c4495780401ac1ce7b18a17c518d4696b"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/inspect_engines.py",
+      "bytes": 1737,
+      "sha256": "864a94aa69f587ebc8fa5d1b434bfe97b9a48b3d5a8dc652744d29b2d61582e1"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/inspect_expert.py",
+      "bytes": 1779,
+      "sha256": "f82611dbdc66467c643c864020a2600d0aa1a55380a4220d5b132acedec1078b"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/plugin.py",
+      "bytes": 5634,
+      "sha256": "2b573d7921923718e22f040bf0a17210a5cae6383c80ddcb8cabd6dcb518f818"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/profile_candidate.py",
+      "bytes": 973,
+      "sha256": "8b643942922dc94bafa2e4a0a54f1ff22215674bad6f3a7f8081fbb77b19ee5e"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/profile_expert_layers.py",
+      "bytes": 2249,
+      "sha256": "5a4308f63124872b964787106b9c8ee45c6e09d2de1216207b1aad420e50485c"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/run_candidate.py",
+      "bytes": 1687,
+      "sha256": "5bff34b2cd5fabc56db1ca87e6b94f068d2a1a25938e0e884666d7975d7259de"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/summarize_expert.py",
+      "bytes": 3341,
+      "sha256": "b796252d4c302553df61d53d51d8536c55b7a656b816c3b0e85241abb54ba030"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/sources/test_smolvla_candidate_cache.py",
+      "bytes": 2480,
+      "sha256": "423cbb0457810cc60d8de2f2e7ecc629de3f2be1de6c9c825021e4cabda2e013"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/summary.json",
+      "bytes": 54646,
+      "sha256": "575293cd0f9c31b5d43b7ed2899032719ef8953b579fb68472aad2cff89c14e4"
+    },
+    {
+      "path": "smolvla-expert-20261010T1041Z/summary.log",
+      "bytes": 556,
+      "sha256": "54bda1eaddaf005a2bf26a86ddaed72e38c93d35e90fc403b2a03f9fcb93551a"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-60s.json",
+      "bytes": 452260,
+      "sha256": "26c8417b2ba3c160af2e4da20d13313f3e8720e682060f3e057662c336b5ba1a",
+      "label": "smolvla.memory.control",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:48:16+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-60s.log",
+      "bytes": 707,
+      "sha256": "3af18c43dc6d67fb4bc3f6b6cfc744008a760bbe8eb8934e4fb6ae88e9d57426"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-env-60s.json",
+      "bytes": 452298,
+      "sha256": "a4d5218960933883ced281130a4b750ede3143182c0de985002a78a708b127fc",
+      "label": "smolvla.memory.control-env",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:54:10+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-env-60s.log",
+      "bytes": 473,
+      "sha256": "035b8942f347e87d445791dddb91500ca3ae243158f51ad6228ff6c56aec793e"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-lean-60s.json",
+      "bytes": 452292,
+      "sha256": "7c3923bce9959d50fbde00bb5f552528561e3af4e33db7f861a1c77ae8b4c912",
+      "label": "smolvla.memory.control-lean",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:50:45+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-lean-60s.log",
+      "bytes": 718,
+      "sha256": "e23b24703ae8745f14798f155f8c592b58a352c68d37707f063de07bf854eab6"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-lean-env-60s.json",
+      "bytes": 452298,
+      "sha256": "27e9d06038214e9018a89ef520613212871fb5104049da00e329b6220ef0e693",
+      "label": "smolvla.memory.control-lean-env",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:55:25+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-control-lean-env-60s.log",
+      "bytes": 362,
+      "sha256": "3c0290f4a1fed5c2428392151660750ec8f662de1a3ff250971c47c0ed3114bd"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-60s.json",
+      "bytes": 456877,
+      "sha256": "5e6725f69e702a6e6c9b0faaa97bc55039d83cc86eee3ef9f33a4e47a6fa2b46",
+      "label": "smolvla.memory.ffn",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:49:30+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-60s.log",
+      "bytes": 699,
+      "sha256": "eed8a853447ad3108e5c5f05ffdf64ef0816e6aa1fda38742b4d8213b5415429"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-lean-60s.json",
+      "bytes": 456909,
+      "sha256": "3f5df3ae68fc5ad47297f7343ad970433a7e7b51c726b7bbb05f3e1701b50e59",
+      "label": "smolvla.memory.ffn-lean",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:51:58+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-lean-60s.log",
+      "bytes": 709,
+      "sha256": "32e0f3a9cdfabf11c0537af8c976bd4efc09f071b756107cb9097779c9792056"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-lean-env-300s.json",
+      "bytes": 456930,
+      "sha256": "db84d685bec8eb521b4b39cfe3307dc79173363c0c480cb3105171ab343d2c5f",
+      "label": "smolvla.memory.balanced-300s",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:58:56+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-lean-env-300s.log",
+      "bytes": 356,
+      "sha256": "7ed22bfd2c9fd6ba6b1e5100ecfaccf2f4f7b4f3c92ce4d42626006df3290a51"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-lean-env-60s.json",
+      "bytes": 456914,
+      "sha256": "d13e2e34e4516be41a27e33805bdbf4d6e8a0edbfaa78136e05801c7471f5a05",
+      "label": "smolvla.memory.ffn-lean-env",
+      "status": "ok",
+      "run_utc": "2026-10-10T11:56:37+00:00"
+    },
+    {
+      "path": "smolvla-memory-20261010/policy-ffn-lean-env-60s.log",
+      "bytes": 354,
+      "sha256": "a374c7c9b47b74a51f04b56818d22c84c0a3365c7a8ed0e4d998eb69f37de5de"
+    },
+    {
+      "path": "smolvla-memory-20261010/probe-control.json",
+      "bytes": 31829,
+      "sha256": "92f2a0db6740d0b4aba59a57bcc06de92890b524a1f66691d7665b6c85f66972"
+    },
+    {
+      "path": "smolvla-memory-20261010/probe-ffn-lean.json",
+      "bytes": 36278,
+      "sha256": "1bf24d45fabc35ba426660b27d115cf038eb039a19c9791addb93de7945a68ff"
+    },
+    {
+      "path": "smolvla-memory-20261010/probe-ffn.json",
+      "bytes": 36221,
+      "sha256": "70619c472e9c85e2bb957c392765509d99c99ec866072a2a0085762b5557e864"
+    },
+    {
+      "path": "smolvla-memory-20261010/selection.json",
+      "bytes": 2854,
+      "sha256": "a1f81e37a8aa3af89ac9f15e7e38d0ea7054db9115ab0d4934fc669c4355bd93"
+    },
+    {
+      "path": "smolvla-memory-20261010/source-manifest.json",
+      "bytes": 1009,
+      "sha256": "7ba4fb55a9b19bd1d4de4d3cf700686a4149705a7f4136d30828ee60bf277c49"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/check_tokenizer.py",
+      "bytes": 3225,
+      "sha256": "8bd78aa045643e6448e8ef05915c7a59285ee9b1ec3c8ba0fb0bbe2dc2b6153c"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/probe_memory.py",
+      "bytes": 4940,
+      "sha256": "d4af62c53d81d63000af8b5284dd1b233e2c0e6778ccbf657282cbaf5604fa56"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/run_candidate.py",
+      "bytes": 2531,
+      "sha256": "f07bc9c3355071143218c080a74b7188ad37320a94a1511afe2a4c3911bd9448"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/runner-before.py",
+      "bytes": 16827,
+      "sha256": "75287e7af3174cef0f2fde8d70922227a8d2f886bd97ccb2adf79b258cfe1b75"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/runner.py",
+      "bytes": 17820,
+      "sha256": "f8900fc37d2b738c741667a9ff8af8777b23e99b773cf47eba2087965c3d79fa"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/runtime_memory.py",
+      "bytes": 2665,
+      "sha256": "243fdc754d2c8bca6e6f66f19c946f06e3cae6e1aea4576bdd2c3cbf8929a38b"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/summarize_memory.py",
+      "bytes": 3960,
+      "sha256": "7b01532a5c2b76c6060dfd83c4a7682ed83526cc726ef32f476a577711e66f88"
+    },
+    {
+      "path": "smolvla-memory-20261010/sources/test_env_memory.py",
+      "bytes": 1615,
+      "sha256": "cbd464e5c0f333c55e472497e38dff6a2d6287d5ea9faf91a000857b594a2afe"
+    },
+    {
+      "path": "smolvla-memory-20261010/summary.json",
+      "bytes": 113256,
+      "sha256": "9362379eb051f937f698d881df0bb161aa4d6cc000616762587932bb619bd6cb"
+    },
+    {
+      "path": "smolvla-memory-20261010/tokenizer-parity-bounded.json",
+      "bytes": 397947,
+      "sha256": "2d1f94712c6e05ba600e90642d44241cb86f37f645418031d7a1a66249a40c38"
+    },
+    {
+      "path": "smolvla-memory-20261010/tokenizer-parity.json",
+      "bytes": 397874,
+      "sha256": "9ce22c90f3eeb327ba8e4567502c8a2543687d29dc817fa13f289fef63fc3e6e"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/build-control.log",
+      "bytes": 1183,
+      "sha256": "0e02d680b30d1ce6f42499702d17b4420db71e4f1b7ed9b7f08727a75e7d3965"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/build-fp16.log",
+      "bytes": 1767,
+      "sha256": "17e21e10d875c0787e0ffa3cca2f1fc698196914c2148a470c0c207d2e86b652"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/build-masked.log",
+      "bytes": 1769,
+      "sha256": "b926381f3292914093ded1cdf3ed9b058ba0f5cf36cd68ab166efe6ff146c414"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/candidate-control.json",
+      "bytes": 573,
+      "sha256": "820a329b45de86365da447e4189b125c9d2502cb21139940cc7587c12b9af47e"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/candidate-fp16.json",
+      "bytes": 3810,
+      "sha256": "b2f5b1b22cc85a0a6a3072c54f80d6d75efa13255d5da41187d8de1aa0fa521d"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/candidate-masked.json",
+      "bytes": 3748,
+      "sha256": "e7359f9700728988311b293e23ec4ed44bd90b4e47a7c081e5ee49180a80bdea"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/aot_kernel.py",
+      "bytes": 1356,
+      "sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/bench_softmax.py",
+      "bytes": 6109,
+      "sha256": "33b806a74b137e2c0091e00f01309bd73958be456c94f2eb0b5b58717a632825"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/build_vision.py",
+      "bytes": 5691,
+      "sha256": "7c12a217a804f5b7cac71616e78d9b60e2b88fb35f446968c55b4c061e9236c2"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/check_masked.py",
+      "bytes": 4012,
+      "sha256": "6be3c6f65a16ebe343bcbe3f67c39edbc739227a483c6015f8800858c094cfae"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/plugin.py",
+      "bytes": 2733,
+      "sha256": "78a9d0188647ed8cd8813f89ebc2bca2bc4653ad6c007c78ec16ef604b06b796"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/run_candidate.py",
+      "bytes": 1661,
+      "sha256": "75ec998445ff4ae09fa99f966164301275f4481421ebd646fb46640c7fd38ba0"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/vendor/LICENSE.triton-kernel-lab",
+      "bytes": 1070,
+      "sha256": "f14405e71f68fd4f1697f553ec2718b8587151078ec3b2234781fbb664d90e92"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/vendor/jetson_smoke.py",
+      "bytes": 2110,
+      "sha256": "5b4910778e1d338aae77f86b1c07e30aabaa8b0d00e1459d01745737a9937aad"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/current-sources/vendor/lab_softmax.py",
+      "bytes": 4022,
+      "sha256": "b15f484fa2e990dba5386e12a9f279fc06f44a3eba72ff06b89dbe5b85546b4f"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/masked-correctness.json",
+      "bytes": 761,
+      "sha256": "85e86d8af3532dfd5ae98b693ae4175c1d51196ccab11d608b9042a7860a4e02"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/masked-correctness.log",
+      "bytes": 587,
+      "sha256": "17de5e1fd9509ca7607ca0074e4e21534abac02f5d2629fbc2134ddc50e2148a"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/run-control.log",
+      "bytes": 506,
+      "sha256": "400fb41c953c91535424f67d3b758fae5f2ea45657c09109ecbfe85f574edb91"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/run-fp16.log",
+      "bytes": 714,
+      "sha256": "313a6c821bfcf22fab4f7df4b7dca6f07a5f02b2a26971f6d95b3034273e7697"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/run-masked.log",
+      "bytes": 724,
+      "sha256": "58057d0698e2ec278223133a454d4fd1554aa0b97ade62dec6fcee464fc6b406"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/sha256.json",
+      "bytes": 2868,
+      "sha256": "52fcdbc6a2717643ac501c7985250da15cda38b014e52d0f0ff5a71fe53f53f5"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/smolvla-base.triton-control.json",
+      "bytes": 441274,
+      "sha256": "60a6a0b8bac7ea3affd95623420d70c91677cd54a59c8809c9e8595d418447f0",
+      "label": "smolvla-base.triton-control",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:42:01+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/smolvla-base.triton-fp16.json",
+      "bytes": 445189,
+      "sha256": "1b44bb52b1c3f6059e108fef96848c54353e696002845ca1f166e00adaba5c82",
+      "label": "smolvla-base.triton-fp16",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:31:40+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/smolvla-base.triton-masked.json",
+      "bytes": 444867,
+      "sha256": "167afc5496105180dbf1be1be7c9bdf4cd1d2f35d73d61bcfd40a389f6e5c5f2",
+      "label": "smolvla-base.triton-masked",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:39:36+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/softmax-bench.json",
+      "bytes": 12734,
+      "sha256": "a9f68e8a0b016fdbc2d2b8d14e118f0e5036c98db59d68a1020c12decd76cf0b"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/softmax-bench.log",
+      "bytes": 1089,
+      "sha256": "2f040c24701e96bbe16749c5685eab262333201864cb7e31ee2153122bf48e41"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/softmax-shapes.json",
+      "bytes": 1624,
+      "sha256": "9059c95166dda384c40242df37d7a0121327cee45af49cddc49db327535cd1e4"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/sources-fp16/aot_kernel.py",
+      "bytes": 612,
+      "sha256": "e16130cfd5abc481a3d28021fb2db5b81a6af765a3c5969aa0ca407fad4a8d9e"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/sources-fp16/build_vision.py",
+      "bytes": 4265,
+      "sha256": "6f8306f072a2acf577dae58b19e552f530a96c94709a43ae01e80e6fdcabfeb3"
+    },
+    {
+      "path": "smolvla-triton-20261010/archives/20261010T094412.471601Z-before-operator-reruns/sources-fp16/plugin.py",
+      "bytes": 1418,
+      "sha256": "5b29cddfdf7ef9746011f26d97f8b039491779f8ff478311d0a412611053160d"
+    },
+    {
+      "path": "smolvla-triton-20261010/build-control.log",
+      "bytes": 1183,
+      "sha256": "0e02d680b30d1ce6f42499702d17b4420db71e4f1b7ed9b7f08727a75e7d3965"
+    },
+    {
+      "path": "smolvla-triton-20261010/build-fp16.log",
+      "bytes": 1767,
+      "sha256": "17e21e10d875c0787e0ffa3cca2f1fc698196914c2148a470c0c207d2e86b652"
+    },
+    {
+      "path": "smolvla-triton-20261010/build-masked.log",
+      "bytes": 1769,
+      "sha256": "b926381f3292914093ded1cdf3ed9b058ba0f5cf36cd68ab166efe6ff146c414"
+    },
+    {
+      "path": "smolvla-triton-20261010/candidate-control.json",
+      "bytes": 573,
+      "sha256": "820a329b45de86365da447e4189b125c9d2502cb21139940cc7587c12b9af47e"
+    },
+    {
+      "path": "smolvla-triton-20261010/candidate-fp16.json",
+      "bytes": 3810,
+      "sha256": "b2f5b1b22cc85a0a6a3072c54f80d6d75efa13255d5da41187d8de1aa0fa521d"
+    },
+    {
+      "path": "smolvla-triton-20261010/candidate-masked.json",
+      "bytes": 3748,
+      "sha256": "e7359f9700728988311b293e23ec4ed44bd90b4e47a7c081e5ee49180a80bdea"
+    },
+    {
+      "path": "smolvla-triton-20261010/engine-inspection.json",
+      "bytes": 480744,
+      "sha256": "0744e9298801b9faddc5a8d16aacfe13840360f5399591c8fda11327e9a9a577"
+    },
+    {
+      "path": "smolvla-triton-20261010/engine-inspection.log",
+      "bytes": 63,
+      "sha256": "202d08fd01831e61e92fc822002bfac9854d90e193dd48fc2d75e646529cd12b"
+    },
+    {
+      "path": "smolvla-triton-20261010/masked-correctness.json",
+      "bytes": 761,
+      "sha256": "85e86d8af3532dfd5ae98b693ae4175c1d51196ccab11d608b9042a7860a4e02"
+    },
+    {
+      "path": "smolvla-triton-20261010/masked-correctness.log",
+      "bytes": 587,
+      "sha256": "17de5e1fd9509ca7607ca0074e4e21534abac02f5d2629fbc2134ddc50e2148a"
+    },
+    {
+      "path": "smolvla-triton-20261010/operator-rerun-20261010T0945Z/masked-correctness.json",
+      "bytes": 2190,
+      "sha256": "4ae036f49ee063468fc671ef82907ee060dddf39595f7e1acdfde47e59eb31a0"
+    },
+    {
+      "path": "smolvla-triton-20261010/operator-rerun-20261010T0945Z/masked-correctness.log",
+      "bytes": 2024,
+      "sha256": "2488879d28eed3ade114e498fecc1d68df11c71c055417c89eb9e2296b1b760f"
+    },
+    {
+      "path": "smolvla-triton-20261010/operator-rerun-20261010T0945Z/softmax-bench.json",
+      "bytes": 12746,
+      "sha256": "7cc20251a3b4849072409c068571067a1518f8b474aff1ffea856aa7369e006c"
+    },
+    {
+      "path": "smolvla-triton-20261010/operator-rerun-20261010T0945Z/softmax-bench.log",
+      "bytes": 1124,
+      "sha256": "360658fa9db9de85095b61c5d647afa3101bd12fa5b712b050f7838c79689e21"
+    },
+    {
+      "path": "smolvla-triton-20261010/run-control.log",
+      "bytes": 506,
+      "sha256": "400fb41c953c91535424f67d3b758fae5f2ea45657c09109ecbfe85f574edb91"
+    },
+    {
+      "path": "smolvla-triton-20261010/run-fp16.log",
+      "bytes": 714,
+      "sha256": "313a6c821bfcf22fab4f7df4b7dca6f07a5f02b2a26971f6d95b3034273e7697"
+    },
+    {
+      "path": "smolvla-triton-20261010/run-masked.log",
+      "bytes": 724,
+      "sha256": "58057d0698e2ec278223133a454d4fd1554aa0b97ade62dec6fcee464fc6b406"
+    },
+    {
+      "path": "smolvla-triton-20261010/smolvla-base.triton-control.json",
+      "bytes": 441274,
+      "sha256": "60a6a0b8bac7ea3affd95623420d70c91677cd54a59c8809c9e8595d418447f0",
+      "label": "smolvla-base.triton-control",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:42:01+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/smolvla-base.triton-fp16.json",
+      "bytes": 445189,
+      "sha256": "1b44bb52b1c3f6059e108fef96848c54353e696002845ca1f166e00adaba5c82",
+      "label": "smolvla-base.triton-fp16",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:31:40+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/smolvla-base.triton-masked.json",
+      "bytes": 444867,
+      "sha256": "167afc5496105180dbf1be1be7c9bdf4cd1d2f35d73d61bcfd40a389f6e5c5f2",
+      "label": "smolvla-base.triton-masked",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:39:36+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/softmax-bench.json",
+      "bytes": 12734,
+      "sha256": "a9f68e8a0b016fdbc2d2b8d14e118f0e5036c98db59d68a1020c12decd76cf0b"
+    },
+    {
+      "path": "smolvla-triton-20261010/softmax-bench.log",
+      "bytes": 1089,
+      "sha256": "2f040c24701e96bbe16749c5685eab262333201864cb7e31ee2153122bf48e41"
+    },
+    {
+      "path": "smolvla-triton-20261010/softmax-shapes.json",
+      "bytes": 1624,
+      "sha256": "9059c95166dda384c40242df37d7a0121327cee45af49cddc49db327535cd1e4"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-fp16/aot_kernel.py",
+      "bytes": 612,
+      "sha256": "e16130cfd5abc481a3d28021fb2db5b81a6af765a3c5969aa0ca407fad4a8d9e"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-fp16/build_vision.py",
+      "bytes": 4265,
+      "sha256": "6f8306f072a2acf577dae58b19e552f530a96c94709a43ae01e80e6fdcabfeb3"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-fp16/plugin.py",
+      "bytes": 1418,
+      "sha256": "5b29cddfdf7ef9746011f26d97f8b039491779f8ff478311d0a412611053160d"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-fp16/vendor/LICENSE.triton-kernel-lab",
+      "bytes": 1070,
+      "sha256": "f14405e71f68fd4f1697f553ec2718b8587151078ec3b2234781fbb664d90e92"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-fp16/vendor/lab_softmax.py",
+      "bytes": 4022,
+      "sha256": "b15f484fa2e990dba5386e12a9f279fc06f44a3eba72ff06b89dbe5b85546b4f"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-masked/aot_kernel.py",
+      "bytes": 1356,
+      "sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-masked/build_vision.py",
+      "bytes": 5691,
+      "sha256": "7c12a217a804f5b7cac71616e78d9b60e2b88fb35f446968c55b4c061e9236c2"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-masked/plugin.py",
+      "bytes": 2733,
+      "sha256": "78a9d0188647ed8cd8813f89ebc2bca2bc4653ad6c007c78ec16ef604b06b796"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-masked/run_candidate.py",
+      "bytes": 1661,
+      "sha256": "75ec998445ff4ae09fa99f966164301275f4481421ebd646fb46640c7fd38ba0"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-masked/vendor/LICENSE.triton-kernel-lab",
+      "bytes": 1070,
+      "sha256": "f14405e71f68fd4f1697f553ec2718b8587151078ec3b2234781fbb664d90e92"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-masked/vendor/lab_softmax.py",
+      "bytes": 4022,
+      "sha256": "b15f484fa2e990dba5386e12a9f279fc06f44a3eba72ff06b89dbe5b85546b4f"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/aot_kernel.py",
+      "bytes": 1356,
+      "sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/bench_softmax.py",
+      "bytes": 6109,
+      "sha256": "33b806a74b137e2c0091e00f01309bd73958be456c94f2eb0b5b58717a632825"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/build_vision.py",
+      "bytes": 5691,
+      "sha256": "7c12a217a804f5b7cac71616e78d9b60e2b88fb35f446968c55b4c061e9236c2"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/check_masked.py",
+      "bytes": 4038,
+      "sha256": "32acb29f9cdc48c4aec84280bd47091cd2d9e59c7f95dd802550e04fcbcf1c0d"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/inspect_engines.py",
+      "bytes": 1481,
+      "sha256": "3687b88e9a02240da98a38941b63e5c9e0e6663180d136dcd4f552471a9972f6"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/plugin.py",
+      "bytes": 2733,
+      "sha256": "78a9d0188647ed8cd8813f89ebc2bca2bc4653ad6c007c78ec16ef604b06b796"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/run_candidate.py",
+      "bytes": 1661,
+      "sha256": "75ec998445ff4ae09fa99f966164301275f4481421ebd646fb46640c7fd38ba0"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/vendor/LICENSE.triton-kernel-lab",
+      "bytes": 1070,
+      "sha256": "f14405e71f68fd4f1697f553ec2718b8587151078ec3b2234781fbb664d90e92"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/vendor/jetson_smoke.py",
+      "bytes": 2110,
+      "sha256": "5b4910778e1d338aae77f86b1c07e30aabaa8b0d00e1459d01745737a9937aad"
+    },
+    {
+      "path": "smolvla-triton-20261010/sources-operator/vendor/lab_softmax.py",
+      "bytes": 4022,
+      "sha256": "b15f484fa2e990dba5386e12a9f279fc06f44a3eba72ff06b89dbe5b85546b4f"
+    },
+    {
+      "path": "smolvla-triton-20261010/summarize.py",
+      "bytes": 3739,
+      "sha256": "b4e5bbed834a0cbd8acae7965daff4457e8565f3301dc9065c1650625874d5e1"
+    },
+    {
+      "path": "smolvla-triton-20261010/summary.json",
+      "bytes": 14858,
+      "sha256": "e05132b5162d8265de61e6a9b4af4b9d6e7fc22a0b3dbfc79d9dcba7c0db95ea"
+    },
+    {
+      "path": "xvla-base.ort.json",
+      "bytes": 156994,
+      "sha256": "223504c59a03925dc2cdc97ec4d13a078ceb7e8adffaadd8540460ff913bab9e",
+      "label": "xvla-base.ort",
+      "status": "ok",
+      "run_utc": "2026-09-04T17:37:15+00:00"
+    },
+    {
+      "path": "xvla-base.torch.json",
+      "bytes": 171088,
+      "sha256": "daf9128f3c27b31d38fac419f5ee7183c8866f8f65a3f6903727bc06660b9353",
+      "label": "xvla-base.torch",
+      "status": "ok",
+      "run_utc": "2026-09-04T17:32:07+00:00"
+    },
+    {
+      "path": "xvla-base.trt.json",
+      "bytes": 159906,
+      "sha256": "ab11ff17375a6f1544a2db1c6f8cb8970014da8d5648c3e3976c0bf07d997e21",
+      "label": "xvla-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:32:39+00:00"
+    },
+    {
+      "path": "xvla-base.trt.sustained.json",
+      "bytes": 159931,
+      "sha256": "e7c56ccea95a032814f75bf9b2adfdf2f726c41cbcf7509ad15dac7ed240c8dc",
+      "label": "xvla-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:33:41+00:00"
+    }
+  ]
+}

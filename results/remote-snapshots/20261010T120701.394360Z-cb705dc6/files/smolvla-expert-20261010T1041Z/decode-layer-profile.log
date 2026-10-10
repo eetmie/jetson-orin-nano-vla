@@ -1,0 +1,27 @@
+[10/10/2026-13:43:42] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+0.815 node_linear_68+node_linear_67_myl0_229
+0.812 node_linear_54+node_linear_53_myl0_182
+0.811 node_linear_26+node_linear_25_myl0_88
+0.81 node_linear_12+node_linear_11_myl0_41
+0.808 node_linear_40+node_linear_39_myl0_135
+0.806 node_linear_82+node_linear_81_myl0_276
+0.804 node_linear_96+node_linear_95_myl0_323
+0.792 node_linear_61+node_linear_60_myl0_203
+0.792 node_linear_47+node_linear_46_myl0_156
+0.791 node_linear_33+node_linear_32_myl0_109
+0.79 node_linear_5+node_linear_4_myl0_13
+0.789 node_linear_75+node_linear_74_myl0_250
+0.788 node_linear_89+node_linear_88_myl0_297
+0.788 node_linear_103+node_linear_102_myl0_344
+0.787 node_linear_19+node_linear_18_myl0_62
+0.786 node_linear_110+node_linear_109_myl0_370
+0.644 __myl_MoveMulMeanAddSqrtDivMulMulCast_myl0_0
+0.573 node_linear_2+node_linear_1+node_linear_myl0_1
+0.486 node_linear_6_myl0_15
+0.486 node_linear_55_myl0_184
+0.486 node_linear_41_myl0_137
+0.486 node_linear_34_myl0_111
+0.485 node_linear_27_myl0_90
+0.485 node_linear_69_myl0_231
+0.485 node_linear_83_myl0_278
+TOTAL 63.245427226647735

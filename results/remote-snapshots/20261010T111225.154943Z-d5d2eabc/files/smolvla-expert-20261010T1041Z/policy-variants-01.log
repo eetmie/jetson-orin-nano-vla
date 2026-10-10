@@ -1,0 +1,29 @@
+[10/10/2026-13:50:57] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[10/10/2026-13:51:00] [TRT] [W] WARNING The logger passed into createInferRuntime differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+[10/10/2026-13:51:02] [TRT] [W] WARNING The logger passed into createInferRuntime differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+PASS fixture_pixels 1 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS fixture_pixels 1 expert-ffn {'cosine': 0.9999996667651408, 'max_abs': 0.001652836799621582, 'mean_abs': 0.00022484115719436203, 'max_pct_range': 0.04636229682262611}
+PASS fixture_pixels 2 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS fixture_pixels 2 expert-ffn {'cosine': 0.9999996665883684, 'max_abs': 0.0012642741203308105, 'mean_abs': 0.00022909083885821246, 'max_pct_range': 0.04072068177145237}
+PASS black 1 expert-control {'cosine': 1.0000000000000002, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS black 1 expert-ffn {'cosine': 0.9999996966698927, 'max_abs': 0.0013180971145629883, 'mean_abs': 0.00023400687383514195, 'max_pct_range': 0.024137180391379895}
+PASS black 2 expert-control {'cosine': 0.9999999999999999, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS black 2 expert-ffn {'cosine': 0.9999997000522115, 'max_abs': 0.001609206199645996, 'mean_abs': 0.00023028329467251752, 'max_pct_range': 0.05025725991045131}
+PASS grey 1 expert-control {'cosine': 1.0000000000000002, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS grey 1 expert-ffn {'cosine': 0.999999675547046, 'max_abs': 0.0015063434839248657, 'mean_abs': 0.00024348798668199833, 'max_pct_range': 0.048139572138831535}
+PASS grey 2 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS grey 2 expert-ffn {'cosine': 0.999999692497007, 'max_abs': 0.0012841224670410156, 'mean_abs': 0.0002253471928270301, 'max_pct_range': 0.0423620083729068}
+PASS white 1 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS white 1 expert-ffn {'cosine': 0.9999997040896211, 'max_abs': 0.0013636872172355652, 'mean_abs': 0.0002324698539736403, 'max_pct_range': 0.04138080014434796}
+PASS white 2 expert-control {'cosine': 1.0000000000000002, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS white 2 expert-ffn {'cosine': 0.999999675450703, 'max_abs': 0.0012368559837341309, 'mean_abs': 0.00023363969902732152, 'max_pct_range': 0.03880131661575182}
+PASS checkerboard 1 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS checkerboard 1 expert-ffn {'cosine': 0.9999997623170354, 'max_abs': 0.0015480518341064453, 'mean_abs': 0.00024270397867066863, 'max_pct_range': 0.03580099784047146}
+PASS checkerboard 2 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS checkerboard 2 expert-ffn {'cosine': 0.9999997594879829, 'max_abs': 0.0012782812118530273, 'mean_abs': 0.00022261043623075238, 'max_pct_range': 0.03826049922975903}
+PASS random_pixels 1 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS random_pixels 1 expert-ffn {'cosine': 0.9999995903298508, 'max_abs': 0.0015038251876831055, 'mean_abs': 0.00022574412313275616, 'max_pct_range': 0.041983878190774745}
+PASS random_pixels 2 expert-control {'cosine': 1.0, 'max_abs': 0.0, 'mean_abs': 0.0, 'max_pct_range': 0.0}
+PASS random_pixels 2 expert-ffn {'cosine': 0.9999996284810075, 'max_abs': 0.0013645291328430176, 'mean_abs': 0.0002218938833823003, 'max_pct_range': 0.0421307868594788}
+PASS -> results/smolvla-expert-20261010T1041Z/policy-variants-01.json

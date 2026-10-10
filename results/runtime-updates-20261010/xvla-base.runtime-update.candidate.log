@@ -1,0 +1,4 @@
+[0;93m2026-10-10 12:04:00.245451041 [W:onnxruntime:Default, device_discovery.cc:211 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:91 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+
+[xvla-base.runtime-update.candidate] ok  p50=383.29 ms  p95=384.93 ms  2.61 Hz  -> /home/joel/vla-validation-20261010-small-runtime/results/xvla-base.runtime-update.candidate.json

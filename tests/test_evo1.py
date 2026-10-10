@@ -23,7 +23,7 @@ class Evo1RegistryTests(unittest.TestCase):
         self.assertIsNone(spec.split_repo)
         self.assertEqual(spec.noise_distribution, "uniform")
 
-    def test_report_exposes_nondeployable_parity(self):
+    def test_report_exposes_nondeployable_validity(self):
         rendered = validity_table([{
             "label": "evo1-bootstrap.ort",
             "model": {"deployable": False},
@@ -37,7 +37,8 @@ class Evo1RegistryTests(unittest.TestCase):
         }])
         self.assertIn("evo1-bootstrap.ort", rendered)
         self.assertIn("**no**", rendered)
-        self.assertIn("| pass | pass | not_checked | pass | pass |", rendered)
+        self.assertIn("| evo1-bootstrap.ort | pass | pass | not_checked | pass | **no** |",
+                      rendered)
 
     def test_bundle_json_is_an_export_contract(self):
         with tempfile.TemporaryDirectory() as directory:

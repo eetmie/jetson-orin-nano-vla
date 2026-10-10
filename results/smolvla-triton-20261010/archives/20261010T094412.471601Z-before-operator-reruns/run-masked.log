@@ -1,0 +1,5 @@
+[0;93m2026-10-10 12:39:36.937928469 [W:onnxruntime:Default, device_discovery.cc:211 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:91 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[10/10/2026-12:39:41] [TRT] [W] AOT Plugin: Kernel 'masked_softmax_aot' has 2 hidden args (expected 5, kernel has 7). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+
+[smolvla-base.triton-masked] ok  p50=151.56 ms  p95=152.34 ms  6.6 Hz  -> results/smolvla-triton-20261010/smolvla-base.triton-masked.json

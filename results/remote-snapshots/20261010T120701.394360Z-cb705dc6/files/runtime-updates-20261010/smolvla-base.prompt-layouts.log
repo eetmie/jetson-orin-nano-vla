@@ -1,0 +1,15 @@
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+{
+  "status": "PASS",
+  "model": "smolvla-base",
+  "cycles": 40,
+  "elapsed_s": 11.611857896990841,
+  "graphs": {
+    "created": 41,
+    "retired": 41,
+    "source_graphs_destroyed": 42,
+    "live_source_graphs": 0,
+    "live_executables": 1,
+    "peak_executables": 1
+  }
+}

@@ -1,0 +1,570 @@
+{
+  "status": "PASS",
+  "performance_verdict": "Neither Triton policy candidate beats the TensorRT control",
+  "scope": "Initial 60-second synthetic two-view ten-step graph runs on the actual SM87 Nano; no task-quality claim",
+  "parity": {
+    "reference": "smolvla-base.triton-control",
+    "reference_file": "/home/masi-pgx/jetson-orin-nano-vla/results/smolvla-triton-20261010/smolvla-base.triton-control.json",
+    "comparisons": [
+      {
+        "reference": "smolvla-base.triton-control",
+        "candidate": "smolvla-base.triton-fp16",
+        "noise_injected_both": true,
+        "n_observations": 8,
+        "obs_indices": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "finite": true,
+        "mode": "elementwise (exact signed inputs and seeded noise)",
+        "cosine_min": 0.9999958,
+        "cosine_mean": 0.9999992,
+        "max_abs_diff": 0.0277,
+        "mean_abs_diff": 0.0005563,
+        "reference_action_range": 25.6929,
+        "max_abs_diff_pct_of_range": 0.108,
+        "first_action_max_abs_diff": 0.004977,
+        "verdict": "PASS"
+      },
+      {
+        "reference": "smolvla-base.triton-control",
+        "candidate": "smolvla-base.triton-masked",
+        "noise_injected_both": true,
+        "n_observations": 8,
+        "obs_indices": [
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "finite": true,
+        "mode": "elementwise (exact signed inputs and seeded noise)",
+        "cosine_min": 0.999996,
+        "cosine_mean": 0.9999986,
+        "max_abs_diff": 0.03782,
+        "mean_abs_diff": 0.0005805,
+        "reference_action_range": 25.6929,
+        "max_abs_diff_pct_of_range": 0.147,
+        "first_action_max_abs_diff": 0.01126,
+        "verdict": "PASS"
+      }
+    ]
+  },
+  "policy_runs": [
+    {
+      "mode": "control",
+      "file": "smolvla-base.triton-control.json",
+      "latency_ms": {
+        "n": 404,
+        "mean": 148.69,
+        "p50": 148.65,
+        "p90": 149.5,
+        "p95": 149.79,
+        "p99": 150.35,
+        "min": 146.83,
+        "max": 151.15,
+        "std": 0.65,
+        "hz_mean": 6.73,
+        "quartile_means_in_order": [
+          148.6,
+          148.79,
+          148.62,
+          148.74
+        ],
+        "drift_q4_vs_q1_pct": 0.1
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 404,
+        "window_s": 60.129329,
+        "achieved_hz": 6.7189
+      },
+      "p50_change_pct": 0.0,
+      "fixture": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999985905201803,
+            "max_abs": 0.003747563809156418,
+            "mean_abs": 0.0003722082983586006,
+            "max_pct_range": 0.12135267055564335
+          },
+          "chunk": {
+            "cosine": 0.999998460957091,
+            "max_abs": 0.004365026950836182,
+            "mean_abs": 0.0003559963656880427,
+            "max_pct_range": 0.14134720701408565
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.999999568777318,
+            "max_abs": 0.0019521713256835938,
+            "mean_abs": 0.00024138918243806983,
+            "max_pct_range": 0.0632054040157277,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999984890931045,
+            "max_abs": 0.00443364679813385,
+            "mean_abs": 0.0003542268668206816,
+            "max_pct_range": 0.14356923768434313
+          }
+        }
+      },
+      "runtime_has_torch": false,
+      "runtime_has_triton": false,
+      "vision_layer_count": 116,
+      "build_s": 6.540053606033325,
+      "system_ram_mb": {
+        "mean": 1751.77,
+        "p50": 1749.0,
+        "p95": 1771.0,
+        "max": 1773.0,
+        "min": 1747.0
+      },
+      "process_rss_mb": {
+        "mean": 1500.7,
+        "max": 1500.8
+      },
+      "temperature_c": {
+        "cpu": {
+          "mean": 53.7,
+          "max": 57.3
+        },
+        "soc2": {
+          "mean": 52.6,
+          "max": 55.8
+        },
+        "soc0": {
+          "mean": 52.9,
+          "max": 56.2
+        },
+        "gpu": {
+          "mean": 56.8,
+          "max": 60.4
+        },
+        "tj": {
+          "mean": 56.8,
+          "max": 60.4
+        },
+        "soc1": {
+          "mean": 53.4,
+          "max": 56.6
+        }
+      },
+      "throttle": {
+        "cooling_active_samples": {},
+        "oc_events": {
+          "oc1": 0,
+          "oc2": 0,
+          "oc3": 19712
+        }
+      }
+    },
+    {
+      "mode": "fp16",
+      "file": "smolvla-base.triton-fp16.json",
+      "latency_ms": {
+        "n": 351,
+        "mean": 171.02,
+        "p50": 170.95,
+        "p90": 171.9,
+        "p95": 172.13,
+        "p99": 172.49,
+        "min": 169.74,
+        "max": 173.04,
+        "std": 0.62,
+        "hz_mean": 5.85,
+        "quartile_means_in_order": [
+          171.29,
+          170.87,
+          171.1,
+          170.82
+        ],
+        "drift_q4_vs_q1_pct": -0.3
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 351,
+        "window_s": 60.078391,
+        "achieved_hz": 5.8424
+      },
+      "p50_change_pct": 15.001681802892698,
+      "fixture": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999989655018845,
+            "max_abs": 0.0033478252589702606,
+            "mean_abs": 0.0003213142990716733,
+            "max_pct_range": 0.10840843716577861
+          },
+          "chunk": {
+            "cosine": 0.999998505804318,
+            "max_abs": 0.004412353038787842,
+            "mean_abs": 0.00034445839846739543,
+            "max_pct_range": 0.14287970851435444
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997433489115,
+            "max_abs": 0.0015197396278381348,
+            "mean_abs": 0.00020004866538215539,
+            "max_pct_range": 0.04920365229002215,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999981858424474,
+            "max_abs": 0.005110282450914383,
+            "mean_abs": 0.0003757256234587203,
+            "max_pct_range": 0.16547988354378274
+          }
+        }
+      },
+      "runtime_has_torch": false,
+      "runtime_has_triton": false,
+      "vision_layer_count": 212,
+      "build_s": 28.001546621322632,
+      "system_ram_mb": {
+        "mean": 1797.76,
+        "p50": 1791.0,
+        "p95": 1849.0,
+        "max": 1874.0,
+        "min": 1789.0
+      },
+      "process_rss_mb": {
+        "mean": 1616.4,
+        "max": 1616.8
+      },
+      "temperature_c": {
+        "cpu": {
+          "mean": 52.0,
+          "max": 56.0
+        },
+        "soc2": {
+          "mean": 50.8,
+          "max": 54.6
+        },
+        "soc0": {
+          "mean": 50.9,
+          "max": 55.0
+        },
+        "gpu": {
+          "mean": 54.9,
+          "max": 59.1
+        },
+        "tj": {
+          "mean": 54.9,
+          "max": 59.1
+        },
+        "soc1": {
+          "mean": 51.6,
+          "max": 55.4
+        }
+      },
+      "throttle": {
+        "cooling_active_samples": {},
+        "oc_events": {
+          "oc1": 0,
+          "oc2": 0,
+          "oc3": 17255
+        }
+      }
+    },
+    {
+      "mode": "masked",
+      "file": "smolvla-base.triton-masked.json",
+      "latency_ms": {
+        "n": 396,
+        "mean": 151.56,
+        "p50": 151.56,
+        "p90": 152.15,
+        "p95": 152.34,
+        "p99": 152.73,
+        "min": 150.51,
+        "max": 153.47,
+        "std": 0.48,
+        "hz_mean": 6.6,
+        "quartile_means_in_order": [
+          151.79,
+          151.49,
+          151.52,
+          151.45
+        ],
+        "drift_q4_vs_q1_pct": -0.2
+      },
+      "measurement": {
+        "scope": "runtime-only over a pre-materialized observation ring",
+        "completed_calls": 396,
+        "window_s": 60.07648,
+        "achieved_hz": 6.5916
+      },
+      "p50_change_pct": 1.9576185671039248,
+      "fixture": {
+        "status": "PASS",
+        "threshold": 0.999,
+        "max_pct_range_threshold": 1.0,
+        "input_ids_match": true,
+        "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+        "reports": {
+          "action": {
+            "cosine": 0.9999978274108685,
+            "max_abs": 0.004829004406929016,
+            "mean_abs": 0.0004126134517719038,
+            "max_pct_range": 0.15637160852978754
+          },
+          "chunk": {
+            "cosine": 0.9999982703600929,
+            "max_abs": 0.005685761570930481,
+            "mean_abs": 0.0003687489222647855,
+            "max_pct_range": 0.18411490395153005
+          },
+          "image_preprocess": {
+            "cosine": 0.9999902676821645,
+            "max_abs": 0.007843255996704102,
+            "mean_abs": 0.0018694368729560058,
+            "max_pct_range": 0.39577618968960737
+          }
+        },
+        "device_chain": {
+          "vs_host_chain": {
+            "cosine": 0.9999997443042039,
+            "max_abs": 0.0013030171394348145,
+            "mean_abs": 0.0001968717082991134,
+            "max_pct_range": 0.04216474466461004,
+            "identical": false
+          },
+          "chunk": {
+            "cosine": 0.9999981008591075,
+            "max_abs": 0.006215969100594521,
+            "mean_abs": 0.0003812815266974212,
+            "max_pct_range": 0.20128395108455943
+          }
+        }
+      },
+      "runtime_has_torch": false,
+      "runtime_has_triton": false,
+      "vision_layer_count": 145,
+      "build_s": 25.221330881118774,
+      "system_ram_mb": {
+        "mean": 1817.96,
+        "p50": 1812.0,
+        "p95": 1851.0,
+        "max": 1882.0,
+        "min": 1810.0
+      },
+      "process_rss_mb": {
+        "mean": 1591.1,
+        "max": 1591.4
+      },
+      "temperature_c": {
+        "cpu": {
+          "mean": 51.6,
+          "max": 55.9
+        },
+        "soc2": {
+          "mean": 50.6,
+          "max": 54.3
+        },
+        "soc0": {
+          "mean": 50.7,
+          "max": 54.8
+        },
+        "gpu": {
+          "mean": 54.7,
+          "max": 59.1
+        },
+        "tj": {
+          "mean": 54.7,
+          "max": 59.1
+        },
+        "soc1": {
+          "mean": 51.3,
+          "max": 55.2
+        }
+      },
+      "throttle": {
+        "cooling_active_samples": {},
+        "oc_events": {
+          "oc1": 0,
+          "oc2": 0,
+          "oc3": 20970
+        }
+      }
+    }
+  ],
+  "standalone_softmax": [
+    {
+      "dtype": "torch.float32",
+      "shape": [
+        1,
+        12,
+        1024,
+        1024
+      ],
+      "trt_ms": 1.3127352905273437,
+      "triton_ms": 1.0306610870361328,
+      "variant": "row",
+      "warps": 4,
+      "speedup": 1.273682791597741,
+      "caveat": "Standalone softmax/casts only; production TensorRT fuses a wider sequence"
+    },
+    {
+      "dtype": "torch.float16",
+      "shape": [
+        1,
+        12,
+        1024,
+        1024
+      ],
+      "trt_ms": 2.86496826171875,
+      "triton_ms": 0.5194380950927734,
+      "variant": "row",
+      "warps": 4,
+      "speedup": 5.515514339022549,
+      "caveat": "Standalone softmax/casts only; production TensorRT fuses a wider sequence"
+    }
+  ],
+  "masked_kernel_checks": {
+    "status": "PASS",
+    "shape": [
+      1,
+      12,
+      1024,
+      1024
+    ],
+    "mask_shape": [
+      1,
+      1,
+      1024,
+      1024
+    ],
+    "capability": [
+      8,
+      7
+    ],
+    "torch": "2.11.0+cu130",
+    "triton": "3.6.0",
+    "cases": [
+      {
+        "case": "random",
+        "max_abs": 1.52587890625e-05,
+        "reference_zero_rows": 0,
+        "status": "PASS"
+      },
+      {
+        "case": "partial_and_fully_masked",
+        "max_abs": 7.62939453125e-06,
+        "reference_zero_rows": 12,
+        "status": "PASS"
+      },
+      {
+        "case": "large_rounding",
+        "max_abs": 0.0,
+        "reference_zero_rows": 0,
+        "status": "PASS"
+      },
+      {
+        "case": "infinities",
+        "max_abs": 7.62939453125e-06,
+        "reference_zero_rows": 24,
+        "status": "PASS"
+      }
+    ],
+    "graph_replay_timings": [
+      {
+        "warps": 1,
+        "median_ms": 0.777092514038086,
+        "batches_ms": [
+          0.786684799194336,
+          0.7771379089355469,
+          0.7770464324951172,
+          0.7772614288330079,
+          0.7770047760009766,
+          0.776990737915039,
+          0.7771091461181641,
+          0.7770118713378906,
+          0.777092514038086
+        ]
+      },
+      {
+        "warps": 2,
+        "median_ms": 0.7769184112548828,
+        "batches_ms": [
+          0.7777657318115234,
+          0.7768236541748047,
+          0.7770162963867188,
+          0.7768006134033203,
+          0.7778546905517578,
+          0.7769184112548828,
+          0.77683837890625,
+          0.7767922973632813,
+          0.7769305419921875
+        ]
+      },
+      {
+        "warps": 4,
+        "median_ms": 0.7778099060058594,
+        "batches_ms": [
+          0.7778105926513672,
+          0.7778182220458985,
+          0.7778284454345703,
+          0.7776512145996094,
+          0.7785382080078125,
+          0.777676773071289,
+          0.7777497863769531,
+          0.7778099060058594,
+          0.7776927947998047
+        ]
+      },
+      {
+        "warps": 8,
+        "median_ms": 0.8407379150390625,
+        "batches_ms": [
+          0.8418303680419922,
+          0.8408793640136719,
+          0.8407379150390625,
+          0.8403065490722657,
+          0.8405715179443359,
+          0.8408940887451172,
+          0.8405158233642578,
+          0.8405919647216797,
+          0.8475186920166016
+        ]
+      }
+    ]
+  },
+  "archival_note": "All available remote measurements are also stored in unique local results/remote-snapshots directories. Earlier operator evidence remains under archives; the corrected same-input sweep is under operator-rerun-20261010T0945Z."
+}

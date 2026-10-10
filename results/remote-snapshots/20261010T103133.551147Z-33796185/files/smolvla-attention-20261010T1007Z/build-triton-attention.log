@@ -1,0 +1,28 @@
+[10/10/2026-13:12:30] [TRT] [W] Functionality provided through tensorrt.plugin module is experimental.
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_lib.py:620: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_tensor.py:145: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_tensor.py:293: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_tensor.py:425: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_tensor.py:486: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_tensor.py:943: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_top_level.py:28: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_top_level.py:52: SyntaxWarning: invalid escape sequence '\s'
+  """
+/usr/lib/python3.12/dist-packages/tensorrt/plugin/_top_level.py:76: SyntaxWarning: invalid escape sequence '\s'
+  """
+/home/joel/jetson-orin-nano-vla/.venv-torch-xvla/lib/python3.12/site-packages/torch/cuda/__init__.py:371: UserWarning: Found GPU0 Orin which is of compute capability (CC) 8.7.
+The following list shows the CCs this version of PyTorch was built for and the hardware CCs it supports:
+- 8.0 which supports hardware CC >=8.0,<9.0 except {8.7}
+- 9.0 which supports hardware CC >=9.0,<10.0
+- 10.0 which supports hardware CC >=10.0,<11.0 except {10.1}
+- 11.0 which supports hardware CC >=11.0,<12.0
+- 12.0 which supports hardware CC >=12.0,<13.0
+  _warn_unsupported_code(d, device_cc, code_ccs)
+BUILT triton-attention 31.730184078216553

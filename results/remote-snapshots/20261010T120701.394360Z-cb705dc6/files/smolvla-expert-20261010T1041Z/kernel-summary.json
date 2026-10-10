@@ -1,0 +1,412 @@
+[
+  {
+    "name": "attention_aot",
+    "ms_per_infer": 17.973996399999997,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f16_f_10...",
+    "ms_per_infer": 14.3173619,
+    "launches_per_infer": 44.0
+  },
+  {
+    "name": "trt_ampere_fp16_s16816gemm_fp1_12...",
+    "ms_per_infer": 12.75095595,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "trt_ampere_h16816gemm_256x64_l_63...",
+    "ms_per_infer": 11.890921500000001,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f16_f_5...",
+    "ms_per_infer": 9.721520049999999,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "trt_ampere_h16816gemm_128x64_s_65...",
+    "ms_per_infer": 6.811083000000001,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f32_f_61...",
+    "ms_per_infer": 3.9416235,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f32_f_36...",
+    "ms_per_infer": 3.2621702999999997,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "_gemm_mha_v2_0xe9bb1cab4e4206a_60...",
+    "ms_per_infer": 3.1846254,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "trt_ampere_fp16_s16816gemm_fp1_51...",
+    "ms_per_infer": 2.57019655,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "_gemm_mha_v2_0x5741cf641a882d0_74...",
+    "ms_per_infer": 2.4082548,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_CastMeanSubMulMeanAddSqr_11...",
+    "ms_per_infer": 2.0609568,
+    "launches_per_infer": 44.0
+  },
+  {
+    "name": "trt_ampere_h16816gemm_64x64_ld_71...",
+    "ms_per_infer": 1.9911781999999998,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "__myl_AddCastMulMeanAddSqrtDiv_66...",
+    "ms_per_infer": 1.84392435,
+    "launches_per_infer": 300.0
+  },
+  {
+    "name": "trt_ampere_h16816gemm_128x64_l_43...",
+    "ms_per_infer": 1.61521275,
+    "launches_per_infer": 81.0
+  },
+  {
+    "name": "__myl_TranCastConcReshReplResh_56...",
+    "ms_per_infer": 1.52291875,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_Cast_0xfd70a9a55caf95a0a_70...",
+    "ms_per_infer": 1.46197885,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f32_f_38...",
+    "ms_per_infer": 1.45668685,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "_gemm_mha_v2_0x28e4c983c1005d4_33...",
+    "ms_per_infer": 1.30660935,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f16_f_13...",
+    "ms_per_infer": 1.23712475,
+    "launches_per_infer": 4.0
+  },
+  {
+    "name": "sm75_xmma_fprop_implicit_gemm__1...",
+    "ms_per_infer": 1.1464542,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_TranMul_0x119c45e0c9cd99_7...",
+    "ms_per_infer": 1.1202333,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "__myl_TranReshMove_0x19c01b812_58...",
+    "ms_per_infer": 1.0828440000000001,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "__myl_Move_0xbf93e0bd963d9eb79_53...",
+    "ms_per_infer": 1.05526345,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f32_f_24...",
+    "ms_per_infer": 1.03582795,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_TranMul_0x24e68175c4a4a9_8...",
+    "ms_per_infer": 1.0121316,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "__myl_Tran_0x2a3508f349dd20cab_6...",
+    "ms_per_infer": 0.9220993500000001,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "__myl_ReshCastConcReshReplResh_59...",
+    "ms_per_infer": 0.8970311000000001,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_ReshSlicMulMulSlicMulAdd_76...",
+    "ms_per_infer": 0.8073985499999999,
+    "launches_per_infer": 70.0
+  },
+  {
+    "name": "__myl_Tran_0x225d63f5301563cd2_9...",
+    "ms_per_infer": 0.7666805,
+    "launches_per_infer": 24.0
+  },
+  {
+    "name": "__myl_SlicMulSlicMulSubTranSca_77...",
+    "ms_per_infer": 0.72953415,
+    "launches_per_infer": 70.0
+  },
+  {
+    "name": "trt_ampere_h16816gemm_128x256__34...",
+    "ms_per_infer": 0.72791005,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_SiluMul_0x039b29f093a46e_64...",
+    "ms_per_infer": 0.7116962,
+    "launches_per_infer": 160.0
+  },
+  {
+    "name": "__myl_ReplReshTranReshMove_0x9_32...",
+    "ms_per_infer": 0.69339215,
+    "launches_per_infer": 95.0
+  },
+  {
+    "name": "trt_ampere_h16816gemm_128x64_l_17...",
+    "ms_per_infer": 0.6708027000000001,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "sm86_xmma_gemm_f32f32_tf32f32__47...",
+    "ms_per_infer": 0.6636237,
+    "launches_per_infer": 20.0
+  },
+  {
+    "name": "__myl_ReshSlicMulMulSlicMulAdd_41...",
+    "ms_per_infer": 0.5896915,
+    "launches_per_infer": 14.0
+  },
+  {
+    "name": "__myl_TranScat_0x3d07893825a3a_57...",
+    "ms_per_infer": 0.56341555,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_MulMulAddTranScat_0x96e3_69...",
+    "ms_per_infer": 0.5300447,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_ReplReshTranReshMove_0x2_72...",
+    "ms_per_infer": 0.41963800000000007,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_SiluMul_0x8616355dc21a31_37...",
+    "ms_per_infer": 0.380743,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f16f16_f16f32_f_22...",
+    "ms_per_infer": 0.36853444999999996,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_ReshSlicMulMulSlicMulAdd_75...",
+    "ms_per_infer": 0.35981640000000004,
+    "launches_per_infer": 70.0
+  },
+  {
+    "name": "__myl_AddCastMulMeanAddSqrtDiv_39...",
+    "ms_per_infer": 0.35193694999999997,
+    "launches_per_infer": 28.0
+  },
+  {
+    "name": "sm86_xmma_gemm_f32f32_tf32f32__49...",
+    "ms_per_infer": 0.3285918,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_Move_0xb65f895f068931313_52...",
+    "ms_per_infer": 0.32774115,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "__myl_TranCastReshReplReshTran_29...",
+    "ms_per_infer": 0.3001666,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_GathAddCastMeanSubMulMea_4...",
+    "ms_per_infer": 0.26050819999999997,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_TranScat_0xa9c3e5284e093_55...",
+    "ms_per_infer": 0.25028465,
+    "launches_per_infer": 80.0
+  },
+  {
+    "name": "permutationKernelPLC3",
+    "ms_per_infer": 0.2246289,
+    "launches_per_infer": 4.0
+  },
+  {
+    "name": "__myl_TranReshMove_0x6c6785dc6_31...",
+    "ms_per_infer": 0.22089370000000003,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_ReshSlicMulMulSlicMulAdd_40...",
+    "ms_per_infer": 0.20775945,
+    "launches_per_infer": 14.0
+  },
+  {
+    "name": "__myl_TranScat_0xe73a2211d1075_30...",
+    "ms_per_infer": 0.18322915,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_Move_0x5781c793ebe30d073_26...",
+    "ms_per_infer": 0.1816807,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_MoveReshCastMulReshCosSi_54...",
+    "ms_per_infer": 0.14849225,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_AddCastMeanSubMulMean_0x_15...",
+    "ms_per_infer": 0.13342389999999998,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_AddCastMeanSubMulMeanAdd_14...",
+    "ms_per_infer": 0.1288268,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_Move_0x95c7eec9832a80bb6_25...",
+    "ms_per_infer": 0.12833920000000001,
+    "launches_per_infer": 16.0
+  },
+  {
+    "name": "sm80_xmma_gemm_f32f32_tf32f32__79...",
+    "ms_per_infer": 0.11988784999999999,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_SubReshCastMulReshCosSin_68...",
+    "ms_per_infer": 0.11074049999999999,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_AddSqrtDivMulMulAddCastR_16...",
+    "ms_per_infer": 0.10908545,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_TranScat_0xd727556f90ac9_28...",
+    "ms_per_infer": 0.10122564999999999,
+    "launches_per_infer": 16.0
+  },
+  {
+    "name": "__myl_ReshTran_0xb7524a15663ac_3...",
+    "ms_per_infer": 0.0908193,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_Cast_0xef9d25e1854fdb65b_23...",
+    "ms_per_infer": 0.0749576,
+    "launches_per_infer": 15.0
+  },
+  {
+    "name": "__myl_AddCastMulMeanAddSqrtDiv_78...",
+    "ms_per_infer": 0.06941415,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_CastAddCastMulMeanAddSqr_62...",
+    "ms_per_infer": 0.0682339,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_ReshCastMulReshCosSinRes_27...",
+    "ms_per_infer": 0.0611765,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_MoveMulMeanAddSqrtDivMul_50...",
+    "ms_per_infer": 0.05739999999999999,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_MoveNegExpAddDivMul_0x82_48...",
+    "ms_per_infer": 0.0484667,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_AndSele_0xf2c98dae66dfbc_2...",
+    "ms_per_infer": 0.04174375,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_Slic_0x8d405e4188f0863a4_73...",
+    "ms_per_infer": 0.02654765,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_Minr_0x8cdfdbe31f05adba7_67...",
+    "ms_per_infer": 0.02452455,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_MulAdd_0x7ddee273d3e4dcb_80...",
+    "ms_per_infer": 0.02402495,
+    "launches_per_infer": 10.0
+  },
+  {
+    "name": "__myl_MoveMulMeanAddSqrtDivMul_21...",
+    "ms_per_infer": 0.02177205,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_MulAdd_0xa98d52f3eeaefbe_19...",
+    "ms_per_infer": 0.0170456,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_CastAddCastMulMeanAddSqr_35...",
+    "ms_per_infer": 0.01602295,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_ReshSlicMulMulSlicMulAdd_45...",
+    "ms_per_infer": 0.01359235,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_Cast_0x597eb05c5187d59d5_18...",
+    "ms_per_infer": 0.0121268,
+    "launches_per_infer": 2.0
+  },
+  {
+    "name": "__myl_AddCastMulMeanAddSqrtDiv_42...",
+    "ms_per_infer": 0.00964185,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_TranCast_0xb27a563cc830e_46...",
+    "ms_per_infer": 0.007302749999999999,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_ReshMulSumAdd_0xe68173c0_20...",
+    "ms_per_infer": 0.0069409,
+    "launches_per_infer": 1.0
+  },
+  {
+    "name": "__myl_ReshCast_0xecd51b0833c45_44...",
+    "ms_per_infer": 0.00452345,
+    "launches_per_infer": 1.0
+  }
+]

@@ -1,0 +1,4 @@
+[0;93m2026-10-10 12:08:52.022412250 [W:onnxruntime:Default, device_discovery.cc:211 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:91 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+
+[groot-n17-base.runtime-update.candidate] ok  p50=287.17 ms  p95=287.36 ms  3.48 Hz  -> /home/joel/vla-validation-20261010-small-runtime/results/groot-n17-base.runtime-update.candidate.json

@@ -1,0 +1,29 @@
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[10/10/2026-13:21:05] [TRT] [W] WARNING The logger passed into createInferRuntime differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+[10/10/2026-13:21:08] [TRT] [W] WARNING The logger passed into createInferRuntime differs from one already registered for an existing builder, runtime, or refitter. So the current new logger is ignored, and TensorRT will use the existing one which is returned by nvinfer1::getLogger() instead.
+[10/10/2026-13:21:09] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+PASS fixture_pixels 1 trt-attention {'cosine': 0.9999968834101762, 'max_abs': 0.004866421222686768, 'mean_abs': 0.0004696891353080446, 'max_pct_range': 0.13628137997912773}
+PASS fixture_pixels 1 triton-attention-aligned {'cosine': 0.9999960484597225, 'max_abs': 0.007998228073120117, 'mean_abs': 0.0004998557167508011, 'max_pct_range': 0.22398586339199203}
+PASS fixture_pixels 2 trt-attention {'cosine': 0.9999992693399663, 'max_abs': 0.0025374889373779297, 'mean_abs': 0.0002842760181262349, 'max_pct_range': 0.08176618336421941}
+PASS fixture_pixels 2 triton-attention-aligned {'cosine': 0.9999993223876342, 'max_abs': 0.0030659139156341553, 'mean_abs': 0.0002918571395828451, 'max_pct_range': 0.098793762491709}
+PASS black 1 trt-attention {'cosine': 0.9999958882182912, 'max_abs': 0.009032487869262695, 'mean_abs': 0.0005138315254674808, 'max_pct_range': 0.16559247192189175}
+PASS black 1 triton-attention-aligned {'cosine': 0.999996701193969, 'max_abs': 0.008436918258666992, 'mean_abs': 0.0005127084671551074, 'max_pct_range': 0.15467390270291628}
+PASS black 2 trt-attention {'cosine': 0.999998959408747, 'max_abs': 0.003927255980670452, 'mean_abs': 0.00032442451049064403, 'max_pct_range': 0.12263563730496808}
+PASS black 2 triton-attention-aligned {'cosine': 0.9999994501727346, 'max_abs': 0.0021117329597473145, 'mean_abs': 0.0002687969254316158, 'max_pct_range': 0.0659426629206653}
+PASS grey 1 trt-attention {'cosine': 0.9999956736348615, 'max_abs': 0.009825086337514222, 'mean_abs': 0.000442556946888768, 'max_pct_range': 0.3140036223012515}
+PASS grey 1 triton-attention-aligned {'cosine': 0.9999951267668469, 'max_abs': 0.009178996086120605, 'mean_abs': 0.0005274122875939646, 'max_pct_range': 0.29335498143419836}
+PASS grey 2 trt-attention {'cosine': 0.9999990306008323, 'max_abs': 0.004119873046875, 'mean_abs': 0.00029677134687137394, 'max_pct_range': 0.13585260778239683}
+PASS grey 2 triton-attention-aligned {'cosine': 0.9999994341445333, 'max_abs': 0.002926543354988098, 'mean_abs': 0.00025049566648135626, 'max_pct_range': 0.09650262084287974}
+PASS white 1 trt-attention {'cosine': 0.9999983493494105, 'max_abs': 0.0048989057540893555, 'mean_abs': 0.0003905244487253867, 'max_pct_range': 0.1485131948164251}
+PASS white 1 triton-attention-aligned {'cosine': 0.9999989525262841, 'max_abs': 0.004204750061035156, 'mean_abs': 0.00031937734743820557, 'max_pct_range': 0.12746945875568674}
+PASS white 2 trt-attention {'cosine': 0.9999980568599087, 'max_abs': 0.0074984729290008545, 'mean_abs': 0.0003612463778209474, 'max_pct_range': 0.23526875209968715}
+PASS white 2 triton-attention-aligned {'cosine': 0.9999990397359332, 'max_abs': 0.004428595304489136, 'mean_abs': 0.00031242023484267633, 'max_pct_range': 0.1389496369070074}
+PASS checkerboard 1 trt-attention {'cosine': 0.9999887780959316, 'max_abs': 0.020261049270629883, 'mean_abs': 0.0009710392875967955, 'max_pct_range': 0.46829289904830423}
+PASS checkerboard 1 triton-attention-aligned {'cosine': 0.9999944930080501, 'max_abs': 0.00794956088066101, 'mean_abs': 0.0007429555590125148, 'max_pct_range': 0.18373791313770405}
+PASS checkerboard 2 trt-attention {'cosine': 0.9999986287746568, 'max_abs': 0.0035416483879089355, 'mean_abs': 0.00044370287465653744, 'max_pct_range': 0.10600967583829339}
+PASS checkerboard 2 triton-attention-aligned {'cosine': 0.9999981318040414, 'max_abs': 0.004020631313323975, 'mean_abs': 0.0004609293220846666, 'max_pct_range': 0.12034673561776672}
+PASS random_pixels 1 trt-attention {'cosine': 0.9999955713221985, 'max_abs': 0.007662773132324219, 'mean_abs': 0.0004684046164427258, 'max_pct_range': 0.21351880991763647}
+PASS random_pixels 1 triton-attention-aligned {'cosine': 0.9999974913990575, 'max_abs': 0.009015560150146484, 'mean_abs': 0.00035924393977545323, 'max_pct_range': 0.251213449851447}
+PASS random_pixels 2 trt-attention {'cosine': 0.9999992794455865, 'max_abs': 0.0024035386741161346, 'mean_abs': 0.00025486824480253745, 'max_pct_range': 0.07417327655469864}
+PASS random_pixels 2 triton-attention-aligned {'cosine': 0.9999995519290767, 'max_abs': 0.0018202945939265192, 'mean_abs': 0.00022136812741560874, 'max_pct_range': 0.05617434650848093}
+PASS -> results/smolvla-attention-20261010T1007Z/policy-variants-01.json

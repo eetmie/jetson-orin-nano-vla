@@ -141,3 +141,24 @@ python -m bench report results --out docs/RESULTS.md
 Every result JSON records validity, latency, memory, CPU, power, thermals, board state,
 runtime versions, and representative saved action chunks. EVO1 results also embed the
 native-fixture comparison and the nondeployable/random-head safety flags.
+
+## 8. Preserve remote measurements locally
+
+From the local repository, snapshot the Jetson's current results before reusing
+any remote output filename, and again after a testing session:
+
+```bash
+python3 -m bench.tools.archive_remote_results
+```
+
+The default source is `joel@192.168.8.230:~/jetson-orin-nano-vla/results/`.
+Each call creates a new UTC-stamped directory under `results/remote-snapshots/`,
+copies the entire results directory without overwriting earlier snapshots, and
+records file sizes, SHA-256 checksums, run labels and recorded run times in a
+manifest. A failed transfer is marked `INCOMPLETE`. Engines and bundles remain
+separate artifacts; measurements include their recorded hashes where available.
+
+Use unique `--label` and `--out` paths for new measurements. A snapshot preserves
+the files present when copied; it cannot recover an earlier remote file that was
+already overwritten without a backup. [Initial SmolVLA Triton tests](../experiments/smolvla_triton/)
+use separate candidates and reject reused measurement filenames.

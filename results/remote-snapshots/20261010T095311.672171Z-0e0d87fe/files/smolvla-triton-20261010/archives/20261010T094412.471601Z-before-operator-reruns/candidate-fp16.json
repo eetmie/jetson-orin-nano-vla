@@ -1,0 +1,146 @@
+{
+  "mode": "fp16",
+  "build_s": 28.001546621322632,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "70f196955f42dfd809fe5df991a77b032c70b39c8aff0ddfc8a0b604c84d23e3",
+  "patches": [
+    {
+      "softmax": "node_Softmax_299",
+      "input": "val_300",
+      "replaced_output": "val_301",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_300",
+        "node_Where_301"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_371",
+      "input": "val_376",
+      "replaced_output": "val_377",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_372",
+        "node_Where_373"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_443",
+      "input": "val_452",
+      "replaced_output": "val_453",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_444",
+        "node_Where_445"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_515",
+      "input": "val_528",
+      "replaced_output": "val_529",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_516",
+        "node_Where_517"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_587",
+      "input": "val_604",
+      "replaced_output": "val_605",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_588",
+        "node_Where_589"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_659",
+      "input": "val_680",
+      "replaced_output": "val_681",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_660",
+        "node_Where_661"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_731",
+      "input": "val_756",
+      "replaced_output": "val_757",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_732",
+        "node_Where_733"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_803",
+      "input": "val_832",
+      "replaced_output": "val_833",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_804",
+        "node_Where_805"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_875",
+      "input": "val_908",
+      "replaced_output": "val_909",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_876",
+        "node_Where_877"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_947",
+      "input": "val_984",
+      "replaced_output": "val_985",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_948",
+        "node_Where_949"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1019",
+      "input": "val_1060",
+      "replaced_output": "val_1061",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_1020",
+        "node_Where_1021"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1091",
+      "input": "val_1136",
+      "replaced_output": "val_1137",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_IsNaN_1092",
+        "node_Where_1093"
+      ]
+    }
+  ],
+  "kernel_sha256": "e16130cfd5abc481a3d28021fb2db5b81a6af765a3c5969aa0ca407fad4a8d9e",
+  "plugin_sha256": "5b29cddfdf7ef9746011f26d97f8b039491779f8ff478311d0a412611053160d",
+  "accumulation": "FP32",
+  "warps": 4,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-base-trt"
+}

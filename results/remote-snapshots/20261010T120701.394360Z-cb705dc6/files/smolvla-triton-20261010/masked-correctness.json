@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "shape": [
+    1,
+    12,
+    1024,
+    1024
+  ],
+  "mask_shape": [
+    1,
+    1,
+    1024,
+    1024
+  ],
+  "capability": [
+    8,
+    7
+  ],
+  "torch": "2.11.0+cu130",
+  "triton": "3.6.0",
+  "cases": [
+    {
+      "case": "random",
+      "max_abs": 1.52587890625e-05,
+      "reference_zero_rows": 0,
+      "status": "PASS"
+    },
+    {
+      "case": "partial_and_fully_masked",
+      "max_abs": 7.62939453125e-06,
+      "reference_zero_rows": 12,
+      "status": "PASS"
+    },
+    {
+      "case": "large_rounding",
+      "max_abs": 0.0,
+      "reference_zero_rows": 0,
+      "status": "PASS"
+    },
+    {
+      "case": "infinities",
+      "max_abs": 7.62939453125e-06,
+      "reference_zero_rows": 24,
+      "status": "PASS"
+    }
+  ]
+}

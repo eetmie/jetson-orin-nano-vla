@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "status": "PASS",
+    "cases": 12,
+    "max_error_pct_of_range": 0.05025725991045131,
+    "cosine_min": 0.9999995903298508
+  },
+  "paired_comparisons": [
+    {
+      "duration_s": 60,
+      "control_p50_ms": 127.91,
+      "candidate_p50_ms": 126.82,
+      "latency_reduction_pct": 0.8521616761785644
+    },
+    {
+      "duration_s": 300,
+      "control_p50_ms": 128.1,
+      "candidate_p50_ms": 126.67,
+      "latency_reduction_pct": 1.1163153786104552
+    }
+  ],
+  "saved_action_verdicts": [
+    "PASS",
+    "PASS",
+    "PASS"
+  ]
+}

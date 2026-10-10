@@ -1,0 +1,22 @@
+{
+  "source_snapshot": "results/remote-snapshots/20261010T103259.759488Z-f28883df/files/smolvla-attention-20261010T1007Z",
+  "updated": [
+    "policy-control-300s.json",
+    "engine-inspection-01.log",
+    "policy-variants-01.json",
+    "policy-triton-attention-aligned-300s.log",
+    "policy-triton-attention-aligned-300s.json",
+    "engine-inspection-01.json",
+    "policy-control-300s.log"
+  ],
+  "preserved": [
+    {
+      "file": "engine-inspection-01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "policy-variants-01.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

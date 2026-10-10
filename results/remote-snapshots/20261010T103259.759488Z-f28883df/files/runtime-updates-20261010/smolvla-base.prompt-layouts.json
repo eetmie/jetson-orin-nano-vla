@@ -1,0 +1,535 @@
+{
+  "status": "PASS",
+  "model": "smolvla-base",
+  "cycles": 40,
+  "capture_exception_cleanup": true,
+  "elapsed_s": 11.611857896990841,
+  "fixture": {
+    "status": "PASS",
+    "threshold": 0.999,
+    "max_pct_range_threshold": 1.0,
+    "input_ids_match": true,
+    "source": "stock LeRobot SmolVLAPolicy, float32 on the CPU",
+    "reports": {
+      "action": {
+        "cosine": 0.9999985905201803,
+        "max_abs": 0.003747563809156418,
+        "mean_abs": 0.0003722082983586006,
+        "max_pct_range": 0.12135267055564335
+      },
+      "chunk": {
+        "cosine": 0.999998460957091,
+        "max_abs": 0.004365026950836182,
+        "mean_abs": 0.0003559963656880427,
+        "max_pct_range": 0.14134720701408565
+      },
+      "image_preprocess": {
+        "cosine": 0.9999902676821645,
+        "max_abs": 0.007843255996704102,
+        "mean_abs": 0.0018694368729560058,
+        "max_pct_range": 0.39577618968960737
+      }
+    },
+    "device_chain": {
+      "vs_host_chain": {
+        "cosine": 0.999999568777318,
+        "max_abs": 0.0019521713256835938,
+        "mean_abs": 0.00024138918243806983,
+        "max_pct_range": 0.0632054040157277,
+        "identical": false
+      },
+      "chunk": {
+        "cosine": 0.9999984890931045,
+        "max_abs": 0.00443364679813385,
+        "mean_abs": 0.0003542268668206816,
+        "max_pct_range": 0.14356923768434313
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "prompt without key: fixture",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "prompt without key: changed language",
+      "cosine": 0.9999995154921532,
+      "max_abs": 0.0018589496612548828,
+      "mean_abs": 0.0002442198128107975,
+      "max_pct_range": 0.05999563940889406
+    },
+    {
+      "name": "camera layout warmup 0",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "camera layout warmup 1",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 0",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 1",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 2",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 3",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 4",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 5",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 6",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 7",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 8",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 9",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 10",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 11",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 12",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 13",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 14",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 15",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 16",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 17",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 18",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 19",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 20",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 21",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 22",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 23",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 24",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 25",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 26",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 27",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 28",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 29",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 30",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 31",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 32",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 33",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 34",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 35",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 36",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 37",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    },
+    {
+      "name": "stress 38",
+      "cosine": 0.999999568777318,
+      "max_abs": 0.0019521713256835938,
+      "mean_abs": 0.00024138918243806983,
+      "max_pct_range": 0.0632054040157277
+    },
+    {
+      "name": "stress 39",
+      "cosine": 0.9999991639923929,
+      "max_abs": 0.002208024263381958,
+      "mean_abs": 0.00023981373575196585,
+      "max_pct_range": 0.08631634564956484
+    }
+  ],
+  "graphs": {
+    "created": 41,
+    "retired": 41,
+    "source_graphs_destroyed": 42,
+    "live_source_graphs": 0,
+    "live_executables": 1,
+    "peak_executables": 1
+  },
+  "memory_samples": [
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5639424
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5639424
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5639424
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5639424
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5653632
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5653632
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5653632
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5663872
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5663872
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5663872
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5663872
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5676284
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5675824
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5675824
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5686488
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5686488
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5686488
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5694680
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5694680
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5694680
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5694680
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5702884
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5702884
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5702884
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5711396
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5712572
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5712572
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5712572
+    },
+    {
+      "rss_kib": 1533864,
+      "available_kib": 5723536
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5715528
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5715528
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5721852
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5725992
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5725992
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5725992
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5733240
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5733240
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5733240
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5738240
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5741216
+    },
+    {
+      "rss_kib": 1533868,
+      "available_kib": 5741216
+    }
+  ],
+  "observations": "bundle fixture; synthetic prompt/layout perturbations",
+  "reference": "same Nano TensorRT engines, host chain"
+}

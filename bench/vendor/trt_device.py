@@ -156,17 +156,28 @@ class Device:
         _ck(cu.cudaStreamBeginCapture(self.stream, ctypes.c_int(_CAPTURE_THREAD_LOCAL)),
             "cudaStreamBeginCapture")
         self.capturing = True
+        graph = ctypes.c_void_p()
         try:
-            enqueue_fn()
+            try:
+                enqueue_fn()
+            finally:
+                self.capturing = False
+                rc = cu.cudaStreamEndCapture(self.stream, ctypes.byref(graph))
+            _ck(rc, "cudaStreamEndCapture")
+            gexec = ctypes.c_void_p()
+            _ck(cu.cudaGraphInstantiate(ctypes.byref(gexec), graph, ctypes.c_ulonglong(0)),
+                "cudaGraphInstantiate")
+            return gexec
         finally:
-            self.capturing = False
-            graph = ctypes.c_void_p()
-            rc = cu.cudaStreamEndCapture(self.stream, ctypes.byref(graph))
-        _ck(rc, "cudaStreamEndCapture")
-        gexec = ctypes.c_void_p()
-        _ck(cu.cudaGraphInstantiate(ctypes.byref(gexec), graph, ctypes.c_ulonglong(0)),
-            "cudaGraphInstantiate")
-        return gexec
+            # The executable owns its graph state after instantiation. Release the
+            # source graph on success and on failed enqueue/instantiation alike.
+            if graph:
+                _ck(cu.cudaGraphDestroy(graph), "cudaGraphDestroy")
+
+    def destroy_graph(self, gexec) -> None:
+        """Release an executable that will no longer be launched."""
+        if gexec is not None:
+            _ck(self.cu.cudaGraphExecDestroy(gexec), "cudaGraphExecDestroy")
 
     def launch(self, gexec) -> None:
         _ck(self.cu.cudaGraphLaunch(gexec, self.stream), "cudaGraphLaunch")
@@ -336,8 +347,8 @@ class XVLADevice:
 
     The interpolation x_t = x1 * t + action * (1 - t) runs as a small FP32 op engine
     with one weight buffer per step; the clean-action estimate stays in one buffer that
-    denoise_3 rewrites each step. The gripper sigmoid stays on the host, after the one
-    download.
+    denoise_3 rewrites each step. Prompt IDs are uploaded only when they change. The
+    gripper sigmoid stays on the host, after the one download.
     """
 
     def __init__(self, bundle, engines, ops, graph: bool = False):
@@ -380,6 +391,7 @@ class XVLADevice:
         d.upload(self.zeros, np.zeros(x_t_spec, np.float32))
         d.sync()
         self.feats = feats
+        self.task_ids = None
         self.ev = [d.event() for _ in range(4)]
         self.graph = None
         self._enqueue()
@@ -423,7 +435,9 @@ class XVLADevice:
         d = self.d
         t0 = time.perf_counter()
         d.upload(self.vision_in, pixel_values)
-        d.upload(self.ids, input_ids)
+        if self.task_ids is None or not np.array_equal(input_ids, self.task_ids):
+            d.upload(self.ids, input_ids)
+            self.task_ids = input_ids.copy()
         d.upload(self.proprio, proprio)
         d.upload(self.x1, x1)
         if self.graph is not None:
@@ -446,8 +460,8 @@ class XVLADevice:
 class Evo1Device:
     """EVO1 as one device-resident chain (see evo1_trt.infer for the host one).
 
-    The prompt's text rows, causal mask and context mask depend only on the task and
-    are uploaded when it changes; image features reach the prompt by device copies. The
+    The prompt's text rows, causal mask and context mask are uploaded when token IDs
+    or the validity mask change; image features reach the prompt by device copies. The
     Euler update action + velocity / steps runs as a small FP32 op engine (1/steps is a
     power of two here, so it is the same arithmetic), ping-ponging two buffers.
     """
@@ -476,6 +490,7 @@ class Evo1Device:
             self.time_index.append(ti)
         self.ev = [d.event() for _ in range(5)]
         self.task_ids = None
+        self.task_mask = None
         self.copies = None
         self.graph = None
         d.sync()
@@ -493,8 +508,10 @@ class Evo1Device:
             copies.append((s * row, src * row, (e - s) * row))
             src += e - s
         self.task_ids = input_ids.copy()
+        self.task_mask = context_mask.copy()
         if copies != self.copies:
             self.copies = copies
+            d.destroy_graph(self.graph)
             self.graph = None
             self._enqueue()                  # run uncaptured once before any capture
             d.sync()
@@ -537,7 +554,8 @@ class Evo1Device:
               timings: dict | None = None) -> np.ndarray:
         d = self.d
         t0 = time.perf_counter()
-        if self.task_ids is None or not np.array_equal(input_ids, self.task_ids):
+        if (self.task_ids is None or not np.array_equal(input_ids, self.task_ids)
+                or not np.array_equal(context_mask, self.task_mask)):
             self._set_prompt(input_ids, context_mask)
         d.upload(self.vision_in, pixel_values)
         d.upload(self.state, state)
@@ -653,6 +671,7 @@ class SmolVLADevice:
                               + np.cumsum(suffix, axis=1) - 1).astype(np.int64))
         if n_real != self.n_real:
             self.n_real = n_real
+            d.destroy_graph(self.graph)
             self.graph = None
             self._enqueue()
             d.sync()
@@ -694,10 +713,10 @@ class SmolVLADevice:
               key=None, timings: dict | None = None) -> np.ndarray:
         """pixels: [1,3,512,512] per real camera; lang: (embedding rows, mask);
         state [1,32] normalized; key identifies the task (prompt rows are re-uploaded
-        when it changes)."""
+        when it changes). Omitting key disables prompt caching."""
         d = self.d
         t0 = time.perf_counter()
-        if (key, len(pixels)) != (self.key, self.n_real):
+        if key is None or (key, len(pixels)) != (self.key, self.n_real):
             self._set_contract(lang, len(pixels))
             self.key = key
         for buf, p in zip(self.pix, pixels):

@@ -1,0 +1,58 @@
+{
+  "reference": "smolvla-base.triton-control",
+  "reference_file": "results/smolvla-triton-20261010/smolvla-base.triton-control.json",
+  "comparisons": [
+    {
+      "reference": "smolvla-base.triton-control",
+      "candidate": "smolvla-base.triton-attention.20261010T1007Z",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 0.9999865,
+      "cosine_mean": 0.9999978,
+      "max_abs_diff": 0.03169,
+      "mean_abs_diff": 0.0005748,
+      "reference_action_range": 25.6929,
+      "max_abs_diff_pct_of_range": 0.123,
+      "first_action_max_abs_diff": 0.005898,
+      "verdict": "PASS"
+    },
+    {
+      "reference": "smolvla-base.triton-control",
+      "candidate": "smolvla-base.trt-attention.20261010T1007Z",
+      "noise_injected_both": true,
+      "n_observations": 8,
+      "obs_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "finite": true,
+      "mode": "elementwise (exact signed inputs and seeded noise)",
+      "cosine_min": 0.9999992,
+      "cosine_mean": 0.9999996,
+      "max_abs_diff": 0.0236,
+      "mean_abs_diff": 0.0004654,
+      "reference_action_range": 25.6929,
+      "max_abs_diff_pct_of_range": 0.092,
+      "first_action_max_abs_diff": 0.004705,
+      "verdict": "PASS"
+    }
+  ]
+}

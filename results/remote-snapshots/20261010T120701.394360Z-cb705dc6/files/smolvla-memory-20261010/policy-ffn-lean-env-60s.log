@@ -1,0 +1,3 @@
+[10/10/2026-14:56:40] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+
+[smolvla.memory.ffn-lean-env] ok  p50=126.86 ms  p95=127.81 ms  7.88 Hz  -> results/smolvla-memory-20261010/policy-ffn-lean-env-60s.json

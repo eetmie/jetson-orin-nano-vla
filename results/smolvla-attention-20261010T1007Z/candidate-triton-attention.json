@@ -1,0 +1,140 @@
+{
+  "mode": "triton-attention",
+  "build_s": 31.730184078216553,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "ec9e40a7e27f3c180f3b44b563aa24d892454de57d2254cd6d54a9db22510358",
+  "patches": [
+    {
+      "softmax": "node_Softmax_299",
+      "input": "val_299",
+      "replaced_output": "scaled_dot_product_attention",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_4"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_371",
+      "input": "val_375",
+      "replaced_output": "scaled_dot_product_attention_1",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_8"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_443",
+      "input": "val_451",
+      "replaced_output": "scaled_dot_product_attention_2",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_12"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_515",
+      "input": "val_527",
+      "replaced_output": "scaled_dot_product_attention_3",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_16"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_587",
+      "input": "val_603",
+      "replaced_output": "scaled_dot_product_attention_4",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_20"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_659",
+      "input": "val_679",
+      "replaced_output": "scaled_dot_product_attention_5",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_24"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_731",
+      "input": "val_755",
+      "replaced_output": "scaled_dot_product_attention_6",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_28"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_803",
+      "input": "val_831",
+      "replaced_output": "scaled_dot_product_attention_7",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_32"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_875",
+      "input": "val_907",
+      "replaced_output": "scaled_dot_product_attention_8",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_36"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_947",
+      "input": "val_983",
+      "replaced_output": "scaled_dot_product_attention_9",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_40"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1019",
+      "input": "val_1059",
+      "replaced_output": "scaled_dot_product_attention_10",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_44"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1091",
+      "input": "val_1135",
+      "replaced_output": "scaled_dot_product_attention_11",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_48"
+      ]
+    }
+  ],
+  "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+  "plugin_sha256": "ce6b532ee4620e3853b87326fbbf1a35ba827d4d0f1226d72ba3e3e04f02ec00",
+  "accumulation": "FP32",
+  "implementation": "Triton AOT",
+  "warps": 4,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-base-trt",
+  "attention_kernel_sha256": "05b78f54a4679b5320c579032c89c4480a3c019f5e166d0efcb34dd04ae21014",
+  "block_m": 128,
+  "block_n": 64,
+  "stages": 2,
+  "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization"
+}

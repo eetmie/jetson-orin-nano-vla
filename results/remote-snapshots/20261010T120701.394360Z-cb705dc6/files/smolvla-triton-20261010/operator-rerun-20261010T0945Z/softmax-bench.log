@@ -1,0 +1,19 @@
+/home/joel/jetson-orin-nano-vla/.venv-torch-xvla/lib/python3.12/site-packages/torch/cuda/__init__.py:371: UserWarning: Found GPU0 Orin which is of compute capability (CC) 8.7.
+The following list shows the CCs this version of PyTorch was built for and the hardware CCs it supports:
+- 8.0 which supports hardware CC >=8.0,<9.0 except {8.7}
+- 9.0 which supports hardware CC >=9.0,<10.0
+- 10.0 which supports hardware CC >=10.0,<11.0 except {10.1}
+- 11.0 which supports hardware CC >=11.0,<12.0
+- 12.0 which supports hardware CC >=12.0,<13.0
+  _warn_unsupported_code(d, device_cc, code_ccs)
+torch.float32 row 4 1024 1.0306610870361328
+torch.float32 row 8 1024 1.03508544921875
+torch.float32 row 16 1024 1.4197088623046874
+torch.float32 online 4 256 1.2516512298583984
+torch.float32 online 4 512 1.0391020965576172
+torch.float16 row 4 1024 0.5194380950927734
+torch.float16 row 8 1024 0.6681619262695313
+torch.float16 row 16 1024 1.2678630065917968
+torch.float16 online 4 256 1.0980140686035156
+torch.float16 online 4 512 0.6934175872802735
+PASS -> results/smolvla-triton-20261010/operator-rerun-20261010T0945Z/softmax-bench.json

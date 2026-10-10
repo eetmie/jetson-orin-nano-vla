@@ -1,0 +1,13 @@
+{
+  "scope": "Final runtime and measurement sources. runner-before.py is the original environment recorder used in initial four 60-second runs. The -env runs use runner.py. Copy experiment sources back to experiments/smolvla_triton before running them.",
+  "sha256": {
+    "check_tokenizer.py": "8bd78aa045643e6448e8ef05915c7a59285ee9b1ec3c8ba0fb0bbe2dc2b6153c",
+    "probe_memory.py": "d4af62c53d81d63000af8b5284dd1b233e2c0e6778ccbf657282cbaf5604fa56",
+    "run_candidate.py": "f07bc9c3355071143218c080a74b7188ad37320a94a1511afe2a4c3911bd9448",
+    "runner-before.py": "75287e7af3174cef0f2fde8d70922227a8d2f886bd97ccb2adf79b258cfe1b75",
+    "runner.py": "f8900fc37d2b738c741667a9ff8af8777b23e99b773cf47eba2087965c3d79fa",
+    "runtime_memory.py": "243fdc754d2c8bca6e6f66f19c946f06e3cae6e1aea4576bdd2c3cbf8929a38b",
+    "summarize_memory.py": "7b01532a5c2b76c6060dfd83c4a7682ed83526cc726ef32f476a577711e66f88",
+    "test_env_memory.py": "cbd464e5c0f333c55e472497e38dff6a2d6287d5ea9faf91a000857b594a2afe"
+  }
+}

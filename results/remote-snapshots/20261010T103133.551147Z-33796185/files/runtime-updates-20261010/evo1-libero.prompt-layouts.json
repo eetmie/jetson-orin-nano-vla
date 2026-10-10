@@ -1,0 +1,540 @@
+{
+  "status": "PASS",
+  "model": "evo1-libero",
+  "cycles": 40,
+  "capture_exception_cleanup": true,
+  "elapsed_s": 29.10204905900173,
+  "fixture": {
+    "status": "PASS",
+    "threshold": 0.999,
+    "max_pct_range_threshold": 1.0,
+    "input_ids_match": true,
+    "source": "native LeRobot 0.6.1 EVO1, FP32 cpu",
+    "reports": {
+      "action": {
+        "cosine": 0.9999993668298911,
+        "max_abs": 0.005158901214599609,
+        "mean_abs": 0.0020607608991364637,
+        "max_pct_range": 0.05981126089203197
+      },
+      "chunk": {
+        "cosine": 0.9999992305643378,
+        "max_abs": 0.0071256160736083984,
+        "mean_abs": 0.001580476047626386,
+        "max_pct_range": 0.06340224414287111
+      },
+      "vision": {
+        "cosine": 0.9999700823873349,
+        "max_abs": 0.15316557884216309,
+        "mean_abs": 0.0014715854337048566,
+        "max_pct_range": 2.3790299278767573
+      },
+      "fused_valid": {
+        "cosine": 0.9999800143471794,
+        "max_abs": 1.095047950744629,
+        "mean_abs": 0.012651637250863712,
+        "max_pct_range": 0.4439820593418486
+      },
+      "image_preprocess": {
+        "cosine": 0.999949416309487,
+        "max_abs": 0.3151259422302246,
+        "mean_abs": 0.0038953910745792145,
+        "max_pct_range": 6.623209268987281
+      }
+    },
+    "device_chain": {
+      "vs_host_chain": {
+        "cosine": 1.0,
+        "max_abs": 0.0,
+        "mean_abs": 0.0,
+        "max_pct_range": 0.0,
+        "identical": true
+      },
+      "chunk": {
+        "cosine": 0.9999992305643378,
+        "max_abs": 0.0071256160736083984,
+        "mean_abs": 0.001580476047626386,
+        "max_pct_range": 0.06340224414287111
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "prompt/mask/layout warmup 0",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "prompt/mask/layout warmup 1",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "prompt/mask/layout warmup 2",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 0",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 1",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 2",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 3",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 4",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 5",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 6",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 7",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 8",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 9",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 10",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 11",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 12",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 13",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 14",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 15",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 16",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 17",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 18",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 19",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 20",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 21",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 22",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 23",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 24",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 25",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 26",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 27",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 28",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 29",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 30",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 31",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 32",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 33",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 34",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 35",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 36",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 37",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 38",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    },
+    {
+      "name": "stress 39",
+      "cosine": 1.0,
+      "max_abs": 0.0,
+      "mean_abs": 0.0,
+      "max_pct_range": 0.0
+    }
+  ],
+  "graphs": {
+    "created": 41,
+    "retired": 41,
+    "source_graphs_destroyed": 42,
+    "live_source_graphs": 0,
+    "live_executables": 1,
+    "peak_executables": 1
+  },
+  "memory_samples": [
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4939508
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4939508
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938040
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4937916
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938308
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938308
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938308
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938308
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938184
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938184
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938184
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938184
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4938420
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4940220
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4940220
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4941700
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4942996
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4942996
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4944128
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945120
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945168
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4945176
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4943396
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4943876
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4943876
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4943912
+    },
+    {
+      "rss_kib": 2424628,
+      "available_kib": 4943912
+    }
+  ],
+  "observations": "bundle fixture; synthetic prompt/layout perturbations",
+  "reference": "same Nano TensorRT engines, host chain"
+}

@@ -1,0 +1,23 @@
+# smolvla-base: 20 traced inferences, p50 130.5 ms under nsys
+
+| stage | calls/infer | wall ms | GPU kernels ms | copies ms | launch+sync+py ms | engine MB read/infer | weights GB/s |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| host glue between engines | | 130.5 | | | | | |
+| **total** | | **130.5** | **125.1** | 0.3 | | | |
+
+GPU kernels busy 96 % of the wall time. Per inference: 1 stream synchronizations, 6.3 MB host->device, 0.0 MB device->host.
+
+| kernel | ms/infer | launches/infer |
+|---|---:|---:|
+| `attention_aot` | 18.0 | 24 |
+| `sm80_xmma_gemm_f16f16_f16f16_f_10...` | 14.3 | 44 |
+| `trt_ampere_fp16_s16816gemm_fp1_12...` | 12.8 | 24 |
+| `trt_ampere_h16816gemm_256x64_l_63...` | 11.9 | 160 |
+| `sm80_xmma_gemm_f16f16_f16f16_f_5...` | 9.7 | 24 |
+| `trt_ampere_h16816gemm_128x64_s_65...` | 6.8 | 160 |
+| `sm80_xmma_gemm_f16f16_f16f32_f_61...` | 3.9 | 160 |
+| `sm80_xmma_gemm_f16f16_f16f32_f_36...` | 3.3 | 15 |
+| `_gemm_mha_v2_0xe9bb1cab4e4206a_60...` | 3.2 | 80 |
+| `trt_ampere_fp16_s16816gemm_fp1_51...` | 2.6 | 80 |
+| `_gemm_mha_v2_0x5741cf641a882d0_74...` | 2.4 | 80 |
+| `__myl_CastMeanSubMulMeanAddSqr_11...` | 2.1 | 44 |

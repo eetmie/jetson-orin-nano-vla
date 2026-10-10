@@ -1,0 +1,10 @@
+[10/10/2026-13:40:47] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Capture range started in the application.
+Capture range ended in the application.
+Generating '/tmp/nsys-joel/nsys-report-7f95.qdstrm'
+[1/1] [0%                          ] aligned-graph.nsys-repProcessing events...
+[1/1] [0%                          ] aligned-graph.nsys-rep[1/1] [5%                          ] aligned-graph.nsys-rep[1/1] [7%                          ] aligned-graph.nsys-rep[1/1] [10%                         ] aligned-graph.nsys-rep[1/1] [13%                         ] aligned-graph.nsys-rep[1/1] [=16%                        ] aligned-graph.nsys-rep[1/1] [==19%                       ] aligned-graph.nsys-rep[1/1] [==20%                       ] aligned-graph.nsys-rep[1/1] [======================91%   ] aligned-graph.nsys-rep[1/1] [=======================96%  ] aligned-graph.nsys-rep[1/1] [========================98% ] aligned-graph.nsys-rep[1/1] [========================100%] aligned-graph.nsys-rep[1/1] [========================100%] aligned-graph.nsys-rep[1/1] [========================100%] aligned-graph.nsys-rep
+traced 20 inferences; wrote results/smolvla-expert-20261010T1041Z/aligned-graph.trace.json
+Generated:
+	/home/joel/jetson-orin-nano-vla/results/smolvla-expert-20261010T1041Z/aligned-graph.nsys-rep

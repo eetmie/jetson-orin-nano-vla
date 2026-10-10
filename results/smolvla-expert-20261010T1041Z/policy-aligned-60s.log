@@ -1,0 +1,5 @@
+[0;93m2026-10-10 13:51:17.672839146 [W:onnxruntime:Default, device_discovery.cc:211 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:91 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[10/10/2026-13:51:22] [TRT] [W] AOT Plugin: Kernel 'attention_aot' has 2 hidden args (expected 6, kernel has 8). Padding with null/zero values. This may indicate DSL-injected arguments (e.g., Triton scratch memory).
+
+[smolvla-base.aligned.20261010T1041Z.60s] ok  p50=127.88 ms  p95=128.83 ms  7.82 Hz  -> results/smolvla-expert-20261010T1041Z/policy-aligned-60s.json

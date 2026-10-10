@@ -1,0 +1,69 @@
+{
+  "selected": "aligned Triton vision + packed Triton expert + lean runtime",
+  "reason": "Keep the measured expert speed gain for about 27 MB more process RSS / 32 MB more sampled board RAM than the lean original expert in matched 60-second windows.",
+  "cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-ffn-20261010T1041Z",
+  "runtime_flags": [
+    "--chain",
+    "graph",
+    "--views",
+    "2",
+    "--lean-tokenizer",
+    "--trim-host-heap"
+  ],
+  "precision": "Mixed FP16: HALF weights/projections and rounded sigmoid/SiLU/product; FP32 accumulation and sensitive operations. No INT8/INT4 quantization.",
+  "lower_ram_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-control-20261010T1041Z",
+  "selection_evidence": [
+    "policy-control-env-60s.json",
+    "policy-control-lean-env-60s.json",
+    "policy-ffn-lean-env-60s.json"
+  ],
+  "sustained_evidence": "policy-ffn-lean-env-300s.json",
+  "sustained_latency_ms": {
+    "n": 2364,
+    "mean": 126.82,
+    "p50": 126.78,
+    "p90": 127.52,
+    "p95": 127.71,
+    "p99": 128.29,
+    "min": 125.63,
+    "max": 131.86,
+    "std": 0.61,
+    "hz_mean": 7.89,
+    "quartile_means_in_order": [
+      126.94,
+      126.82,
+      126.78,
+      126.73
+    ],
+    "drift_q4_vs_q1_pct": -0.2
+  },
+  "sustained_board_ram_mb": {
+    "mean": 1814.96,
+    "p50": 1815.0,
+    "p95": 1828.0,
+    "max": 1984.0,
+    "min": 1783.0
+  },
+  "sustained_process_rss_mb": {
+    "mean": 1458.6,
+    "max": 1479.8
+  },
+  "engine_sha256": {
+    "action_in.engine": "25dafa97ffa031e47047546050687d86b731cc2738bf88105149eaa34e286b47",
+    "prefill.engine": "4c47b7bd130f7b250e450db31be748374729d17353179de1711b210c2d7c32ec",
+    "action_out.engine": "5fbeebce028312fa0f36777fa6b3d10f1aebeac5e88118aef5d3a0a23add3d5f",
+    "decode.engine": "ac8dc8d19af7ac9bc93b5870f0b2a3a95fe8e33b63d06ac3c1f2a0fa62d63546",
+    "op_silu_3ec14fc460d7.engine": "02f02222ada25693d8b10308e56e495e27b0f703b15976a535a5ba4dbb352f5d",
+    "op_axpy_2bf70fd1c0f9.engine": "e4811e20cdb4eb0294b7b687cac2ae9a1f2e766dc51b8c44764ff71b9b078406",
+    "state_proj.engine": "955c85bea49c3fd8c81334fb8797da980cb92867c79f341f2569520de07ab0c5",
+    "op_axpy_4afaa4added7.engine": "bc7d21fba13abacd0d81006d41f4827aa3c4878bffbb9ef9dfe7d20adf346937",
+    "time_out.engine": "c83b30d7f41603ad305902250191e561992e9795bac90b5c9697787feb344d22",
+    "time_in.engine": "4e64d16ff6b115cd6e47954a83a4c6b54b29916906c3ecd668746213c58884fb",
+    "vision.engine": "0d18afd25382331bb4e3595cc614da5ef0fc78b478e27ec8813afd3aa900af44"
+  },
+  "tokenizer_sha256": {
+    "tokenizer_config.json": "fd87e003eef34b916fce3386cfe07c513a56c5bdc7b83e2c7da93cad2efee9c3",
+    "tokenizer.json": "2500f374cdc89040032a7d8437b6ed0fe745667b1194c17914d062ee31701605"
+  },
+  "deployment_scope": "Explicit experimental wrapper/cache; standard ONNX backend build unchanged."
+}

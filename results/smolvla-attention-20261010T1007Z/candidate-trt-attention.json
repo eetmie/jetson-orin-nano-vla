@@ -1,0 +1,135 @@
+{
+  "mode": "trt-attention",
+  "build_s": 10.039409875869751,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "63472d24d921b1b2346fe304816b85f95724275df25ed62ece03a1cfa3352098",
+  "patches": [
+    {
+      "softmax": "node_Softmax_299",
+      "input": "val_299",
+      "replaced_output": "scaled_dot_product_attention",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_4"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_371",
+      "input": "val_375",
+      "replaced_output": "scaled_dot_product_attention_1",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_8"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_443",
+      "input": "val_451",
+      "replaced_output": "scaled_dot_product_attention_2",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_12"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_515",
+      "input": "val_527",
+      "replaced_output": "scaled_dot_product_attention_3",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_16"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_587",
+      "input": "val_603",
+      "replaced_output": "scaled_dot_product_attention_4",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_20"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_659",
+      "input": "val_679",
+      "replaced_output": "scaled_dot_product_attention_5",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_24"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_731",
+      "input": "val_755",
+      "replaced_output": "scaled_dot_product_attention_6",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_28"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_803",
+      "input": "val_831",
+      "replaced_output": "scaled_dot_product_attention_7",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_32"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_875",
+      "input": "val_907",
+      "replaced_output": "scaled_dot_product_attention_8",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_36"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_947",
+      "input": "val_983",
+      "replaced_output": "scaled_dot_product_attention_9",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_40"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1019",
+      "input": "val_1059",
+      "replaced_output": "scaled_dot_product_attention_10",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_44"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1091",
+      "input": "val_1135",
+      "replaced_output": "scaled_dot_product_attention_11",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_48"
+      ]
+    }
+  ],
+  "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+  "plugin_sha256": "78a9d0188647ed8cd8813f89ebc2bca2bc4653ad6c007c78ec16ef604b06b796",
+  "accumulation": "TensorRT IAttention internal precision",
+  "implementation": "TensorRT IAttention",
+  "warps": null,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-base-trt"
+}

@@ -1,0 +1,2 @@
+expert-control layers 374 types {'kgen': 202, 'gemm': 80, 'signal': 46, 'wait': 46}
+expert-ffn layers 356 types {'kgen': 196, 'gemm': 48, 'fusion': 16, 'Constant': 16, 'PluginV3': 16, 'signal': 32, 'wait': 32}

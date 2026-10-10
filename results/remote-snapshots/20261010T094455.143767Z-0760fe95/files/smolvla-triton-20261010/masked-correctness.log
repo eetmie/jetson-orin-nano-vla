@@ -1,0 +1,23 @@
+/home/joel/jetson-orin-nano-vla/.venv-torch-xvla/lib/python3.12/site-packages/torch/cuda/__init__.py:371: UserWarning: Found GPU0 Orin which is of compute capability (CC) 8.7.
+The following list shows the CCs this version of PyTorch was built for and the hardware CCs it supports:
+- 8.0 which supports hardware CC >=8.0,<9.0 except {8.7}
+- 9.0 which supports hardware CC >=9.0,<10.0
+- 10.0 which supports hardware CC >=10.0,<11.0 except {10.1}
+- 11.0 which supports hardware CC >=11.0,<12.0
+- 12.0 which supports hardware CC >=12.0,<13.0
+  _warn_unsupported_code(d, device_cc, code_ccs)
+random {'case': 'random', 'max_abs': 1.52587890625e-05, 'reference_zero_rows': 0, 'status': 'PASS'}
+partial_and_fully_masked {'case': 'partial_and_fully_masked', 'max_abs': 7.62939453125e-06, 'reference_zero_rows': 12, 'status': 'PASS'}
+large_rounding {'case': 'large_rounding', 'max_abs': 0.0, 'reference_zero_rows': 0, 'status': 'PASS'}
+infinities {'case': 'infinities', 'max_abs': 7.62939453125e-06, 'reference_zero_rows': 24, 'status': 'PASS'}
+Traceback (most recent call last):
+  File "/home/joel/jetson-orin-nano-vla/experiments/smolvla_triton/check_masked.py", line 96, in <module>
+    main()
+  File "/home/joel/jetson-orin-nano-vla/experiments/smolvla_triton/check_masked.py", line 73, in main
+    graph = device.capture(run)
+            ^^^^^^^^^^^^^^^^^^^
+  File "/home/joel/jetson-orin-nano-vla/bench/vendor/trt_device.py", line 156, in capture
+    _ck(cu.cudaStreamBeginCapture(self.stream, ctypes.c_int(_CAPTURE_THREAD_LOCAL)),
+  File "/home/joel/jetson-orin-nano-vla/bench/vendor/groot_trt.py", line 54, in _ck
+    raise RuntimeError(f"{what} failed: cudaError {rc}")
+RuntimeError: cudaStreamBeginCapture failed: cudaError 900

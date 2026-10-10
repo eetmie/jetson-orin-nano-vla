@@ -1,0 +1,435 @@
+{
+  "status": "COMPLETE",
+  "archived_utc": "20261010T094455.143767Z",
+  "host": "joel@192.168.8.230",
+  "remote_results": "~/jetson-orin-nano-vla/results",
+  "rsync_exit": 0,
+  "files": [
+    {
+      "path": ".gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "README.md",
+      "bytes": 918,
+      "sha256": "1bd6f04ab10d806daeb984b36e420482e833c52f325128e76b99e4956f1bbfb9"
+    },
+    {
+      "path": "evo1-bootstrap.ort.json",
+      "bytes": 324723,
+      "sha256": "408e829455a1911d582aa303ee9a85f9eb323cedde7cb21eb8dde470015ac2ab",
+      "label": "evo1-bootstrap.ort",
+      "status": "ok",
+      "run_utc": "2026-09-03T18:33:59+00:00"
+    },
+    {
+      "path": "evo1-libero.ort.json",
+      "bytes": 324635,
+      "sha256": "91bf2fee55396ec9871067076cbf2fba3d0f953af75aff0257137a46cdf88f46",
+      "label": "evo1-libero.ort",
+      "status": "ok",
+      "run_utc": "2026-09-05T12:45:36+00:00"
+    },
+    {
+      "path": "evo1-libero.trt.json",
+      "bytes": 326569,
+      "sha256": "f295d200ad9b8c4f332c5cda1653a864f01fd8a88e389757c71849a08ba8e662",
+      "label": "evo1-libero.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:26:18+00:00"
+    },
+    {
+      "path": "evo1-libero.trt.sustained.json",
+      "bytes": 326587,
+      "sha256": "53527d7e014b5a4715d5f146827a96d9b115fdb01694dfebd78314932b2b70a6",
+      "label": "evo1-libero.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:27:17+00:00"
+    },
+    {
+      "path": "groot-n16-base.trt.json",
+      "bytes": 1305950,
+      "sha256": "d269128ff5bf219019c07671617e3ea5783ae985471f206cc14e9210799d470a",
+      "label": "groot-n16-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:00:38+00:00"
+    },
+    {
+      "path": "groot-n16-base.trt.sustained.json",
+      "bytes": 1306031,
+      "sha256": "7e5ee693adb62093a5ba553edf6f588b6aa2909c917e61ec324c1e7ec029223a",
+      "label": "groot-n16-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:01:42+00:00"
+    },
+    {
+      "path": "groot-n17-base.trt.json",
+      "bytes": 1073157,
+      "sha256": "45ce99c2e7135f31267030a58019189dbcde6d991821c6944f19cdaa9377760f",
+      "label": "groot-n17-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:07:17+00:00"
+    },
+    {
+      "path": "groot-n17-base.trt.sustained.json",
+      "bytes": 1073226,
+      "sha256": "7c4c7e05ae237ff65b4c3682bfe35f9cb81f2716de42f8fb0f7d4708ec56a2ef",
+      "label": "groot-n17-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:08:30+00:00"
+    },
+    {
+      "path": "pi05-libero.padded.trt.json",
+      "bytes": 197869,
+      "sha256": "62f7634bf0169c1a40c3b675703013ab05b155a041f8c70ee6bb1558679affdc",
+      "label": "pi05-libero.padded.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:56:39+00:00"
+    },
+    {
+      "path": "pi05-libero.padded.trt.sustained.json",
+      "bytes": 197891,
+      "sha256": "195693fa819b8f5ab9e1371d7271166bcee8ecf19086b7bd6a9bc9cc7902f4a6",
+      "label": "pi05-libero.padded.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:58:39+00:00"
+    },
+    {
+      "path": "pi05-libero.trt.json",
+      "bytes": 195584,
+      "sha256": "364f2d86d175d870dbe27d3ddcd636401861109ea2192d453da5574fb3fa4658",
+      "label": "pi05-libero.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:49:22+00:00"
+    },
+    {
+      "path": "pi05-libero.trt.sustained.json",
+      "bytes": 195609,
+      "sha256": "386dc7136a23e04dec079cb9bf077d73efe3041927e7894ac1d1dc3966a3529a",
+      "label": "pi05-libero.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T23:50:51+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/check_prompt_layouts.py",
+      "bytes": 8694,
+      "sha256": "e1c5ead2fd922aa75451e09b2a49618759e34c69ebd8db32ddf9d28a352f1d03"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.prompt-layouts.json",
+      "bytes": 10679,
+      "sha256": "2a439139d3a1df9d6b09c3372fb6e443f974da3a81f226c74ebdde2b7ea680af"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.prompt-layouts.log",
+      "bytes": 394,
+      "sha256": "2f3c54c4dcfb7de8f27f4084f72447adc4edc2eb1bdef15a484b06bf4d87f433"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.baseline.json",
+      "bytes": 326758,
+      "sha256": "66db16e303139604f7c22bae9df59b6ff8ee78667e2abbfe3bba474746b4f9ea",
+      "label": "evo1-libero.runtime-update.baseline",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:05:22+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.baseline.log",
+      "bytes": 546,
+      "sha256": "ae8176d21f908141f6a9efe99c0fcc98914787dd46b3b043282bc9ed51b3416e"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.candidate.json",
+      "bytes": 326758,
+      "sha256": "c98ce979ca5706853daadba5eec9a206838328c5f8787037575a573722b7db43",
+      "label": "evo1-libero.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:06:47+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/evo1-libero.runtime-update.candidate.log",
+      "bytes": 549,
+      "sha256": "3ea952c5e0c42e22e8b5d231acf91096fabff0dc636d895065e1fc314e8ef1a7"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n16-base.runtime-update.candidate.json",
+      "bytes": 824162,
+      "sha256": "2c5d952ae934aba17c9d2b2bf86e8c39ae6ae371cefd64a6ff8511c3f8317c32",
+      "label": "groot-n16-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:08:15+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n16-base.runtime-update.candidate.log",
+      "bytes": 554,
+      "sha256": "9bf5ba886f7ad297a0d96a09d9a9e5256e22e863f4924cb119dbf18345ba94fb"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n17-base.runtime-update.candidate.json",
+      "bytes": 679701,
+      "sha256": "f083f222d26a8be1bdb251db6be9c666f4317a258e507b544bfd3c467d82e39e",
+      "label": "groot-n17-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:08:51+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/groot-n17-base.runtime-update.candidate.log",
+      "bytes": 555,
+      "sha256": "22428dc76ca42f686e9e3415bc08233e20108abf051dada51f47233a164489da"
+    },
+    {
+      "path": "runtime-updates-20261010/pi05-libero.runtime-update.candidate.json",
+      "bytes": 187262,
+      "sha256": "690e94594b4c7fe009320f518beb00833421c154fe8e0e0d6848c920b93f1812",
+      "label": "pi05-libero.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:09:30+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/pi05-libero.runtime-update.candidate.log",
+      "bytes": 549,
+      "sha256": "af81242ec05731b8441ade3ddc8f5c0253e7f5959efebd1fc3705102c5355ec0"
+    },
+    {
+      "path": "runtime-updates-20261010/run_probes.py",
+      "bytes": 1258,
+      "sha256": "02187dc1334c261cc1288365003dc2a7fceaa4c549734c1a25753ac4b4fb64e7"
+    },
+    {
+      "path": "runtime-updates-20261010/run_validation.py",
+      "bytes": 2765,
+      "sha256": "c158df23acb20bba5f0f5dba6612e2983b5438ed54695ae5a572a685aedd3652"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.prompt-layouts.json",
+      "bytes": 13453,
+      "sha256": "5a4850127c4d8af95028fc52733653ca8c20d61352ede5c8d4ba7afc0f584402"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.prompt-layouts.log",
+      "bytes": 396,
+      "sha256": "7ab4483545312701beac22db6b5ba8bda780e6effa43d85d7bce9bed89f235c4"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.baseline.json",
+      "bytes": 440441,
+      "sha256": "233a97c53b44f500c91486b278f96211f02fbff28d9ed72a11ccdd4f5a5edd75",
+      "label": "smolvla-base.runtime-update.baseline",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:00:07+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.baseline.log",
+      "bytes": 549,
+      "sha256": "55b9415e7daabf1186064205be68ac84f010b169a88f1048d1eecbaba88d5f43"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.candidate.json",
+      "bytes": 440439,
+      "sha256": "6552d6d4a60a62721900b73cfa5e61f7fbc2f45186b9ae94b9b65def76a1f4ad",
+      "label": "smolvla-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:01:22+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/smolvla-base.runtime-update.candidate.log",
+      "bytes": 550,
+      "sha256": "f2673af71c2c73ae498117a4965de2785102ec38e8a8ef4a77dee94f1297d499"
+    },
+    {
+      "path": "runtime-updates-20261010/summarize.py",
+      "bytes": 3485,
+      "sha256": "08a8110136d63a8805168223b6a5bf419c333a269772e14218119b809136826c"
+    },
+    {
+      "path": "runtime-updates-20261010/summary.json",
+      "bytes": 25128,
+      "sha256": "80158935f1f7bbd9d30e05986ff71674b452097e7445a40ecce0fb432a1ea257"
+    },
+    {
+      "path": "runtime-updates-20261010/validation-manifest.json",
+      "bytes": 8499,
+      "sha256": "c765c46fc985c307c81c7ba10ae5066c677d6dc5fdb027adb4e8529b8fc00a71"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.prompt-layouts.json",
+      "bytes": 11686,
+      "sha256": "2cbd25b31aae700f98d872c08cee6c37ccdcd6e690359607d149485182de23fb"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.prompt-layouts.log",
+      "bytes": 390,
+      "sha256": "9996854a210f99a9f00c77e579325d52acb6c7068343813bb573597dd6de04e7"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.baseline.json",
+      "bytes": 159870,
+      "sha256": "2bd40497afc467e783b7d0888f3edeaaa1168d9fa9a0db31a95b3896c8bffc1e",
+      "label": "xvla-base.runtime-update.baseline",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:02:36+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.baseline.log",
+      "bytes": 543,
+      "sha256": "f2beca32b8788e4b9b1ff972f1d7121f2414b4fd11e5d03f1148f5313f2d4587"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.candidate.json",
+      "bytes": 159866,
+      "sha256": "438f2dc7d8cdc2611c9ab2ca83ab938f7c8ffa93689ce2cbf6ebc2cb5260a459",
+      "label": "xvla-base.runtime-update.candidate",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:04:00+00:00"
+    },
+    {
+      "path": "runtime-updates-20261010/xvla-base.runtime-update.candidate.log",
+      "bytes": 545,
+      "sha256": "3b3e2e24efd97f28848db4bf748314d281b37282d78bd42b7bb491b28b872cb0"
+    },
+    {
+      "path": "smolvla-base.ort.json",
+      "bytes": 439408,
+      "sha256": "8c5579828469121d4f12fe95997b4c77cb79073b1dc4504ffd70b4bce06f2f81",
+      "label": "smolvla-base.ort",
+      "status": "ok",
+      "run_utc": "2026-08-26T17:33:52+00:00"
+    },
+    {
+      "path": "smolvla-base.torch.json",
+      "bytes": 445219,
+      "sha256": "acbaec8662beacbebf322b2e70efb828c7b87208b9df495d447c5c23ac90df18",
+      "label": "smolvla-base.torch",
+      "status": "ok",
+      "run_utc": "2026-08-26T17:32:10+00:00"
+    },
+    {
+      "path": "smolvla-base.trt.json",
+      "bytes": 440704,
+      "sha256": "64969330ca3ac34de7312bdcc687d94091e029a0259cfed68f5db0579f6d315b",
+      "label": "smolvla-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:20:30+00:00"
+    },
+    {
+      "path": "smolvla-base.trt.sustained.json",
+      "bytes": 440729,
+      "sha256": "cecc131f1bcc674086ccbd48a3142a1b97eac07f34f2b73db8b1c9625148db45",
+      "label": "smolvla-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:21:03+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/build-control.log",
+      "bytes": 1183,
+      "sha256": "0e02d680b30d1ce6f42499702d17b4420db71e4f1b7ed9b7f08727a75e7d3965"
+    },
+    {
+      "path": "smolvla-triton-20261010/build-fp16.log",
+      "bytes": 1767,
+      "sha256": "17e21e10d875c0787e0ffa3cca2f1fc698196914c2148a470c0c207d2e86b652"
+    },
+    {
+      "path": "smolvla-triton-20261010/build-masked.log",
+      "bytes": 1769,
+      "sha256": "b926381f3292914093ded1cdf3ed9b058ba0f5cf36cd68ab166efe6ff146c414"
+    },
+    {
+      "path": "smolvla-triton-20261010/masked-correctness.json",
+      "bytes": 761,
+      "sha256": "85e86d8af3532dfd5ae98b693ae4175c1d51196ccab11d608b9042a7860a4e02"
+    },
+    {
+      "path": "smolvla-triton-20261010/masked-correctness.log",
+      "bytes": 1728,
+      "sha256": "ce10a6011d9b3dc4edaf4b3fed31bdd0f10cd5e95795f8f87127d17aaded1e00"
+    },
+    {
+      "path": "smolvla-triton-20261010/run-control.log",
+      "bytes": 506,
+      "sha256": "400fb41c953c91535424f67d3b758fae5f2ea45657c09109ecbfe85f574edb91"
+    },
+    {
+      "path": "smolvla-triton-20261010/run-fp16.log",
+      "bytes": 714,
+      "sha256": "313a6c821bfcf22fab4f7df4b7dca6f07a5f02b2a26971f6d95b3034273e7697"
+    },
+    {
+      "path": "smolvla-triton-20261010/run-masked.log",
+      "bytes": 724,
+      "sha256": "58057d0698e2ec278223133a454d4fd1554aa0b97ade62dec6fcee464fc6b406"
+    },
+    {
+      "path": "smolvla-triton-20261010/smolvla-base.triton-control.json",
+      "bytes": 441274,
+      "sha256": "60a6a0b8bac7ea3affd95623420d70c91677cd54a59c8809c9e8595d418447f0",
+      "label": "smolvla-base.triton-control",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:42:01+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/smolvla-base.triton-fp16.json",
+      "bytes": 445189,
+      "sha256": "1b44bb52b1c3f6059e108fef96848c54353e696002845ca1f166e00adaba5c82",
+      "label": "smolvla-base.triton-fp16",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:31:40+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/smolvla-base.triton-masked.json",
+      "bytes": 444867,
+      "sha256": "167afc5496105180dbf1be1be7c9bdf4cd1d2f35d73d61bcfd40a389f6e5c5f2",
+      "label": "smolvla-base.triton-masked",
+      "status": "ok",
+      "run_utc": "2026-10-10T09:39:36+00:00"
+    },
+    {
+      "path": "smolvla-triton-20261010/softmax-bench.json",
+      "bytes": 12734,
+      "sha256": "a9f68e8a0b016fdbc2d2b8d14e118f0e5036c98db59d68a1020c12decd76cf0b"
+    },
+    {
+      "path": "smolvla-triton-20261010/softmax-bench.log",
+      "bytes": 1089,
+      "sha256": "2f040c24701e96bbe16749c5685eab262333201864cb7e31ee2153122bf48e41"
+    },
+    {
+      "path": "smolvla-triton-20261010/softmax-shapes.json",
+      "bytes": 1624,
+      "sha256": "9059c95166dda384c40242df37d7a0121327cee45af49cddc49db327535cd1e4"
+    },
+    {
+      "path": "xvla-base.ort.json",
+      "bytes": 156994,
+      "sha256": "223504c59a03925dc2cdc97ec4d13a078ceb7e8adffaadd8540460ff913bab9e",
+      "label": "xvla-base.ort",
+      "status": "ok",
+      "run_utc": "2026-09-04T17:37:15+00:00"
+    },
+    {
+      "path": "xvla-base.torch.json",
+      "bytes": 171088,
+      "sha256": "daf9128f3c27b31d38fac419f5ee7183c8866f8f65a3f6903727bc06660b9353",
+      "label": "xvla-base.torch",
+      "status": "ok",
+      "run_utc": "2026-09-04T17:32:07+00:00"
+    },
+    {
+      "path": "xvla-base.trt.json",
+      "bytes": 159906,
+      "sha256": "ab11ff17375a6f1544a2db1c6f8cb8970014da8d5648c3e3976c0bf07d997e21",
+      "label": "xvla-base.trt",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:32:39+00:00"
+    },
+    {
+      "path": "xvla-base.trt.sustained.json",
+      "bytes": 159931,
+      "sha256": "e7c56ccea95a032814f75bf9b2adfdf2f726c41cbcf7509ad15dac7ed240c8dc",
+      "label": "xvla-base.trt.sustained",
+      "status": "ok",
+      "run_utc": "2026-10-09T20:33:41+00:00"
+    }
+  ]
+}

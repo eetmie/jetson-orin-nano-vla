@@ -1,0 +1,15 @@
+PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+{
+  "status": "PASS",
+  "model": "xvla-base",
+  "cycles": 40,
+  "elapsed_s": 14.465927577010007,
+  "graphs": {
+    "created": 0,
+    "retired": 0,
+    "source_graphs_destroyed": 1,
+    "live_source_graphs": 0,
+    "live_executables": 1,
+    "peak_executables": 1
+  }
+}
