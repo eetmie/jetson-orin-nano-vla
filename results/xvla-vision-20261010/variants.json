@@ -1,0 +1,1051 @@
+{
+  "status": "PASS",
+  "manifests": {
+    "control": {
+      "mode": "actions",
+      "accumulate": "fp32",
+      "bundle": "/home/joel/bundles/xvla-base-split-h16",
+      "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/xvla-h16-fp32-actions",
+      "tensorrt": "10.16.2.10",
+      "opt_level": 2,
+      "tile": {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_warps": 4,
+        "num_stages": 2
+      },
+      "scale": 0.353515625,
+      "patches": {
+        "denoise_0": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_1": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_2": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_3": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 30
+          }
+        ]
+      },
+      "kernel_sha256": "bcbbc99c68c7381e15eed3da21330be4d9f50290d5f8f1cadb997e8047272875",
+      "plugin_sha256": "c410267569419432cd6d4266492ff678d1a52263fb01f6373118866be15ee105",
+      "precision": "HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, unnormalized probabilities rounded to HALF before PV",
+      "source_sha256": {
+        "cond.onnx": "8b1e2b6f05c06272b3e2383e50f88964f13d8773a66292d7aeb932efe8d32cc5",
+        "denoise_0.onnx": "27b73dd67d0bb801f1af70747f7a2d0da08ae53cdf20d43eab93472840612dfe",
+        "denoise_1.onnx": "56995fe4d86b80516c9a02819517718dee992808d6924fab9457eafeee0add44",
+        "denoise_2.onnx": "0cf7b71a15d4f3d3caa10178a16fe564dcdf255695e4041562f732d72af8bcf7",
+        "denoise_3.onnx": "dac28fc9775ebcee607d40d52be92ed0d10f7670c1f3f4d81c8c7b41e0592440",
+        "text_encoder_0.onnx": "e4af4a70853209a2f086f2733dd897ae849dc9b4ccee253223949087901b3765",
+        "text_encoder_1.onnx": "929de7fbc1839d91f6014dc497e0620d8413d07a85c6af5f6af7acf9ca6c6ae0",
+        "text_encoder_2.onnx": "c4d37a8c017a5c235fe4884cd446c53d862065ab08d73dd426c35259e38fb2ea",
+        "vision_0.onnx": "24b0b13794403ac3e98d46835d03e2f341578757f9c5e2d438e5aeca36f8c149",
+        "vision_1.onnx": "b458b73d29f4c4c91fa8c43f746f38ce5c3c154b30b46904110467979f3c7d04",
+        "vision_2.onnx": "c98c6e9f35282b5b55561777e27bd134c5405d0e8f8e261fce4a5f6c8beaa4e6",
+        "vision_3.onnx": "de9b52937256c8e43d3d469c82fe00c244ed0e90b8531f627c1490d3f32f589f"
+      },
+      "all_engine_sha256": {
+        "cond.engine": "1f1d0b104085fee778c7902f17f47113ea2fe176be325637fc1dc9f2b46005c2",
+        "denoise_0.engine": "c563a9938c44a9e4e97f7537c0fa2d45b4efa7ba7587809c83d392aa94a6162d",
+        "denoise_1.engine": "e75cbf6b1a33108252d781ac9ea13cadddfbf0a9e25ff405decee620a4807fb2",
+        "denoise_2.engine": "c8caf064317dfe05b4f0370adff125cbfb4766d0ee1b71ec85bc9261f0daf658",
+        "denoise_3.engine": "a6bc9217c2e5bd7599a87bc64449bbf94126c0672b55013945ef4655fa027db4",
+        "text_encoder_0.engine": "e8bdb0452d62a55bc70554cc3916c1ceac94ac3d4cef2b25eca3eda40abd8e5b",
+        "text_encoder_1.engine": "6b5f25286a876d31e6fcfd016523d78bce686883478aee839ab9bbced98e7489",
+        "text_encoder_2.engine": "a2eccd8b19392bb7efdd8437566729f1bdb9d3a219a33c01b0d8d8b0803f08c4",
+        "vision_0.engine": "746516beb4c8afb133355ccd7bf8a69d02c0b81b010f9ed7c1ecbd39ffc4c328",
+        "vision_1.engine": "25d6a6e87968fa832b1acebc258a748fe471904d8c5b25623302507d26524039",
+        "vision_2.engine": "edede01970cc6577eb35ce8f55a499bdd85d50dec87bc1b4738c1dc48b209c62",
+        "vision_3.engine": "1faf37d917562a0f6ece69338da6122123a11006fc0e1fefcecfc6f97fb6ded8"
+      },
+      "vision_mode": "baseline",
+      "vision_accumulate": "fp32",
+      "vision_patches": {
+        "vision_0": [],
+        "vision_1": [],
+        "vision_2": [],
+        "vision_3": []
+      },
+      "vision_kernel_sha256": "76b256b6792984a0f20d3ef89b3099b99ebec9970fa00e067212377fa3af6582",
+      "vision_plugin_sha256": "db5278c99836f205688aeb7b36619fa1202328eca91cac19a971d590f57e8cc9"
+    },
+    "dwconv": {
+      "mode": "actions",
+      "accumulate": "fp32",
+      "bundle": "/home/joel/bundles/xvla-base-split-h16",
+      "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/xvla-h16-fp32-actions",
+      "tensorrt": "10.16.2.10",
+      "opt_level": 2,
+      "tile": {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_warps": 4,
+        "num_stages": 2
+      },
+      "scale": 0.353515625,
+      "patches": {
+        "denoise_0": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_1": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_2": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_3": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 30
+          }
+        ]
+      },
+      "kernel_sha256": "bcbbc99c68c7381e15eed3da21330be4d9f50290d5f8f1cadb997e8047272875",
+      "plugin_sha256": "c410267569419432cd6d4266492ff678d1a52263fb01f6373118866be15ee105",
+      "precision": "HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, unnormalized probabilities rounded to HALF before PV",
+      "source_sha256": {
+        "cond.onnx": "8b1e2b6f05c06272b3e2383e50f88964f13d8773a66292d7aeb932efe8d32cc5",
+        "denoise_0.onnx": "27b73dd67d0bb801f1af70747f7a2d0da08ae53cdf20d43eab93472840612dfe",
+        "denoise_1.onnx": "56995fe4d86b80516c9a02819517718dee992808d6924fab9457eafeee0add44",
+        "denoise_2.onnx": "0cf7b71a15d4f3d3caa10178a16fe564dcdf255695e4041562f732d72af8bcf7",
+        "denoise_3.onnx": "dac28fc9775ebcee607d40d52be92ed0d10f7670c1f3f4d81c8c7b41e0592440",
+        "text_encoder_0.onnx": "e4af4a70853209a2f086f2733dd897ae849dc9b4ccee253223949087901b3765",
+        "text_encoder_1.onnx": "929de7fbc1839d91f6014dc497e0620d8413d07a85c6af5f6af7acf9ca6c6ae0",
+        "text_encoder_2.onnx": "c4d37a8c017a5c235fe4884cd446c53d862065ab08d73dd426c35259e38fb2ea",
+        "vision_0.onnx": "24b0b13794403ac3e98d46835d03e2f341578757f9c5e2d438e5aeca36f8c149",
+        "vision_1.onnx": "b458b73d29f4c4c91fa8c43f746f38ce5c3c154b30b46904110467979f3c7d04",
+        "vision_2.onnx": "c98c6e9f35282b5b55561777e27bd134c5405d0e8f8e261fce4a5f6c8beaa4e6",
+        "vision_3.onnx": "de9b52937256c8e43d3d469c82fe00c244ed0e90b8531f627c1490d3f32f589f"
+      },
+      "all_engine_sha256": {
+        "cond.engine": "1f1d0b104085fee778c7902f17f47113ea2fe176be325637fc1dc9f2b46005c2",
+        "denoise_0.engine": "c563a9938c44a9e4e97f7537c0fa2d45b4efa7ba7587809c83d392aa94a6162d",
+        "denoise_1.engine": "e75cbf6b1a33108252d781ac9ea13cadddfbf0a9e25ff405decee620a4807fb2",
+        "denoise_2.engine": "c8caf064317dfe05b4f0370adff125cbfb4766d0ee1b71ec85bc9261f0daf658",
+        "denoise_3.engine": "a6bc9217c2e5bd7599a87bc64449bbf94126c0672b55013945ef4655fa027db4",
+        "text_encoder_0.engine": "e8bdb0452d62a55bc70554cc3916c1ceac94ac3d4cef2b25eca3eda40abd8e5b",
+        "text_encoder_1.engine": "6b5f25286a876d31e6fcfd016523d78bce686883478aee839ab9bbced98e7489",
+        "text_encoder_2.engine": "a2eccd8b19392bb7efdd8437566729f1bdb9d3a219a33c01b0d8d8b0803f08c4",
+        "vision_0.engine": "dc69c8a9b982c47da4b5e98ff680d8bd7a49d67f9debd5f9915396bd84531ed7",
+        "vision_1.engine": "dd8b9c542147102e85ed617dad682746caa3b22137648380e2e7501fc8d24e5f",
+        "vision_2.engine": "9077d2e108255c94f56b16fa513180a451c97fd30d14167eb3505b301e81971e",
+        "vision_3.engine": "8071720e58663982e1c441dddd78c9c93717fbb0324116b86f4a2c0242620b90"
+      },
+      "vision_mode": "dwconv",
+      "vision_accumulate": "fp32",
+      "vision_patches": {
+        "vision_0": [
+          {
+            "conv": "/mods.1/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.1/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.1/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              56,
+              56,
+              256
+            ]
+          },
+          {
+            "conv": "/mods.1/channel_block/conv1/Conv",
+            "tokens_in": "/mods.1/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.1/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              56,
+              56,
+              256
+            ]
+          },
+          {
+            "conv": "/mods.1/channel_block/conv2/Conv",
+            "tokens_in": "/mods.1/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.1/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              56,
+              56,
+              256
+            ]
+          },
+          {
+            "conv": "/mods.3/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.3/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.3/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              28,
+              28,
+              512
+            ]
+          },
+          {
+            "conv": "/mods.3/channel_block/conv1/Conv",
+            "tokens_in": "/mods.3/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.3/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              28,
+              28,
+              512
+            ]
+          },
+          {
+            "conv": "/mods.3/channel_block/conv2/Conv",
+            "tokens_in": "/mods.3/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.3/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              28,
+              28,
+              512
+            ]
+          },
+          {
+            "conv": "/mods.5/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.5/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.5/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.5/channel_block/conv1/Conv",
+            "tokens_in": "/mods.5/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.5/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.5/channel_block/conv2/Conv",
+            "tokens_in": "/mods.5/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.5/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.6/spatial_block/conv1/Conv",
+            "tokens_in": "/mods.5/channel_block/Add_3_output_0",
+            "tokens_out": "/mods.6/spatial_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.6/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.6/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.6/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.6/channel_block/conv1/Conv",
+            "tokens_in": "/mods.6/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.6/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.6/channel_block/conv2/Conv",
+            "tokens_in": "/mods.6/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.6/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.7/spatial_block/conv1/Conv",
+            "tokens_in": "/mods.6/channel_block/Add_3_output_0",
+            "tokens_out": "/mods.7/spatial_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.7/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.7/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.7/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.7/channel_block/conv1/Conv",
+            "tokens_in": "/mods.7/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.7/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.7/channel_block/conv2/Conv",
+            "tokens_in": "/mods.7/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.7/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          }
+        ],
+        "vision_1": [
+          {
+            "conv": "/mods.0/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.0/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.0/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.0/channel_block/conv1/Conv",
+            "tokens_in": "/mods.0/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.0/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.0/channel_block/conv2/Conv",
+            "tokens_in": "/mods.0/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.0/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/spatial_block/conv1/Conv",
+            "tokens_in": "/mods.0/channel_block/Add_3_output_0",
+            "tokens_out": "/mods.1/spatial_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.1/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.1/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/channel_block/conv1/Conv",
+            "tokens_in": "/mods.1/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.1/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/channel_block/conv2/Conv",
+            "tokens_in": "/mods.1/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.1/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/spatial_block/conv1/Conv",
+            "tokens_in": "/mods.1/channel_block/Add_3_output_0",
+            "tokens_out": "/mods.2/spatial_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.2/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.2/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/channel_block/conv1/Conv",
+            "tokens_in": "/mods.2/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.2/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/channel_block/conv2/Conv",
+            "tokens_in": "/mods.2/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.2/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          }
+        ],
+        "vision_2": [
+          {
+            "conv": "/mods.0/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.0/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.0/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.0/channel_block/conv1/Conv",
+            "tokens_in": "/mods.0/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.0/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.0/channel_block/conv2/Conv",
+            "tokens_in": "/mods.0/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.0/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/spatial_block/conv1/Conv",
+            "tokens_in": "/mods.0/channel_block/Add_3_output_0",
+            "tokens_out": "/mods.1/spatial_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.1/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.1/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/channel_block/conv1/Conv",
+            "tokens_in": "/mods.1/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.1/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.1/channel_block/conv2/Conv",
+            "tokens_in": "/mods.1/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.1/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/spatial_block/conv1/Conv",
+            "tokens_in": "/mods.1/channel_block/Add_3_output_0",
+            "tokens_out": "/mods.2/spatial_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.2/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.2/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/channel_block/conv1/Conv",
+            "tokens_in": "/mods.2/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.2/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          },
+          {
+            "conv": "/mods.2/channel_block/conv2/Conv",
+            "tokens_in": "/mods.2/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.2/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              14,
+              14,
+              1024
+            ]
+          }
+        ],
+        "vision_3": [
+          {
+            "conv": "/mods.0/spatial_block/conv2/Conv",
+            "tokens_in": "/mods.0/spatial_block/Add_1_output_0",
+            "tokens_out": "/mods.0/spatial_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              7,
+              7,
+              2048
+            ]
+          },
+          {
+            "conv": "/mods.0/channel_block/conv1/Conv",
+            "tokens_in": "/mods.0/spatial_block/Add_3_output_0",
+            "tokens_out": "/mods.0/channel_block/Transpose_output_0",
+            "shape": [
+              3,
+              7,
+              7,
+              2048
+            ]
+          },
+          {
+            "conv": "/mods.0/channel_block/conv2/Conv",
+            "tokens_in": "/mods.0/channel_block/Add_1_output_0",
+            "tokens_out": "/mods.0/channel_block/Transpose_2_output_0",
+            "shape": [
+              3,
+              7,
+              7,
+              2048
+            ]
+          }
+        ]
+      },
+      "vision_kernel_sha256": "76b256b6792984a0f20d3ef89b3099b99ebec9970fa00e067212377fa3af6582",
+      "vision_plugin_sha256": "1db4e71ce84c1c8795643a83e9170bc4dcc23f32f52cd4ebcf33b940d970313b"
+    }
+  },
+  "checks": [
+    {
+      "kind": "fixture",
+      "comparisons": {
+        "dwconv": {
+          "cosine": 0.9999999339078034,
+          "max_abs": 0.0003662109375,
+          "mean_abs": 4.486734668413798e-05,
+          "max_pct_range": 0.03583309824666854,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "black",
+      "comparisons": {
+        "dwconv": {
+          "cosine": 0.9999999541899266,
+          "max_abs": 0.0003662109375,
+          "mean_abs": 3.269995252291361e-05,
+          "max_pct_range": 0.036063203581714734,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "grey",
+      "comparisons": {
+        "dwconv": {
+          "cosine": 0.9999999190916471,
+          "max_abs": 0.0003662109375,
+          "mean_abs": 5.117654800415039e-05,
+          "max_pct_range": 0.036127275969875354,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "white",
+      "comparisons": {
+        "dwconv": {
+          "cosine": 0.999999925317778,
+          "max_abs": 0.000396728515625,
+          "mean_abs": 4.9286683400472004e-05,
+          "max_pct_range": 0.03889722168880095,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "checkerboard",
+      "comparisons": {
+        "dwconv": {
+          "cosine": 0.9999999592771458,
+          "max_abs": 0.000244140625,
+          "mean_abs": 3.1273414691289266e-05,
+          "max_pct_range": 0.023799522952042625,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "random",
+      "comparisons": {
+        "dwconv": {
+          "cosine": 0.9999999437291968,
+          "max_abs": 0.0003662109375,
+          "mean_abs": 3.9111624161402385e-05,
+          "max_pct_range": 0.03601836444147939,
+          "identical": false
+        }
+      }
+    }
+  ],
+  "fixture_gates": {
+    "control": {
+      "status": "PASS",
+      "threshold": 0.999,
+      "max_pct_range_threshold": 1.0,
+      "input_ids_match": true,
+      "source": "stock LeRobot XVLAPolicy, float32 on the CPU",
+      "reports": {
+        "action": {
+          "cosine": 0.9999999292076183,
+          "max_abs": 0.00023752450942993164,
+          "mean_abs": 6.656994810327888e-05,
+          "max_pct_range": 0.0238144027954344
+        },
+        "chunk": {
+          "cosine": 0.9999998374865192,
+          "max_abs": 0.0004913005977869034,
+          "mean_abs": 0.00010161143805210789,
+          "max_pct_range": 0.04811507758434726
+        },
+        "image_preprocess": {
+          "cosine": 0.9999999993521184,
+          "max_abs": 0.0002759099006652832,
+          "mean_abs": 1.1787152084440847e-05,
+          "max_pct_range": 0.005949434357753356
+        }
+      },
+      "device_chain": {
+        "vs_host_chain": {
+          "cosine": 0.9999999673473456,
+          "max_abs": 0.000244140625,
+          "mean_abs": 2.573410669962565e-05,
+          "max_pct_range": 0.023910052437500256,
+          "identical": false
+        },
+        "chunk": {
+          "cosine": 0.999999850403618,
+          "max_abs": 0.00042847171425819397,
+          "mean_abs": 9.848973092933496e-05,
+          "max_pct_range": 0.04196198797049546
+        }
+      }
+    },
+    "dwconv": {
+      "status": "PASS",
+      "threshold": 0.999,
+      "max_pct_range_threshold": 1.0,
+      "input_ids_match": true,
+      "source": "stock LeRobot XVLAPolicy, float32 on the CPU",
+      "reports": {
+        "action": {
+          "cosine": 0.9999999394626452,
+          "max_abs": 0.00023752450942993164,
+          "mean_abs": 6.288191070780158e-05,
+          "max_pct_range": 0.0238144027954344
+        },
+        "chunk": {
+          "cosine": 0.9999998542277118,
+          "max_abs": 0.00045898929238319397,
+          "mean_abs": 9.75125088977317e-05,
+          "max_pct_range": 0.044950699251908637
+        },
+        "image_preprocess": {
+          "cosine": 0.9999999993521184,
+          "max_abs": 0.0002759099006652832,
+          "mean_abs": 1.1787152084440847e-05,
+          "max_pct_range": 0.005949434357753356
+        }
+      },
+      "device_chain": {
+        "vs_host_chain": {
+          "cosine": 0.9999999373401517,
+          "max_abs": 0.000335693359375,
+          "mean_abs": 4.2200237512588504e-05,
+          "max_pct_range": 0.032876322101562855,
+          "identical": false
+        },
+        "chunk": {
+          "cosine": 0.999999850816247,
+          "max_abs": 0.00045898929238319397,
+          "mean_abs": 9.954351931810378e-05,
+          "max_pct_range": 0.044950699251908637
+        }
+      }
+    }
+  }
+}

@@ -34,6 +34,7 @@ worth where it applied, and whether it changes any number.
 | 9 | conv patch embeddings on `sm75 implicit_gemm` / `sm50 conv2d` kernels | patchify + MatMul at export | SmolVLA −0.8 ms | FP32-rounding level |
 | 10 | builder optimization level | levels 3–5 | ≤1 % per engine, often noise; SmolVLA prefill got slower at 3 | — |
 | 11 | a bandwidth-bound GEMV/GEMM on an FP16-accumulating tactic (`h16816gemm` with a small grid, huge K) | Triton GEMV accumulating in FP32 | EVO1 output head (K=44800): same speed, policy error 0.075 % → 0.034 % | better accuracy, not exact |
+| 12 | a conv run in NCHW between transposes to and from tokens (DaViT positional convs on `sm50 conv2d` kernels, `__myl_*Tran*` copies around them) | a token-layout (channels-last) depthwise conv + residual plugin | X-VLA vision 92.2 → 81.1 ms, −109 MB RSS | exact against an FP32 conv; within 0.04 % end to end |
 
 A Triton tile must also fit the 48 KiB of shared memory a kernel gets without an
 opt-in: TensorRT's AOT launcher does not opt in, and a 78 KiB π0.5 tile failed at
@@ -82,7 +83,7 @@ for +9.3 MB RSS).
 | model | done | still open |
 |---|---|---|
 | SmolVLA | 126.8 → 102.9 ms ([results](../results/smolvla-native-20261010T1247Z/summary.json)); FP32 accumulation by default | — |
-| X-VLA | 383.7 → ~349 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries ([experiment](../experiments/xvla_triton/)) | vision tower: 18.9 ms of layout copies and 10.3 ms of depthwise 3×3 convs on sm50 kernels around DaViT's NCHW↔token round trips (a token-layout depthwise conv plugin). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
+| X-VLA | 383.7 → 342.1 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries, token-layout depthwise convs in the vision tower ([experiment](../experiments/xvla_triton/)) | the six stage-entrance convs (~1 ms). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
 | EVO1 | 360.3 → ~340 ms: preprocessing, FP16 K/V cache, FP32-accumulating output head ([experiment](../experiments/evo1_triton/)) | GEMM-bound vision (TensorRT's 1025-token MHA is already within 7 % of a Triton kernel) |
 | GR00T N1.6 / N1.7 | 288 → ~275 / ~278 ms: preprocessing, FP16 `kv_*`/`mod_*` boundaries (bit-identical) | GEMM-bound; N1.7 `ds_*` boundaries need the deepstack scatter to work in FP16 bytes |
 | π0.5 | 474 → 440.1 ms: preprocessing, Triton action-expert attention ([experiment](../experiments/pi05_triton/)) | prefill attention and the gated MLP: Triton kernels do not beat TensorRT there (D=256 attention 1.10 vs 1.0 ms; fused gate/up/GELU 9.86 vs 9.32 ms per layer) |
