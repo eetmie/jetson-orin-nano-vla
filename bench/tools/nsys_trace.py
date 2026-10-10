@@ -6,7 +6,7 @@ libnvtx3interop, so nothing is installed), and capture covers only the measured 
 loading, engine builds and warmup run before cudaProfilerStart.
 
     nsys profile -t cuda,nvtx,osrt --capture-range=cudaProfilerApi --capture-range-end=stop \\
-        --sample=none --cpuctxsw=none -o traces/xvla-base \\
+        --sample=none --cpuctxsw=none --cuda-graph-trace=node -o traces/xvla-base \\
         .venv-ort/bin/python -m bench.tools.nsys_trace --model xvla-base \\
         --bundle ~/bundles/xvla-base-split
     nsys export --type sqlite -o traces/xvla-base.sqlite traces/xvla-base.nsys-rep
@@ -14,9 +14,13 @@ loading, engine builds and warmup run before cudaProfilerStart.
 
 The summary splits each stage's wall time into GPU kernels, copies, the rest of the
 engine call (launch, synchronize, Python) and host glue between calls, and divides the
-engine's size by its kernel time: a stage that reads its weights at close to the board's
-~102 GB/s is bandwidth-bound, one far below it is not. Traced latency is a little above
-an untraced run's; read the split, not the total.
+engine's size by its kernel time: a stage that reads its weights at close to the
+board's ~102 GB/s is bandwidth-bound, one far below it is not. Traced latency is a
+little above an untraced run's; read the split, not the total.
+
+`--chain host` (the default here) labels every engine call. `--chain graph` traces have
+no per-engine ranges, only kernels, and nsys shows those only with
+`--cuda-graph-trace=node`.
 """
 
 from __future__ import annotations
