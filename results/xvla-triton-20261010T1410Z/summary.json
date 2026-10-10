@@ -1,0 +1,172 @@
+{
+  "scope": "X-VLA base, 3 views, 10 denoising steps, graph chain, MAXN_SUPER; synthetic observations; inference cost, not task quality",
+  "steps_60s": [
+    {
+      "change": "rebuilt control (same builder settings), numpy preprocessing",
+      "file": "policy-baseline-60s.json",
+      "p50_ms": 381.98,
+      "p95_ms": 383.54,
+      "p99_ms": 383.99,
+      "achieved_hz": 2.6165,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 266.647,
+        "preprocess": 20.188,
+        "text": 5.668,
+        "vision": 88.448
+      },
+      "process_rss_mb": {
+        "mean": 2745.6,
+        "max": 2745.6
+      },
+      "board_ram_mb_mean": 2792.21,
+      "energy_j_per_inference": 8.438,
+      "fixture_chunk_max_pct_range": 0.054092500147173594
+    },
+    {
+      "change": "Triton attention in all 24 blocks on the fused QKV projection",
+      "file": "policy-attention-60s.json",
+      "p50_ms": 373.51,
+      "p95_ms": 374.21,
+      "p99_ms": 374.47,
+      "achieved_hz": 2.6772,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 258.287,
+        "preprocess": 19.995,
+        "text": 5.669,
+        "vision": 88.331
+      },
+      "process_rss_mb": {
+        "mean": 2631.7,
+        "max": 2631.8
+      },
+      "board_ram_mb_mean": 2795.19,
+      "energy_j_per_inference": 8.387,
+      "fixture_chunk_max_pct_range": 0.05092812181473498
+    },
+    {
+      "change": "+ last block computes only the 30 decoded action rows",
+      "file": "policy-actions-60s.json",
+      "p50_ms": 367.88,
+      "p95_ms": 368.74,
+      "p99_ms": 369.03,
+      "achieved_hz": 2.7176,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 252.612,
+        "preprocess": 19.989,
+        "text": 5.668,
+        "vision": 88.508
+      },
+      "process_rss_mb": {
+        "mean": 2577.9,
+        "max": 2578.0
+      },
+      "board_ram_mb_mean": 2786.57,
+      "energy_j_per_inference": 8.253,
+      "fixture_chunk_max_pct_range": 0.04960943322505384
+    },
+    {
+      "change": "+ cv2.LUT preprocessing (exact)",
+      "file": "policy-actions-lut-60s.json",
+      "p50_ms": 350.47,
+      "p95_ms": 350.99,
+      "p99_ms": 351.34,
+      "achieved_hz": 2.8528,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 252.48,
+        "preprocess": 2.646,
+        "text": 5.688,
+        "vision": 88.875
+      },
+      "process_rss_mb": {
+        "mean": 2605.2,
+        "max": 2605.2
+      },
+      "board_ram_mb_mean": 2798.0,
+      "energy_j_per_inference": 8.099,
+      "fixture_chunk_max_pct_range": 0.04960943322505384
+    }
+  ],
+  "rejected_60s": [
+    {
+      "change": "denoise at builder optimization level 5",
+      "note": "-0.18 ms, noise",
+      "file": "policy-actions-L5-lut-60s.json",
+      "p50_ms": 350.29,
+      "p95_ms": 351.07,
+      "p99_ms": 351.44,
+      "achieved_hz": 2.8538,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 252.643,
+        "preprocess": 2.617,
+        "text": 5.667,
+        "vision": 88.669
+      },
+      "process_rss_mb": {
+        "mean": 2544.9,
+        "max": 2547.7
+      },
+      "board_ram_mb_mean": 2878.26,
+      "energy_j_per_inference": 8.111,
+      "fixture_chunk_max_pct_range": 0.05993475211310497
+    }
+  ],
+  "sustained_300s": {
+    "control with LUT preprocessing": {
+      "file": "policy-baseline-300s.json",
+      "p50_ms": 365.91,
+      "p95_ms": 367.71,
+      "p99_ms": 368.68,
+      "achieved_hz": 2.7323,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 268.183,
+        "preprocess": 2.645,
+        "text": 5.665,
+        "vision": 88.665
+      },
+      "process_rss_mb": {
+        "mean": 2593.4,
+        "max": 2594.4
+      },
+      "board_ram_mb_mean": 2781.93,
+      "energy_j_per_inference": 8.37,
+      "fixture_chunk_max_pct_range": 0.054092500147173594
+    },
+    "selected": {
+      "file": "policy-actions-300s.json",
+      "p50_ms": 350.65,
+      "p95_ms": 351.43,
+      "p99_ms": 351.8,
+      "achieved_hz": 2.8516,
+      "stages_ms": {
+        "cond": 0.0,
+        "denoise": 252.709,
+        "preprocess": 2.631,
+        "text": 5.657,
+        "vision": 88.885
+      },
+      "process_rss_mb": {
+        "mean": 2570.6,
+        "max": 2571.8
+      },
+      "board_ram_mb_mean": 2787.46,
+      "energy_j_per_inference": 8.195,
+      "fixture_chunk_max_pct_range": 0.04960943322505384
+    }
+  },
+  "stress": "variants.json: 6 image kinds, cosine >= 0.99999990, max 0.038 % of range vs control",
+  "microbench": {
+    "attention": "microbench/xvla_attn_bench.json: 0.071 ms vs TensorRT MHA 0.16 ms in trace (262 tokens); 0.017 ms for 30 query rows",
+    "gemm": "microbench/xvla_gemm_bench.json: Triton tiles tie TensorRT/cuBLAS at M=262; not a target"
+  },
+  "selected": {
+    "cache": "~/.cache/jetson-orin-nano-vla/xvla-actions-20261010T1410Z",
+    "manifest": "manifests/actions.json",
+    "build": "experiments/xvla_triton/build_denoise.py --mode actions"
+  }
+}

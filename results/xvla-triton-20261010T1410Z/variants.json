@@ -1,0 +1,698 @@
+{
+  "status": "PASS",
+  "manifests": {
+    "control": {
+      "mode": "baseline",
+      "bundle": "/home/joel/bundles/xvla-base-split",
+      "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/xvla-base-trt",
+      "tensorrt": "10.16.2.10",
+      "opt_level": 2,
+      "tile": {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_warps": 4,
+        "num_stages": 2
+      },
+      "scale": 0.353515625,
+      "patches": {
+        "denoise_0": [],
+        "denoise_1": [],
+        "denoise_2": [],
+        "denoise_3": []
+      },
+      "kernel_sha256": "bcbbc99c68c7381e15eed3da21330be4d9f50290d5f8f1cadb997e8047272875",
+      "plugin_sha256": "c410267569419432cd6d4266492ff678d1a52263fb01f6373118866be15ee105",
+      "precision": "HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, unnormalized probabilities rounded to HALF before PV",
+      "source_sha256": {
+        "cond.onnx": "948543cfb77d3d0f6e4e6e8091c52632fac36eeabb37914dc6c0c3d1d91ac41b",
+        "denoise_0.onnx": "a0c4fd567e0103fda78c8b7ccc73570174b08b458424f8711f3c3bfb891b7f73",
+        "denoise_1.onnx": "f7f24483e0123d03f23512b629ca46865f2cf5fa53b21c0d95f1140ef4aca79f",
+        "denoise_2.onnx": "4f71f0f26bfc72e77ac9fad3a14f1cbc09a207027d3dc1f61aff1d19467f4214",
+        "denoise_3.onnx": "bea02cb6f8eeaf0dd7d99b588e7f775a1e3d3e6d595e63cdec347a4cd2940dd7",
+        "text_encoder_0.onnx": "3d4077110117ca430d51b6473921b080351aa0fe2ce96260eec22435168652f2",
+        "text_encoder_1.onnx": "f2c311b23f23f188d27f8ac0519871f93a653ee9ac1e23907165433e113ee661",
+        "text_encoder_2.onnx": "90c7e09dd57ecf82ad1cf70cc19eb74450902169fbe2f79881b092d103a43255",
+        "vision_0.onnx": "873313a73a383a124f56ddedefa5d2039136043701305a883dfa03c045347265",
+        "vision_1.onnx": "b16d90d93f1cca0bf3531c335b810c1e01e756f692e021b5176fca66cf4c6d47",
+        "vision_2.onnx": "867d7a7e839a07be2c33cc1c2f655fab12329f74616fbd810fa52f410c31248e",
+        "vision_3.onnx": "f5dc4e2f9c0f8cd5cb7fd4cd345dccfc432f52d79813c3a8044728a13e64a766"
+      },
+      "all_engine_sha256": {
+        "cond.engine": "8e9e892ad11c5957baa0a7293691a97d0962e246e0b011033137e89fa70de4a0",
+        "denoise_0.engine": "9adef0a983f76d62b59689b151735fad05c46f106bd26b141d347d835d1d2162",
+        "denoise_1.engine": "fd7bfa7cefc94d6a6b48551ca13ca9249b413759914a991a45d0f00c4c1b050c",
+        "denoise_2.engine": "67a427fb6793c5d3017f84dfecb5b7e2e2415c5376eb713053f1248192321971",
+        "denoise_3.engine": "4f47600a808cc0e1ceaaba2736b09982948c7695711f94ec069eabe79c19caf5",
+        "text_encoder_0.engine": "9bb19cd8ceccd269e8f26de54817d69e1136ca4b6ab07e85c725057841162f02",
+        "text_encoder_1.engine": "b91cff7f8e24d574f9318696b76accc801f5dd58d3444abc2dd40a1a3648889a",
+        "text_encoder_2.engine": "f55acab077d321609900cb63e880fa20bd153bbc7fcdcbe1933dc1603bc226cc",
+        "vision_0.engine": "59e0e7cf6a7eb56201804254b9a6a40ba00b5ea791d32a73a39ec723b65f8759",
+        "vision_1.engine": "de3f58a4d14a2e511b6ab338b4a757e16fe081a11f9e104c6faaf28a5fb6e766",
+        "vision_2.engine": "5f0956575fc1f947732451e04a22e5647834d75e474028fcc7bafe6acf068736",
+        "vision_3.engine": "4e067bba9fe391025ef774414f572f87a295405c779e7b70187ff80f92168b9f"
+      }
+    },
+    "attention": {
+      "mode": "attention",
+      "bundle": "/home/joel/bundles/xvla-base-split",
+      "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/xvla-base-trt",
+      "tensorrt": "10.16.2.10",
+      "opt_level": 2,
+      "tile": {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_warps": 4,
+        "num_stages": 2
+      },
+      "scale": 0.353515625,
+      "patches": {
+        "denoise_0": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_1": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_2": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_3": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ]
+      },
+      "kernel_sha256": "bcbbc99c68c7381e15eed3da21330be4d9f50290d5f8f1cadb997e8047272875",
+      "plugin_sha256": "c410267569419432cd6d4266492ff678d1a52263fb01f6373118866be15ee105",
+      "precision": "HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, unnormalized probabilities rounded to HALF before PV",
+      "source_sha256": {
+        "cond.onnx": "948543cfb77d3d0f6e4e6e8091c52632fac36eeabb37914dc6c0c3d1d91ac41b",
+        "denoise_0.onnx": "a0c4fd567e0103fda78c8b7ccc73570174b08b458424f8711f3c3bfb891b7f73",
+        "denoise_1.onnx": "f7f24483e0123d03f23512b629ca46865f2cf5fa53b21c0d95f1140ef4aca79f",
+        "denoise_2.onnx": "4f71f0f26bfc72e77ac9fad3a14f1cbc09a207027d3dc1f61aff1d19467f4214",
+        "denoise_3.onnx": "bea02cb6f8eeaf0dd7d99b588e7f775a1e3d3e6d595e63cdec347a4cd2940dd7",
+        "text_encoder_0.onnx": "3d4077110117ca430d51b6473921b080351aa0fe2ce96260eec22435168652f2",
+        "text_encoder_1.onnx": "f2c311b23f23f188d27f8ac0519871f93a653ee9ac1e23907165433e113ee661",
+        "text_encoder_2.onnx": "90c7e09dd57ecf82ad1cf70cc19eb74450902169fbe2f79881b092d103a43255",
+        "vision_0.onnx": "873313a73a383a124f56ddedefa5d2039136043701305a883dfa03c045347265",
+        "vision_1.onnx": "b16d90d93f1cca0bf3531c335b810c1e01e756f692e021b5176fca66cf4c6d47",
+        "vision_2.onnx": "867d7a7e839a07be2c33cc1c2f655fab12329f74616fbd810fa52f410c31248e",
+        "vision_3.onnx": "f5dc4e2f9c0f8cd5cb7fd4cd345dccfc432f52d79813c3a8044728a13e64a766"
+      },
+      "all_engine_sha256": {
+        "cond.engine": "8e9e892ad11c5957baa0a7293691a97d0962e246e0b011033137e89fa70de4a0",
+        "denoise_0.engine": "6974286217711ecab0046e5e827c455cc383c7c0fb201efbe5c2644754b223e4",
+        "denoise_1.engine": "f9d8e273cd048922bbde2f2158b026fc87c8e410ce2005c42b7d50500c1c7264",
+        "denoise_2.engine": "561b3a8c178c184a4b3e8f510e5da0558bd86b22b1c59f2c3585c6b2ae8c0da9",
+        "denoise_3.engine": "edef48426208c5da3f07bd2258ab7dabb82d79f8ec9dfe36cc75228a109db81f",
+        "text_encoder_0.engine": "9bb19cd8ceccd269e8f26de54817d69e1136ca4b6ab07e85c725057841162f02",
+        "text_encoder_1.engine": "b91cff7f8e24d574f9318696b76accc801f5dd58d3444abc2dd40a1a3648889a",
+        "text_encoder_2.engine": "f55acab077d321609900cb63e880fa20bd153bbc7fcdcbe1933dc1603bc226cc",
+        "vision_0.engine": "59e0e7cf6a7eb56201804254b9a6a40ba00b5ea791d32a73a39ec723b65f8759",
+        "vision_1.engine": "de3f58a4d14a2e511b6ab338b4a757e16fe081a11f9e104c6faaf28a5fb6e766",
+        "vision_2.engine": "5f0956575fc1f947732451e04a22e5647834d75e474028fcc7bafe6acf068736",
+        "vision_3.engine": "4e067bba9fe391025ef774414f572f87a295405c779e7b70187ff80f92168b9f"
+      }
+    },
+    "actions": {
+      "mode": "actions",
+      "bundle": "/home/joel/bundles/xvla-base-split",
+      "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/xvla-base-trt",
+      "tensorrt": "10.16.2.10",
+      "opt_level": 2,
+      "tile": {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_warps": 4,
+        "num_stages": 2
+      },
+      "scale": 0.353515625,
+      "patches": {
+        "denoise_0": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_1": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_2": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 262
+          }
+        ],
+        "denoise_3": [
+          {
+            "softmax": "/blocks.0/attn/Softmax",
+            "qkv": "/blocks.0/attn/qkv/Add_output_0",
+            "replaced": "/blocks.0/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.1/attn/Softmax",
+            "qkv": "/blocks.1/attn/qkv/Add_output_0",
+            "replaced": "/blocks.1/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.2/attn/Softmax",
+            "qkv": "/blocks.2/attn/qkv/Add_output_0",
+            "replaced": "/blocks.2/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.3/attn/Softmax",
+            "qkv": "/blocks.3/attn/qkv/Add_output_0",
+            "replaced": "/blocks.3/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.4/attn/Softmax",
+            "qkv": "/blocks.4/attn/qkv/Add_output_0",
+            "replaced": "/blocks.4/attn/Reshape_1_output_0",
+            "rows": 262
+          },
+          {
+            "softmax": "/blocks.5/attn/Softmax",
+            "qkv": "/blocks.5/attn/qkv/Add_output_0",
+            "replaced": "/blocks.5/attn/Reshape_1_output_0",
+            "rows": 30
+          }
+        ]
+      },
+      "kernel_sha256": "bcbbc99c68c7381e15eed3da21330be4d9f50290d5f8f1cadb997e8047272875",
+      "plugin_sha256": "c410267569419432cd6d4266492ff678d1a52263fb01f6373118866be15ee105",
+      "precision": "HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, unnormalized probabilities rounded to HALF before PV",
+      "source_sha256": {
+        "cond.onnx": "948543cfb77d3d0f6e4e6e8091c52632fac36eeabb37914dc6c0c3d1d91ac41b",
+        "denoise_0.onnx": "a0c4fd567e0103fda78c8b7ccc73570174b08b458424f8711f3c3bfb891b7f73",
+        "denoise_1.onnx": "f7f24483e0123d03f23512b629ca46865f2cf5fa53b21c0d95f1140ef4aca79f",
+        "denoise_2.onnx": "4f71f0f26bfc72e77ac9fad3a14f1cbc09a207027d3dc1f61aff1d19467f4214",
+        "denoise_3.onnx": "bea02cb6f8eeaf0dd7d99b588e7f775a1e3d3e6d595e63cdec347a4cd2940dd7",
+        "text_encoder_0.onnx": "3d4077110117ca430d51b6473921b080351aa0fe2ce96260eec22435168652f2",
+        "text_encoder_1.onnx": "f2c311b23f23f188d27f8ac0519871f93a653ee9ac1e23907165433e113ee661",
+        "text_encoder_2.onnx": "90c7e09dd57ecf82ad1cf70cc19eb74450902169fbe2f79881b092d103a43255",
+        "vision_0.onnx": "873313a73a383a124f56ddedefa5d2039136043701305a883dfa03c045347265",
+        "vision_1.onnx": "b16d90d93f1cca0bf3531c335b810c1e01e756f692e021b5176fca66cf4c6d47",
+        "vision_2.onnx": "867d7a7e839a07be2c33cc1c2f655fab12329f74616fbd810fa52f410c31248e",
+        "vision_3.onnx": "f5dc4e2f9c0f8cd5cb7fd4cd345dccfc432f52d79813c3a8044728a13e64a766"
+      },
+      "all_engine_sha256": {
+        "cond.engine": "8e9e892ad11c5957baa0a7293691a97d0962e246e0b011033137e89fa70de4a0",
+        "denoise_0.engine": "7e755cffdc412f5bbdb1290558ab930ea20e964b6ed5a0fbf1a01b84d93e2ccc",
+        "denoise_1.engine": "f9d8e273cd048922bbde2f2158b026fc87c8e410ce2005c42b7d50500c1c7264",
+        "denoise_2.engine": "561b3a8c178c184a4b3e8f510e5da0558bd86b22b1c59f2c3585c6b2ae8c0da9",
+        "denoise_3.engine": "36c1317f824c6adfc87d91869a773e4ca11df073f6ff86c6dd753dba5710ed87",
+        "text_encoder_0.engine": "9bb19cd8ceccd269e8f26de54817d69e1136ca4b6ab07e85c725057841162f02",
+        "text_encoder_1.engine": "b91cff7f8e24d574f9318696b76accc801f5dd58d3444abc2dd40a1a3648889a",
+        "text_encoder_2.engine": "f55acab077d321609900cb63e880fa20bd153bbc7fcdcbe1933dc1603bc226cc",
+        "vision_0.engine": "59e0e7cf6a7eb56201804254b9a6a40ba00b5ea791d32a73a39ec723b65f8759",
+        "vision_1.engine": "de3f58a4d14a2e511b6ab338b4a757e16fe081a11f9e104c6faaf28a5fb6e766",
+        "vision_2.engine": "5f0956575fc1f947732451e04a22e5647834d75e474028fcc7bafe6acf068736",
+        "vision_3.engine": "4e067bba9fe391025ef774414f572f87a295405c779e7b70187ff80f92168b9f"
+      }
+    }
+  },
+  "checks": [
+    {
+      "kind": "fixture",
+      "comparisons": {
+        "attention": {
+          "cosine": 0.9999999617363685,
+          "max_abs": 0.000244140625,
+          "mean_abs": 3.1954099734624225e-05,
+          "max_pct_range": 0.02388302681213778,
+          "identical": false
+        },
+        "actions": {
+          "cosine": 0.9999999512026615,
+          "max_abs": 0.000244140625,
+          "mean_abs": 3.857096036275228e-05,
+          "max_pct_range": 0.02388302681213778,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "black",
+      "comparisons": {
+        "attention": {
+          "cosine": 0.9999999382474312,
+          "max_abs": 0.00030517578125,
+          "mean_abs": 4.324719309806824e-05,
+          "max_pct_range": 0.030059896692589412,
+          "identical": false
+        },
+        "actions": {
+          "cosine": 0.9999999468974256,
+          "max_abs": 0.000274658203125,
+          "mean_abs": 3.942931691805522e-05,
+          "max_pct_range": 0.02705390702333047,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "grey",
+      "comparisons": {
+        "attention": {
+          "cosine": 0.999999942309237,
+          "max_abs": 0.0003261566162109375,
+          "mean_abs": 3.819545110066732e-05,
+          "max_pct_range": 0.03217774913351767,
+          "identical": false
+        },
+        "actions": {
+          "cosine": 0.9999999100804908,
+          "max_abs": 0.0003814697265625,
+          "mean_abs": 5.737513303756714e-05,
+          "max_pct_range": 0.03763479430820779,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "white",
+      "comparisons": {
+        "attention": {
+          "cosine": 0.9999999580900119,
+          "max_abs": 0.000335693359375,
+          "mean_abs": 3.2038291295369465e-05,
+          "max_pct_range": 0.03291110658687282,
+          "identical": false
+        },
+        "actions": {
+          "cosine": 0.9999999564029074,
+          "max_abs": 0.000335693359375,
+          "mean_abs": 3.092701236406962e-05,
+          "max_pct_range": 0.03291110658687282,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "checkerboard",
+      "comparisons": {
+        "attention": {
+          "cosine": 0.9999999230741562,
+          "max_abs": 0.0003662109375,
+          "mean_abs": 4.748205343882243e-05,
+          "max_pct_range": 0.03569286567933446,
+          "identical": false
+        },
+        "actions": {
+          "cosine": 0.9999999329114434,
+          "max_abs": 0.0003662109375,
+          "mean_abs": 4.277482628822327e-05,
+          "max_pct_range": 0.03569286567933446,
+          "identical": false
+        }
+      }
+    },
+    {
+      "kind": "random",
+      "comparisons": {
+        "attention": {
+          "cosine": 0.9999999631817428,
+          "max_abs": 0.000244140625,
+          "mean_abs": 2.833440899848938e-05,
+          "max_pct_range": 0.02401224296098626,
+          "identical": false
+        },
+        "actions": {
+          "cosine": 0.9999999304290106,
+          "max_abs": 0.00037384033203125,
+          "mean_abs": 4.527464509010315e-05,
+          "max_pct_range": 0.03676874703401021,
+          "identical": false
+        }
+      }
+    }
+  ],
+  "fixture_gates": {
+    "control": {
+      "status": "PASS",
+      "threshold": 0.999,
+      "max_pct_range_threshold": 1.0,
+      "input_ids_match": true,
+      "source": "stock LeRobot XVLAPolicy, float32 on the CPU",
+      "reports": {
+        "action": {
+          "cosine": 0.9999999173720457,
+          "max_abs": 0.00023752450942993164,
+          "mean_abs": 7.420455804094673e-05,
+          "max_pct_range": 0.0238144027954344
+        },
+        "chunk": {
+          "cosine": 0.9999998352138563,
+          "max_abs": 0.0005065593868494034,
+          "mean_abs": 0.00010027182831739386,
+          "max_pct_range": 0.04960943322505384
+        },
+        "image_preprocess": {
+          "cosine": 0.9999999993521184,
+          "max_abs": 0.0002759099006652832,
+          "mean_abs": 1.1787152084440847e-05,
+          "max_pct_range": 0.005949434357753356
+        }
+      },
+      "device_chain": {
+        "vs_host_chain": {
+          "cosine": 0.9999999553518514,
+          "max_abs": 0.000244140625,
+          "mean_abs": 3.348618745803833e-05,
+          "max_pct_range": 0.023910052437500256,
+          "identical": false
+        },
+        "chunk": {
+          "cosine": 0.9999998394704069,
+          "max_abs": 0.0005523357540369034,
+          "mean_abs": 9.900754705692332e-05,
+          "max_pct_range": 0.054092500147173594
+        }
+      }
+    },
+    "attention": {
+      "status": "PASS",
+      "threshold": 0.999,
+      "max_pct_range_threshold": 1.0,
+      "input_ids_match": true,
+      "source": "stock LeRobot XVLAPolicy, float32 on the CPU",
+      "reports": {
+        "action": {
+          "cosine": 0.9999999338466539,
+          "max_abs": 0.00023752450942993164,
+          "mean_abs": 6.246095290407538e-05,
+          "max_pct_range": 0.0238144027954344
+        },
+        "chunk": {
+          "cosine": 0.9999998318563978,
+          "max_abs": 0.0005065593868494034,
+          "mean_abs": 0.00010265082353726029,
+          "max_pct_range": 0.04960943322505384
+        },
+        "image_preprocess": {
+          "cosine": 0.9999999993521184,
+          "max_abs": 0.0002759099006652832,
+          "mean_abs": 1.1787152084440847e-05,
+          "max_pct_range": 0.005949434357753356
+        }
+      },
+      "device_chain": {
+        "vs_host_chain": {
+          "cosine": 0.9999999387558853,
+          "max_abs": 0.000335693359375,
+          "mean_abs": 4.314621289571126e-05,
+          "max_pct_range": 0.032876322101562855,
+          "identical": false
+        },
+        "chunk": {
+          "cosine": 0.9999998454636078,
+          "max_abs": 0.000520024448633194,
+          "mean_abs": 9.843268431723117e-05,
+          "max_pct_range": 0.05092812181473498
+        }
+      }
+    },
+    "actions": {
+      "status": "PASS",
+      "threshold": 0.999,
+      "max_pct_range_threshold": 1.0,
+      "input_ids_match": true,
+      "source": "stock LeRobot XVLAPolicy, float32 on the CPU",
+      "reports": {
+        "action": {
+          "cosine": 0.9999997968429795,
+          "max_abs": 0.000323321670293808,
+          "mean_abs": 0.00012356912484392523,
+          "max_pct_range": 0.03241649675374132
+        },
+        "chunk": {
+          "cosine": 0.9999998465168393,
+          "max_abs": 0.00045898929238319397,
+          "mean_abs": 9.981651868050297e-05,
+          "max_pct_range": 0.044950699251908637
+        },
+        "image_preprocess": {
+          "cosine": 0.9999999993521184,
+          "max_abs": 0.0002759099006652832,
+          "mean_abs": 1.1787152084440847e-05,
+          "max_pct_range": 0.005949434357753356
+        }
+      },
+      "device_chain": {
+        "vs_host_chain": {
+          "cosine": 0.9999999397559807,
+          "max_abs": 0.00030517578125,
+          "mean_abs": 4.303748408953349e-05,
+          "max_pct_range": 0.02988756554687532,
+          "identical": false
+        },
+        "chunk": {
+          "cosine": 0.9999998270989833,
+          "max_abs": 0.0005065593868494034,
+          "mean_abs": 0.00010503887742136916,
+          "max_pct_range": 0.04960943322505384
+        }
+      }
+    }
+  }
+}

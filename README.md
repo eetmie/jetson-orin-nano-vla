@@ -27,7 +27,7 @@ These measure inference cost, not robot-task quality.
 | **EVO1 LIBERO** split, pure TensorRT mixed FP16 | 2 | 360.33 ms | 360.77 ms | 2.78 Hz | 2.56 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** split, pure TensorRT mixed FP16 | 3 | 383.68 ms | 385.10 ms | 2.61 Hz | 2.78 GB |
+| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 350.65 ms | 351.43 ms | 2.85 Hz | 2.79 GB |
 | **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 288.11 ms | 289.09 ms | 3.47 Hz | 5.97 GB |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 288.09 ms | 289.10 ms | 3.47 Hz | 5.49 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
@@ -39,7 +39,9 @@ YMMV. `RAM in use` is the whole system while inferring.
 The SmolVLA row is the selected configuration from a 300-second run; its process RSS
 averages 1.40 GB. [Its step-by-step comparison](results/smolvla-native-20261010T1247Z/summary.json)
 and [the earlier speed and RAM comparisons](results/smolvla-memory-20261010/summary.json)
-are retained.
+are retained. The X-VLA row uses the [denoiser attention experiment](experiments/xvla_triton/)
+(process RSS 2.57 GB); [the playbook](docs/07-optimization-playbook.md) lists what was
+found and what each model still has to go through.
 
 ## What every run logs
 

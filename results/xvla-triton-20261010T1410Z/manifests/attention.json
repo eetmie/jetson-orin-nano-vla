@@ -1,0 +1,199 @@
+{
+  "mode": "attention",
+  "bundle": "/home/joel/bundles/xvla-base-split",
+  "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/xvla-base-trt",
+  "tensorrt": "10.16.2.10",
+  "opt_level": 2,
+  "tile": {
+    "BLOCK_M": 64,
+    "BLOCK_N": 64,
+    "num_warps": 4,
+    "num_stages": 2
+  },
+  "scale": 0.353515625,
+  "patches": {
+    "denoise_0": [
+      {
+        "softmax": "/blocks.0/attn/Softmax",
+        "qkv": "/blocks.0/attn/qkv/Add_output_0",
+        "replaced": "/blocks.0/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.1/attn/Softmax",
+        "qkv": "/blocks.1/attn/qkv/Add_output_0",
+        "replaced": "/blocks.1/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.2/attn/Softmax",
+        "qkv": "/blocks.2/attn/qkv/Add_output_0",
+        "replaced": "/blocks.2/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.3/attn/Softmax",
+        "qkv": "/blocks.3/attn/qkv/Add_output_0",
+        "replaced": "/blocks.3/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.4/attn/Softmax",
+        "qkv": "/blocks.4/attn/qkv/Add_output_0",
+        "replaced": "/blocks.4/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.5/attn/Softmax",
+        "qkv": "/blocks.5/attn/qkv/Add_output_0",
+        "replaced": "/blocks.5/attn/Reshape_1_output_0",
+        "rows": 262
+      }
+    ],
+    "denoise_1": [
+      {
+        "softmax": "/blocks.0/attn/Softmax",
+        "qkv": "/blocks.0/attn/qkv/Add_output_0",
+        "replaced": "/blocks.0/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.1/attn/Softmax",
+        "qkv": "/blocks.1/attn/qkv/Add_output_0",
+        "replaced": "/blocks.1/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.2/attn/Softmax",
+        "qkv": "/blocks.2/attn/qkv/Add_output_0",
+        "replaced": "/blocks.2/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.3/attn/Softmax",
+        "qkv": "/blocks.3/attn/qkv/Add_output_0",
+        "replaced": "/blocks.3/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.4/attn/Softmax",
+        "qkv": "/blocks.4/attn/qkv/Add_output_0",
+        "replaced": "/blocks.4/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.5/attn/Softmax",
+        "qkv": "/blocks.5/attn/qkv/Add_output_0",
+        "replaced": "/blocks.5/attn/Reshape_1_output_0",
+        "rows": 262
+      }
+    ],
+    "denoise_2": [
+      {
+        "softmax": "/blocks.0/attn/Softmax",
+        "qkv": "/blocks.0/attn/qkv/Add_output_0",
+        "replaced": "/blocks.0/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.1/attn/Softmax",
+        "qkv": "/blocks.1/attn/qkv/Add_output_0",
+        "replaced": "/blocks.1/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.2/attn/Softmax",
+        "qkv": "/blocks.2/attn/qkv/Add_output_0",
+        "replaced": "/blocks.2/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.3/attn/Softmax",
+        "qkv": "/blocks.3/attn/qkv/Add_output_0",
+        "replaced": "/blocks.3/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.4/attn/Softmax",
+        "qkv": "/blocks.4/attn/qkv/Add_output_0",
+        "replaced": "/blocks.4/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.5/attn/Softmax",
+        "qkv": "/blocks.5/attn/qkv/Add_output_0",
+        "replaced": "/blocks.5/attn/Reshape_1_output_0",
+        "rows": 262
+      }
+    ],
+    "denoise_3": [
+      {
+        "softmax": "/blocks.0/attn/Softmax",
+        "qkv": "/blocks.0/attn/qkv/Add_output_0",
+        "replaced": "/blocks.0/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.1/attn/Softmax",
+        "qkv": "/blocks.1/attn/qkv/Add_output_0",
+        "replaced": "/blocks.1/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.2/attn/Softmax",
+        "qkv": "/blocks.2/attn/qkv/Add_output_0",
+        "replaced": "/blocks.2/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.3/attn/Softmax",
+        "qkv": "/blocks.3/attn/qkv/Add_output_0",
+        "replaced": "/blocks.3/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.4/attn/Softmax",
+        "qkv": "/blocks.4/attn/qkv/Add_output_0",
+        "replaced": "/blocks.4/attn/Reshape_1_output_0",
+        "rows": 262
+      },
+      {
+        "softmax": "/blocks.5/attn/Softmax",
+        "qkv": "/blocks.5/attn/qkv/Add_output_0",
+        "replaced": "/blocks.5/attn/Reshape_1_output_0",
+        "rows": 262
+      }
+    ]
+  },
+  "kernel_sha256": "bcbbc99c68c7381e15eed3da21330be4d9f50290d5f8f1cadb997e8047272875",
+  "plugin_sha256": "c410267569419432cd6d4266492ff678d1a52263fb01f6373118866be15ee105",
+  "precision": "HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, unnormalized probabilities rounded to HALF before PV",
+  "source_sha256": {
+    "cond.onnx": "948543cfb77d3d0f6e4e6e8091c52632fac36eeabb37914dc6c0c3d1d91ac41b",
+    "denoise_0.onnx": "a0c4fd567e0103fda78c8b7ccc73570174b08b458424f8711f3c3bfb891b7f73",
+    "denoise_1.onnx": "f7f24483e0123d03f23512b629ca46865f2cf5fa53b21c0d95f1140ef4aca79f",
+    "denoise_2.onnx": "4f71f0f26bfc72e77ac9fad3a14f1cbc09a207027d3dc1f61aff1d19467f4214",
+    "denoise_3.onnx": "bea02cb6f8eeaf0dd7d99b588e7f775a1e3d3e6d595e63cdec347a4cd2940dd7",
+    "text_encoder_0.onnx": "3d4077110117ca430d51b6473921b080351aa0fe2ce96260eec22435168652f2",
+    "text_encoder_1.onnx": "f2c311b23f23f188d27f8ac0519871f93a653ee9ac1e23907165433e113ee661",
+    "text_encoder_2.onnx": "90c7e09dd57ecf82ad1cf70cc19eb74450902169fbe2f79881b092d103a43255",
+    "vision_0.onnx": "873313a73a383a124f56ddedefa5d2039136043701305a883dfa03c045347265",
+    "vision_1.onnx": "b16d90d93f1cca0bf3531c335b810c1e01e756f692e021b5176fca66cf4c6d47",
+    "vision_2.onnx": "867d7a7e839a07be2c33cc1c2f655fab12329f74616fbd810fa52f410c31248e",
+    "vision_3.onnx": "f5dc4e2f9c0f8cd5cb7fd4cd345dccfc432f52d79813c3a8044728a13e64a766"
+  },
+  "all_engine_sha256": {
+    "cond.engine": "8e9e892ad11c5957baa0a7293691a97d0962e246e0b011033137e89fa70de4a0",
+    "denoise_0.engine": "6974286217711ecab0046e5e827c455cc383c7c0fb201efbe5c2644754b223e4",
+    "denoise_1.engine": "f9d8e273cd048922bbde2f2158b026fc87c8e410ce2005c42b7d50500c1c7264",
+    "denoise_2.engine": "561b3a8c178c184a4b3e8f510e5da0558bd86b22b1c59f2c3585c6b2ae8c0da9",
+    "denoise_3.engine": "edef48426208c5da3f07bd2258ab7dabb82d79f8ec9dfe36cc75228a109db81f",
+    "text_encoder_0.engine": "9bb19cd8ceccd269e8f26de54817d69e1136ca4b6ab07e85c725057841162f02",
+    "text_encoder_1.engine": "b91cff7f8e24d574f9318696b76accc801f5dd58d3444abc2dd40a1a3648889a",
+    "text_encoder_2.engine": "f55acab077d321609900cb63e880fa20bd153bbc7fcdcbe1933dc1603bc226cc",
+    "vision_0.engine": "59e0e7cf6a7eb56201804254b9a6a40ba00b5ea791d32a73a39ec723b65f8759",
+    "vision_1.engine": "de3f58a4d14a2e511b6ab338b4a757e16fe081a11f9e104c6faaf28a5fb6e766",
+    "vision_2.engine": "5f0956575fc1f947732451e04a22e5647834d75e474028fcc7bafe6acf068736",
+    "vision_3.engine": "4e067bba9fe391025ef774414f572f87a295405c779e7b70187ff80f92168b9f"
+  }
+}
