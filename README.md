@@ -35,7 +35,7 @@ These measure inference cost, not robot-task quality.
 | **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 286.80 ms | 287.42 ms | 3.49 Hz | 5.80 GB |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 284.65 ms | 285.59 ms | 3.51 Hz | 5.36 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
-| **π0.5 LIBERO** split, pure TensorRT FP16, compact prefix | 2 | 447.64 ms | 447.93 ms | 2.23 Hz | 6.29 GB |
+| **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 440.13 ms | 440.52 ms | 2.27 Hz | 6.28 GB |
 
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
@@ -45,9 +45,9 @@ accumulation, the default ([runs](results/all-models-20261010/fp32-accumulate/))
 it costs 1–3 % latency against TensorRT's own GEMM choices and cuts the full-chunk
 action error by up to 4× (GR00T N1.6) — both sets are in
 [the playbook](docs/07-optimization-playbook.md). Board RAM is unchanged; process RSS
-reads 46–121 MB higher for some models with the same engine sizes. SmolVLA, X-VLA and
-EVO1 use the [SmolVLA](experiments/smolvla_triton/), [X-VLA](experiments/xvla_triton/) and
-[EVO1](experiments/evo1_triton/) experiment caches; all models use exact host
+reads 46–121 MB higher for some models with the same engine sizes. SmolVLA, X-VLA,
+EVO1 and π0.5 use the [SmolVLA](experiments/smolvla_triton/), [X-VLA](experiments/xvla_triton/),
+[EVO1](experiments/evo1_triton/) and [π0.5](experiments/pi05_triton/) experiment caches; all models use exact host
 preprocessing and FP16 engine boundaries ([all-model round](results/all-models-20261010/)).
 The π0.5 rows always accumulate in FP32; its padded-prefix row predates the round.
 
