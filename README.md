@@ -24,14 +24,14 @@ These measure inference cost, not robot-task quality.
 |---|---:|---:|---:|---:|---:|
 | **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 102.85 ms | 103.54 ms | 9.70 Hz | 1.63 GB |
 | EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
-| **EVO1 LIBERO** split, pure TensorRT mixed FP16 | 2 | 360.33 ms | 360.77 ms | 2.78 Hz | 2.56 GB |
+| **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 340.72 ms | 341.53 ms | 2.94 Hz | 2.53 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 350.65 ms | 351.43 ms | 2.85 Hz | 2.79 GB |
-| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 288.11 ms | 289.09 ms | 3.47 Hz | 5.97 GB |
-| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 288.09 ms | 289.10 ms | 3.47 Hz | 5.49 GB |
+| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 349.31 ms | 350.36 ms | 2.86 Hz | 2.82 GB |
+| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 279.67 ms | 280.50 ms | 3.58 Hz | 5.82 GB |
+| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 276.49 ms | 277.20 ms | 3.62 Hz | 5.38 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
-| **π0.5 LIBERO** split, pure TensorRT FP16, compact prefix | 2 | 473.96 ms | 474.72 ms | 2.11 Hz | 6.30 GB |
+| **π0.5 LIBERO** split, pure TensorRT FP16, compact prefix | 2 | 447.64 ms | 447.93 ms | 2.23 Hz | 6.29 GB |
 
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
@@ -39,9 +39,12 @@ YMMV. `RAM in use` is the whole system while inferring.
 The SmolVLA row is the selected configuration from a 300-second run; its process RSS
 averages 1.40 GB. [Its step-by-step comparison](results/smolvla-native-20261010T1247Z/summary.json)
 and [the earlier speed and RAM comparisons](results/smolvla-memory-20261010/summary.json)
-are retained. The X-VLA row uses the [denoiser attention experiment](experiments/xvla_triton/)
-(process RSS 2.57 GB); [the playbook](docs/07-optimization-playbook.md) lists what was
-found and what each model still has to go through.
+are retained. The X-VLA and EVO1 rows use the [X-VLA](experiments/xvla_triton/) and
+[EVO1](experiments/evo1_triton/) experiments; every bold row from EVO1 down is a
+300-second run from [the all-model round](results/all-models-20261010/), with exact
+host preprocessing and FP16 engine boundaries. The π0.5 padded-prefix row predates it.
+[The playbook](docs/07-optimization-playbook.md) lists what was found and what each
+model still has to go through.
 
 ## What every run logs
 

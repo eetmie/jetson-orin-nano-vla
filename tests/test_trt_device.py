@@ -305,3 +305,34 @@ class XVLAPreprocessTests(unittest.TestCase):
         for shape in [(48, 64, 3), (224, 224, 3), (300, 200, 3)]:
             img = rng.integers(0, 256, shape, dtype=np.uint8)
             np.testing.assert_array_equal(Bundle.preprocess(None, img), reference(img))
+
+
+class PreprocessExactnessTests(unittest.TestCase):
+    """The table/thread rewrites must reproduce each model's original numpy floats."""
+
+    def test_normalize_table_matches_numpy_expression(self):
+        from bench.vendor.imaging import lookup, normalize_table
+        rng = np.random.default_rng(7)
+        img = rng.integers(0, 256, (37, 53, 3), dtype=np.uint8)
+        mean = np.asarray((0.485, 0.456, 0.406), np.float32)
+        std = np.asarray((0.229, 0.224, 0.225), np.float32)
+        for expr in (lambda u: (u.astype(np.float32) / 255.0 - mean) / std,
+                     lambda u: (u.astype(np.float32) / 255.0 - 0.5) / 0.5):
+            ref = np.asarray(expr(img)).astype(np.float32)
+            np.testing.assert_array_equal(lookup(img, normalize_table(expr)), ref)
+
+    def test_map_views_keeps_order(self):
+        from bench.vendor.imaging import map_views
+        self.assertEqual(map_views(lambda x: x * 2, range(7)), [0, 2, 4, 6, 8, 10, 12])
+
+    def test_pi05_resize_matches_reference_reduction(self):
+        from bench.vendor.pi05_trt import _linear_taps, _resize_axis
+        rng = np.random.default_rng(8)
+        x = rng.integers(0, 256, (120, 160, 3)).astype(np.float32)
+        for n_out, axis in ((42, 0), (56, 1), (200, 0)):
+            idx, w = _linear_taps(x.shape[axis], n_out)
+            taps = np.take(x, idx, axis=axis)
+            shape = [1] * taps.ndim
+            shape[axis], shape[axis + 1] = w.shape
+            ref = (taps * w.reshape(shape)).sum(axis=axis + 1)
+            np.testing.assert_array_equal(_resize_axis(x, n_out, axis), ref)

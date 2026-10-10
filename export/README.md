@@ -48,6 +48,10 @@ their token embedding as `embed_tokens.npy`. EVO1 fetches its VLM base,
 SmolVLA's RoPE and patch embedding are exported as concatenation and patchify + MatMul
 (the same arithmetic as LeRobot's slice-assign RoPE and stride-16 conv, which TensorRT
 runs as unfused scatters and a slow convolution kernel).
+`python -m vla_common.boundary_report <bundle>` lists FP32 tensors that cross engines
+and would be exact in FP16; `python -m vla_common.half_boundary --bundle <dir> --names
+REGEX` switches them in an existing bundle (run from `export/`, any exporter venv).
+EVO1 bundles keep their action key/value cache FP16 by default.
 Every bundle carries a `MANIFEST.sha256`; check it after copying:
 `cd <bundle> && sha256sum -c MANIFEST.sha256`.
 

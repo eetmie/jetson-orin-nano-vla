@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from ..obs import Observation
+from ..vendor.imaging import map_views
 from .base import Backend, InferResult
 
 
@@ -114,7 +115,7 @@ class TrtSplitXVLABackend(Backend):
             raise ValueError(f"observation has {len(obs.images)} view(s), bundle requires "
                              f"exactly {bd.valid_views}")
         t0 = time.perf_counter()
-        pv = np.stack([bd.preprocess(im) for im in obs.images])
+        pv = np.stack(map_views(bd.preprocess, obs.images))
         ids = bd.input_ids(obs.task)
         proprio = np.zeros((1, bd.state_dim), np.float32)
         flat = np.asarray(obs.state, np.float32).ravel()[:bd.state_dim]
