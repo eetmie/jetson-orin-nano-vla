@@ -3,8 +3,8 @@
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 Recipes and measurements for running VLA models on an **8 GB Jetson Orin Nano Super**:
-four public base checkpoints and the trained EVO1 LIBERO checkpoint, all on a pure
-TensorRT runtime (`bench trt-split`).
+four public base checkpoints and the trained EVO1 LIBERO and π0.5 LIBERO checkpoints,
+all on a pure TensorRT runtime (`bench trt-split`).
 
 | model | upstream checkpoint |
 |---|---|
@@ -13,6 +13,7 @@ TensorRT runtime (`bench trt-split`).
 | X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) |
 | GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) |
 | GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) |
+| π0.5 LIBERO 3.3B (prototype) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` |
 
 ## Measured fit
 
@@ -31,6 +32,8 @@ These measure inference cost, not robot-task quality.
 | **X-VLA** split, pure TensorRT mixed FP16 | 3 | 383.68 ms | 385.10 ms | 2.61 Hz | 2.78 GB |
 | **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 288.11 ms | 289.09 ms | 3.47 Hz | 5.97 GB |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 288.09 ms | 289.10 ms | 3.47 Hz | 5.49 GB |
+| π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
+| **π0.5 LIBERO** split, pure TensorRT FP16, compact prefix | 2 | 473.96 ms | 474.72 ms | 2.11 Hz | 6.30 GB |
 
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
@@ -57,7 +60,9 @@ stage's time goes and whether it is compute- or bandwidth-bound.
 ## Parity
 
 Every pure TensorRT model reproduces the stock PyTorch FP32 actions to **cosine 0.99999
-or better, within 0.27 % of the action range over the whole action chunk**.
+or better, within 0.27 % of the action range over the whole action chunk**. π0.5 is
+checked the same way against its FP16 PyTorch conversion, which itself sits at cosine
+0.99998 from the original mixed-precision policy.
 
 Each bundle carries the stock policy's output for seeded inputs and noise, and loading
 refuses to run if the engines miss it. Per-model values are in
@@ -96,7 +101,10 @@ fetched (`python -m bench fetch --model <model> --what torch`).
   [`nvidia/Cosmos-Reason2-2B`](https://huggingface.co/nvidia/Cosmos-Reason2-2B): accept
   its terms on Hugging Face before exporting. It sees every camera now and 30 frames
   earlier; the runtime reuses the earlier frame's encode.
-- `evo1-libero` actions mean something for LIBERO's embodiment only.
+- `evo1-libero` and `pi05-libero` actions mean something for LIBERO's embodiment only.
+- π0.5 is a prototype: its export (`export/pi05/`) runs in the openpi container and is
+  not an `export.sh` entry yet. The compact prefix packs only the real camera views and
+  prompt tokens, and fits short prompts.
 - The ORT rows ran the Hugging Face bundles ([`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx),
   [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx)) with
   `bench ort-split`. Building X-VLA's ORT engines needs 4 GB swap and a freshly booted,

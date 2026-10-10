@@ -296,6 +296,17 @@ def parity_table(runs: list[dict], pairs: list[dict]) -> str:
                            round(pct, 2) if pct is not None else None]
                     break
         if row is None:
+            # pi0.5 checks several fixtures and keeps the worst full chunk, which bounds
+            # the executed action's error from above.
+            for r in groups[key]:
+                worst = _g(r, "meta", "fixture_parity", "worst", "chunk_vs_fp16", default=None)
+                if worst:
+                    n = _g(r, "meta", "fixture_parity", "fixtures", default="")
+                    row = [name, f"FP16 PyTorch fixtures inside the bundle (worst of {n}, "
+                           "full chunk)", round(worst["cosine"], 7),
+                           float(f"{worst['max_abs']:.3g}"), round(worst["max_pct_range"], 2)]
+                    break
+        if row is None:
             row = [name, "not measured on this board", None, None, None]
         rows.append(row)
     return _md_table(rows, [
