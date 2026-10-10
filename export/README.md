@@ -36,6 +36,7 @@ export/export.sh zuoxingdong/evo1_libero ~/bundles/evo1-libero-split
 | `--views N` | the checkpoint's `observation.images.*` count | baked into the graphs; the runtime may feed fewer cameras, never more |
 | `--task "..."` | the dataset's tasks, if the checkpoint has them | repeatable; written into the bundle |
 | `--fps N` | the dataset's fps | written into the bundle |
+| `--hoist-cross-kv` | off | SmolVLA: prefill emits the cross-attention layers' expert K/V once per observation instead of decode re-projecting them every step, and the KV cache crosses engines in FP16. `trt-split` only |
 
 Every bundle gets mixed-FP16 graphs, which halve what stays resident on the board:
 X-VLA keeps LayerNorm and Softmax FP32; SmolVLA's three large graphs and every EVO1
@@ -44,6 +45,9 @@ FP32 output for seeded inputs (`fixture.npz`; EVO1 `parity_fixture.npz`), which
 `bench trt-split` checks its engines against at load, and SmolVLA and EVO1 bundles carry
 their token embedding as `embed_tokens.npy`. EVO1 fetches its VLM base,
 `OpenGVLab/InternVL3-1B-hf`, at the pinned revision its LIBERO recipe trained from.
+SmolVLA's RoPE and patch embedding are exported as concatenation and patchify + MatMul
+(the same arithmetic as LeRobot's slice-assign RoPE and stride-16 conv, which TensorRT
+runs as unfused scatters and a slow convolution kernel).
 Every bundle carries a `MANIFEST.sha256`; check it after copying:
 `cd <bundle> && sha256sum -c MANIFEST.sha256`.
 
@@ -98,7 +102,7 @@ bundle:
     --bundle ~/bundles/my-smolvla --views 1 --task "pick up the cube" --label my-smolvla.trt
 ```
 
-`ort-split` runs the same bundles through ONNX Runtime.
+`ort-split` runs the same bundles through ONNX Runtime, except `--hoist-cross-kv` ones.
 
 To check the conversion against the PyTorch policy, copy the checkpoint too, run
 `bench torch --checkpoint <dir>` with the same `--views` and `--task`, and compare the two

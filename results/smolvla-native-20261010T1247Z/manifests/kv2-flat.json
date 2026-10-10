@@ -1,0 +1,168 @@
+{
+  "mode": "triton-attention-flat",
+  "build_s": 24.472984313964844,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "488736f9e0b331c5a2ddc3776833235543c4b2f2293628e45ba8669b6a66bb4b",
+  "patches": [
+    {
+      "softmax": "node_Softmax_299",
+      "input": "val_299",
+      "replaced_output": "view_7",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_308"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_371",
+      "input": "val_375",
+      "replaced_output": "view_11",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_380"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_443",
+      "input": "val_451",
+      "replaced_output": "view_15",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_452"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_515",
+      "input": "val_527",
+      "replaced_output": "view_19",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_524"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_587",
+      "input": "val_603",
+      "replaced_output": "view_23",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_596"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_659",
+      "input": "val_679",
+      "replaced_output": "view_27",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_668"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_731",
+      "input": "val_755",
+      "replaced_output": "view_31",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_740"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_803",
+      "input": "val_831",
+      "replaced_output": "view_35",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_812"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_875",
+      "input": "val_907",
+      "replaced_output": "view_39",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_884"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_947",
+      "input": "val_983",
+      "replaced_output": "view_43",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_956"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1019",
+      "input": "val_1059",
+      "replaced_output": "view_47",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_1028"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1091",
+      "input": "val_1135",
+      "replaced_output": "view_51",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_1100"
+      ]
+    }
+  ],
+  "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+  "plugin_sha256": "c3a848ab32323ad7cd7d77d15d804941143f51b52653eff6783cd68a7cdce3e0",
+  "accumulation": "FP32",
+  "implementation": "Triton AOT",
+  "warps": 4,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-kv2-trt",
+  "attention_kernel_sha256": "eafa0a9b961b58328d7fe3178632aec88c8c59d766de91644c871257fdb53218",
+  "block_m": 64,
+  "block_n": 64,
+  "stages": 3,
+  "alignment16": true,
+  "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization",
+  "layout": "[1,S,H,D] projection views, no transposes",
+  "mask": "constant all-true, not read",
+  "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-kv2-trt",
+  "all_engine_sha256": {
+    "action_in.engine": "78ab5a52820020c6c432f0b784ea097a94da5c306d600faaad70ed15fa9eee8f",
+    "prefill.engine": "7d986550a161d9b8ec464b7e058f08b78426993de35720b57620be219c89583e",
+    "action_out.engine": "5fbeebce028312fa0f36777fa6b3d10f1aebeac5e88118aef5d3a0a23add3d5f",
+    "decode.engine": "71340d5da5665820f2adf85335a7d854c2898c5c868941d6c26e4d0899c7c546",
+    "op_silu_3ec14fc460d7.engine": "02f02222ada25693d8b10308e56e495e27b0f703b15976a535a5ba4dbb352f5d",
+    "op_axpy_2bf70fd1c0f9.engine": "e4811e20cdb4eb0294b7b687cac2ae9a1f2e766dc51b8c44764ff71b9b078406",
+    "op_siglip_u8_98b93570f03a.engine": "76c7266357c5994546bd1d2f61f8204444e31af6a9d1ce81b341c0b531c80b25",
+    "state_proj.engine": "955c85bea49c3fd8c81334fb8797da980cb92867c79f341f2569520de07ab0c5",
+    "op_axpy_4afaa4added7.engine": "bc7d21fba13abacd0d81006d41f4827aa3c4878bffbb9ef9dfe7d20adf346937",
+    "time_out.engine": "57fe2b4b6bea6206c50799e6da97d637052fac377cc86e6909a8c2cdd3c3e763",
+    "time_in.engine": "6646b4ecc4e46f63f9d36a8d3660d95d8bd4086a6e536429e5afa5fa54d96fc8",
+    "vision.engine": "488736f9e0b331c5a2ddc3776833235543c4b2f2293628e45ba8669b6a66bb4b"
+  },
+  "additional_source_sha256": {
+    "smolvlm_text.onnx": "f8cea5aa1ce1e520c3e7437e38c4d798b41241d325cd332afa86a7653cc20460",
+    "state_projector.onnx": "44312884e1d486cf7147d47d2ea5eed6c10fc0ecf73dfb7c6c916df55f45e717",
+    "time_in_projector.onnx": "1e852b1c43412109ed819e25e111e8a2aa511c62ecbb63ddd7036ea261259d30",
+    "smolvlm_expert_prefill.onnx": "d692d1f5f786a49f17b7f6319bcaef6852fd7d7ee5462a34a10ad217aa1bdbd9",
+    "action_out_projector.onnx": "c62bf7aa698e8acc1ac36f0e162f00c3d5b47ca1768275688145f10a77367237",
+    "smolvlm_expert_decode.onnx": "5e8baeb8cc9f3103e266f8401c9652068964263ac8ca9de8f6091f6ac6b8fe2e",
+    "action_in_projector.onnx": "4e934619c4529ef6009bdd85ff261bfb78416e6393e2ca857300813232d4e9ca",
+    "time_out_projector.onnx": "2c6ad8fbbbb6c18062420857d13c702c7e76a67f946a31dde5ef9c13ad07006b"
+  }
+}

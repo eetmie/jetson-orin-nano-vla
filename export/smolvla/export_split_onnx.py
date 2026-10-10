@@ -65,17 +65,44 @@ class TextWrap(nn.Module):
         return self.vlme.embed_language_tokens(tokens)
 
 
+class _Projected(nn.Module):
+    """Stands in for a hoisted k_proj/v_proj: identity, but still answers `.weight.dtype`
+    (the expert reads it to pick the cast) without registering the weight."""
+
+    def __init__(self, linear):
+        super().__init__()
+        self.__dict__["weight"] = linear.weight
+
+    def forward(self, x):
+        return x
+
+
+def cross_layers(vlme) -> list[int]:
+    """Layers whose expert cross-attends to the prefix cache (the odd ones in smolvla_base).
+
+    Mirrors the dispatch in SmolVLMWithExpertModel.forward for the decode case."""
+    if "cross" not in vlme.attention_mode:
+        return []
+    n = vlme.self_attn_every_n_layers
+    return [i for i in range(vlme.num_vlm_layers) if not (n > 0 and i % n == 0)]
+
+
 class PrefillWrap(nn.Module):
     """Prefix (image+text+state embeds) -> the VLM KV cache only.
 
     sample_actions discards the prefill's hidden output and keeps just the cache,
     so we emit the 32 KV tensors (16 layers x key/value) and nothing else.
+
+    hoist_cross_kv: a cross-attention layer's expert projects the fixed prefix K/V
+    through its own k_proj/v_proj on every denoise step; emit those projections
+    here instead, once per observation. Same shape [1,prefix,kv_heads,head_dim].
     """
 
-    def __init__(self, vlme):
+    def __init__(self, vlme, hoist_cross_kv: bool = False):
         super().__init__()
         self.vlme = vlme
         self.num_vlm_layers = vlme.num_vlm_layers
+        self.cross = set(cross_layers(vlme)) if hoist_cross_kv else set()
 
     def forward(self, attention_mask, position_ids, vlm_embeds):
         _, new_kv = self.vlme.forward(
@@ -88,8 +115,15 @@ class PrefillWrap(nn.Module):
         )
         flat = []
         for i in range(self.num_vlm_layers):
-            flat.append(new_kv[i]["key_states"])
-            flat.append(new_kv[i]["value_states"])
+            k, v = new_kv[i]["key_states"], new_kv[i]["value_states"]
+            if i in self.cross:
+                attn = self.vlme.lm_expert.layers[i].self_attn
+                k = attn.k_proj(k.to(attn.k_proj.weight.dtype).reshape(*k.shape[:2], -1)).view(
+                    *k.shape[:2], -1, attn.head_dim)
+                v = attn.v_proj(v.to(attn.v_proj.weight.dtype).reshape(*v.shape[:2], -1)).view(
+                    *v.shape[:2], -1, attn.head_dim)
+            flat.append(k)
+            flat.append(v)
         return tuple(flat)
 
 
@@ -100,10 +134,11 @@ class DecodeWrap(nn.Module):
     so we take the cache as input and emit only the expert hidden output.
     """
 
-    def __init__(self, vlme):
+    def __init__(self, vlme, hoist_cross_kv: bool = False):
         super().__init__()
         self.vlme = vlme
         self.num_vlm_layers = vlme.num_vlm_layers
+        self.cross = cross_layers(vlme) if hoist_cross_kv else []
 
     def forward(self, attention_mask, position_ids, expert_embeds, *past_kv_flat):
         past = {
@@ -113,14 +148,24 @@ class DecodeWrap(nn.Module):
             }
             for i in range(0, len(past_kv_flat), 2)
         }
-        embeds, _ = self.vlme.forward(
-            attention_mask=attention_mask,
-            position_ids=position_ids,
-            past_key_values=past,
-            inputs_embeds=[None, expert_embeds],
-            use_cache=True,
-            fill_kv_cache=False,
-        )
+        # Hoisted: the cross layers' cache already holds k_proj/v_proj outputs.
+        swapped = []
+        for i in self.cross:
+            attn = self.vlme.lm_expert.layers[i].self_attn
+            swapped.append((attn, attn.k_proj, attn.v_proj))
+            attn.k_proj, attn.v_proj = _Projected(attn.k_proj), _Projected(attn.v_proj)
+        try:
+            embeds, _ = self.vlme.forward(
+                attention_mask=attention_mask,
+                position_ids=position_ids,
+                past_key_values=past,
+                inputs_embeds=[None, expert_embeds],
+                use_cache=True,
+                fill_kv_cache=False,
+            )
+        finally:
+            for attn, k, v in swapped:
+                attn.k_proj, attn.v_proj = k, v
         return embeds[1]  # expert hidden [1, 50, 720]
 
 
@@ -330,6 +375,12 @@ def main() -> None:
                          "bake in a STATIC prefix length -- 1 view = 113 tokens, 2 = 177 -- "
                          "so a bundle exported at 1 cannot serve a 2-view runtime. The "
                          "public ainekko/smolvla_base_onnx export is 2.")
+    ap.add_argument("--hoist-cross-kv", action="store_true",
+                    help="emit the cross-attention layers' expert K/V projections from "
+                         "prefill (once per observation) instead of recomputing them in "
+                         "decode every step, and pass the KV cache in FP16. Changes what "
+                         "the present_/past_ tensors of those layers hold, so only a "
+                         "runtime that reads export_info.json `kv` may load it.")
     ap.add_argument("--state-blind", action="store_true",
                     help="camera-only checkpoint: the state input is dead but still wired "
                          "in, and MUST be fed zeros. run_inference reads this flag.")
@@ -386,12 +437,15 @@ def main() -> None:
         pf_mask = torch.ones(1, prefix_len, prefix_len, dtype=torch.bool, device=dev)
         pf_pos = torch.arange(prefix_len, device=dev).unsqueeze(0)
         pf_emb = torch.randn(1, prefix_len, vlm_dim, device=dev)
-        _export(PrefillWrap(vlme), (pf_mask, pf_pos, pf_emb),
+        hoist = args.hoist_cross_kv
+        if hoist:
+            assert len(vlme.lm_expert.layers) == L, "hoisting assumes one expert layer per VLM layer"
+        _export(PrefillWrap(vlme, hoist), (pf_mask, pf_pos, pf_emb),
                 str(out / "smolvlm_expert_prefill.onnx"),
                 ["attention_mask", "position_ids", "vlm_embeds"], kv_names)
 
         # grab the real KV shapes from a prefill run to build the decode dummies
-        past_kv = PrefillWrap(vlme).forward(pf_mask, pf_pos, pf_emb)
+        past_kv = PrefillWrap(vlme, hoist).forward(pf_mask, pf_pos, pf_emb)
         print(f"  KV[0] shape: {tuple(past_kv[0].shape)}  ({len(past_kv)} tensors)")
 
         # 4) expert decode (suffix attends to prefix KV + itself); total = prefix+chunk
@@ -401,8 +455,18 @@ def main() -> None:
         dc_emb = torch.randn(1, chunk, exp_dim, device=dev)
         in_names = ["attention_mask", "position_ids", "expert_embeds"] + \
                    [f"{k}_{i}" for i in range(L) for k in ("past_key", "past_value")]
-        _export(DecodeWrap(vlme), (dc_mask, dc_pos, dc_emb, *past_kv),
+        _export(DecodeWrap(vlme, hoist), (dc_mask, dc_pos, dc_emb, *past_kv),
                 str(out / "smolvlm_expert_decode.onnx"), in_names, ["expert_out"])
+        if hoist:
+            # The split must still be the stock arithmetic: hoisted prefill+decode
+            # against the original pair, in FP32, on the export dummies.
+            ref = DecodeWrap(vlme).forward(dc_mask, dc_pos, dc_emb,
+                                           *PrefillWrap(vlme).forward(pf_mask, pf_pos, pf_emb))
+            got = DecodeWrap(vlme, True).forward(dc_mask, dc_pos, dc_emb, *past_kv)
+            err = (got - ref).abs().max().item()
+            print(f"  hoisted cross K/V: {len(cross_layers(vlme))} layers, decode max |diff| "
+                  f"vs per-step projection {err:.3e}")
+            assert err < 1e-4 * max(1.0, ref.abs().max().item()), err
 
         # 5-9) projectors (small, run-once to get shapes)
         def proj(mod, dummy, name, in_name="input"):
@@ -489,6 +553,11 @@ def main() -> None:
         "expert_dim": int(exp_dim),
         "graphs": sorted(f.name for f in out.glob("*.onnx")),
     }
+    if args.hoist_cross_kv:
+        # A runtime that ignores this would feed raw VLM K/V to layers expecting
+        # projected ones and still produce plausible-looking actions.
+        info["kv"] = {"cross_layers": cross_layers(vlme), "cross": "expert-projected",
+                      "dtype": "float16"}
     (out / "export_info.json").write_text(json.dumps(info, indent=2))
     print(f"Saved export_info.json -> fps={fps} tasks={tasks!r} "
           f"state_dim={state_dim_real} action_dim={action_dim_real} chunk={chunk}")

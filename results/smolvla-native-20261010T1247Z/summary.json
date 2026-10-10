@@ -1,0 +1,241 @@
+{
+  "scope": "SmolVLA base, 2 views, 10 denoising steps, graph chain, MAXN_SUPER pinned clocks, synthetic observations; inference cost, not task quality",
+  "precision": "mixed FP16 (no INT8/INT4); custom kernels accumulate in FP32; TensorRT picks FP16-accumulating GEMM tactics for many layers, unchanged by this work",
+  "steps_60s": [
+    {
+      "change": "selected b266634 configuration (old engines, CPU preprocessing)",
+      "note": "old bundle, smolvla-expert-ffn-20261010T1041Z",
+      "file": "policy-control-60s.json",
+      "p50_ms": 126.87,
+      "p95_ms": 127.74,
+      "achieved_hz": 7.8741,
+      "stages_ms": {
+        "denoise": 45.734,
+        "prefill": 10.772,
+        "preprocess": 3.882,
+        "vision": 64.382
+      },
+      "process_rss_mb": {
+        "mean": 1483.5,
+        "max": 1484.0
+      },
+      "board_ram_mb_p50": 1792.0,
+      "fixture_chunk_max_pct_range": 0.1662512912869222
+    },
+    {
+      "change": "vision attention: flat [1,1024,768] Q/K/V/O, constant mask not read",
+      "note": "bit-identical actions (12/12 cases)",
+      "file": "policy-flat-60s.json",
+      "p50_ms": 120.79,
+      "p95_ms": 121.79,
+      "achieved_hz": 8.2682,
+      "stages_ms": {
+        "denoise": 45.726,
+        "prefill": 10.633,
+        "preprocess": 3.922,
+        "vision": 58.471
+      },
+      "process_rss_mb": {
+        "mean": 1450.9,
+        "max": 1454.6
+      },
+      "board_ram_mb_p50": 1804.0,
+      "fixture_chunk_max_pct_range": 0.1662512912869222
+    },
+    {
+      "change": "+ cross-attention K/V once per observation, FP16 KV cache",
+      "note": "bundle --hoist-cross-kv",
+      "file": "policy-kvffn-60s.json",
+      "p50_ms": 118.7,
+      "p95_ms": 120.05,
+      "achieved_hz": 8.4086,
+      "stages_ms": {
+        "denoise": 42.882,
+        "prefill": 11.035,
+        "preprocess": 3.893,
+        "vision": 58.905
+      },
+      "process_rss_mb": {
+        "mean": 1458.1,
+        "max": 1458.9
+      },
+      "board_ram_mb_p50": 1785.0,
+      "fixture_chunk_max_pct_range": 0.1769513279839638
+    },
+    {
+      "change": "+ uint8 canvas upload, SigLIP scaling on the GPU (LUT gather)",
+      "note": "conversion identical to host",
+      "file": "policy-kvffn-u8-60s.json",
+      "p50_ms": 113.72,
+      "p95_ms": 114.99,
+      "achieved_hz": 8.7841,
+      "stages_ms": {
+        "denoise": 42.879,
+        "prefill": 11.235,
+        "preprocess": 0.487,
+        "vision": 58.636
+      },
+      "process_rss_mb": {
+        "mean": 1451.3,
+        "max": 1452.2
+      },
+      "board_ram_mb_p50": 1758.0,
+      "fixture_chunk_max_pct_range": 0.1769513279839638
+    },
+    {
+      "change": "+ RoPE by concatenation instead of ScatterND",
+      "note": "same arithmetic in PyTorch (bit-equal)",
+      "file": "policy-kv2ffn-u8-60s.json",
+      "p50_ms": 106.26,
+      "p95_ms": 107.12,
+      "achieved_hz": 9.3993,
+      "stages_ms": {
+        "denoise": 37.63,
+        "prefill": 9.599,
+        "preprocess": 0.485,
+        "vision": 58.079
+      },
+      "process_rss_mb": {
+        "mean": 1414.7,
+        "max": 1418.0
+      },
+      "board_ram_mb_p50": 1658.0,
+      "fixture_chunk_max_pct_range": 0.17743946300607
+    },
+    {
+      "change": "+ attention tile 128x64 (was 64x64)",
+      "note": "bit-identical actions",
+      "file": "policy-kv2-t128-60s.json",
+      "p50_ms": 103.65,
+      "p95_ms": 104.32,
+      "achieved_hz": 9.6283,
+      "stages_ms": {
+        "denoise": 37.651,
+        "prefill": 9.608,
+        "preprocess": 0.494,
+        "vision": 55.501
+      },
+      "process_rss_mb": {
+        "mean": 1418.5,
+        "max": 1419.2
+      },
+      "board_ram_mb_p50": 1641.0,
+      "fixture_chunk_max_pct_range": 0.17743946300607
+    },
+    {
+      "change": "+ patch embedding as patchify + MatMul",
+      "note": "selected",
+      "file": "policy-kv3-60s.json",
+      "p50_ms": 102.81,
+      "p95_ms": 103.24,
+      "achieved_hz": 9.7143,
+      "stages_ms": {
+        "denoise": 37.508,
+        "prefill": 9.616,
+        "preprocess": 0.494,
+        "vision": 54.707
+      },
+      "process_rss_mb": {
+        "mean": 1412.5,
+        "max": 1413.1
+      },
+      "board_ram_mb_p50": 1632.0,
+      "fixture_chunk_max_pct_range": 0.19488481639589772
+    }
+  ],
+  "rejected_60s": [
+    {
+      "change": "decode at builder optimization level 5",
+      "note": "-0.08 ms, noise",
+      "file": "policy-kv2-t128-L5-60s.json",
+      "p50_ms": 103.57,
+      "p95_ms": 104.12,
+      "achieved_hz": 9.6404,
+      "stages_ms": {
+        "denoise": 37.548,
+        "prefill": 9.567,
+        "preprocess": 0.49,
+        "vision": 55.508
+      },
+      "process_rss_mb": {
+        "mean": 1417.7,
+        "max": 1421.8
+      },
+      "board_ram_mb_p50": 1653.0,
+      "fixture_chunk_max_pct_range": 0.1769513279839638
+    },
+    {
+      "change": "fused QKV projection feeding the attention plugin",
+      "note": "-0.38 ms for +9.3 MB process RSS; bit-identical",
+      "file": "policy-kv2-qkv-60s.json",
+      "p50_ms": 103.27,
+      "p95_ms": 104.01,
+      "achieved_hz": 9.6736,
+      "stages_ms": {
+        "denoise": 37.7,
+        "prefill": 9.514,
+        "preprocess": 0.495,
+        "vision": 55.06
+      },
+      "process_rss_mb": {
+        "mean": 1427.8,
+        "max": 1428.5
+      },
+      "board_ram_mb_p50": 1758.0,
+      "fixture_chunk_max_pct_range": 0.17743946300607
+    }
+  ],
+  "sustained_300s": {
+    "control: old engines + GPU preprocessing": {
+      "file": "policy-control-300s.json",
+      "p50_ms": 121.54,
+      "p95_ms": 122.57,
+      "achieved_hz": 8.222,
+      "stages_ms": {
+        "denoise": 45.763,
+        "prefill": 10.802,
+        "preprocess": 0.497,
+        "vision": 63.962
+      },
+      "process_rss_mb": {
+        "mean": 1459.8,
+        "max": 1465.0
+      },
+      "board_ram_mb_p50": 1674.0,
+      "fixture_chunk_max_pct_range": 0.1662512912869222
+    },
+    "selected": {
+      "file": "policy-kv3-300s.json",
+      "p50_ms": 102.85,
+      "p95_ms": 103.54,
+      "achieved_hz": 9.7047,
+      "stages_ms": {
+        "denoise": 37.48,
+        "prefill": 9.655,
+        "preprocess": 0.49,
+        "vision": 54.809
+      },
+      "process_rss_mb": {
+        "mean": 1404.6,
+        "max": 1410.6
+      },
+      "board_ram_mb_p50": 1627.0,
+      "fixture_chunk_max_pct_range": 0.19488481639589772
+    }
+  },
+  "energy_per_inference_j": {
+    "control": 2.538,
+    "selected": 2.215
+  },
+  "selected": {
+    "bundle": "~/bundles/smolvla-base-split-kv3 (export.sh --views 2 --hoist-cross-kv)",
+    "cache": "~/.cache/jetson-orin-nano-vla/smolvla-kv3-ffn-20261010T1247Z",
+    "build": [
+      "bench trt-split (plain engines into smolvla-kv3-trt)",
+      "build_vision.py --mode triton-attention-flat --base-cache smolvla-kv3-trt",
+      "build_expert.py --mode ffn"
+    ],
+    "manifest": "manifests/kv3-ffn.json"
+  },
+  "opt_level_sweep": "optlevel/sweep.log: plain engines, trtexec CUDA graph; decode L5 -1.1 %/step, vision L5 -0.5 %, prefill L3 +1.8 ms"
+}

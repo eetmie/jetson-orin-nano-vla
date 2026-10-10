@@ -123,22 +123,44 @@ def sinusoidal_time_embedding(t: float, dim: int = EXPERT_DIM) -> np.ndarray:
     return np.concatenate([np.sin(sin_input), np.cos(sin_input)]).astype(np.float32)
 
 
-def resize_with_pad_uint8(img_hwc: np.ndarray, size: int = IMG_SIZE) -> np.ndarray:
-    """uint8 HxWx3 -> float32 [1,3,size,size] in [-1,1].
-
-    Matches lerobot's resize_with_pad: keep aspect, bilinear, pad LEFT and TOP
-    with 0 (in [0,1] space, i.e. -1 after the SigLIP [-1,1] normalization).
-    """
+def resize_pad_canvas(img_hwc: np.ndarray, size: int = IMG_SIZE,
+                      out: np.ndarray | None = None) -> np.ndarray:
+    """uint8 HxWx3 -> uint8 [size,size,3]: lerobot's resize_with_pad before the
+    float conversion (keep aspect, bilinear, pad LEFT and TOP with 0). `out` lets a
+    caller write straight into a pinned upload buffer."""
     import cv2
 
     h, w = img_hwc.shape[:2]
     ratio = max(w / size, h / size)
     rw, rh = int(w / ratio), int(h / ratio)
     resized = cv2.resize(img_hwc, (rw, rh), interpolation=cv2.INTER_LINEAR)
-    canvas = np.zeros((size, size, 3), dtype=np.uint8)
+    canvas = np.zeros((size, size, 3), dtype=np.uint8) if out is None else out
+    if out is not None:
+        canvas[:size - rh] = 0
+        canvas[size - rh:, :size - rw] = 0
     canvas[size - rh:, size - rw:] = resized          # pad top + left
-    chw = canvas.transpose(2, 0, 1).astype(np.float32) / 255.0
+    return canvas
+
+
+def siglip_normalize(canvas_hwc: np.ndarray) -> np.ndarray:
+    """uint8 [H,W,3] -> float32 [1,3,H,W] in [-1,1] (0 in [0,1] space -> -1)."""
+    chw = canvas_hwc.transpose(2, 0, 1).astype(np.float32) / 255.0
     return (chw * 2.0 - 1.0)[None]
+
+
+def siglip_lut() -> np.ndarray:
+    """siglip_normalize of every uint8 value, by the same expression: a GPU gather
+    through this table is bit-identical to the host conversion."""
+    return siglip_normalize(np.arange(256, dtype=np.uint8).reshape(1, 256, 1).repeat(3, 2))[0, 0, 0]
+
+
+def resize_with_pad_uint8(img_hwc: np.ndarray, size: int = IMG_SIZE) -> np.ndarray:
+    """uint8 HxWx3 -> float32 [1,3,size,size] in [-1,1].
+
+    Matches lerobot's resize_with_pad: keep aspect, bilinear, pad LEFT and TOP
+    with 0 (in [0,1] space, i.e. -1 after the SigLIP [-1,1] normalization).
+    """
+    return siglip_normalize(resize_pad_canvas(img_hwc, size))
 
 
 HEAVY_GRAPHS = ("smolvlm_vision.onnx", "smolvlm_expert_prefill.onnx",

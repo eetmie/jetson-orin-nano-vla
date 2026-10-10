@@ -178,10 +178,35 @@ def patch_smolvla_for_legacy_onnx_export() -> None:
 
     smolvla_module.make_att_2d_masks = make_att_2d_masks_fixed
 
+    # apply_rope writes its two halves by slice assignment, which exports as ScatterND:
+    # TensorRT runs those as separate scatter kernels on every Q and K, every step.
+    # Concatenating the halves is the same arithmetic and fuses.
+    import lerobot.policies.smolvla.smolvlm_with_expert as expert_module
+
+    def apply_rope_cat(x, positions, max_wavelength=10_000):
+        d_half = x.shape[-1] // 2
+        dtype = x.dtype
+        x = x.to(torch.float32)
+        freq_exponents = (2.0 / x.shape[-1]) * torch.arange(d_half, dtype=torch.float32, device=x.device)
+        timescale = max_wavelength**freq_exponents
+        radians = positions[..., None].to(torch.float32) / timescale[None, None, :].to(torch.float32)
+        radians = radians[..., None, :]
+        sin = torch.sin(radians)
+        cos = torch.cos(radians)
+        x1, x2 = x.split(d_half, dim=-1)
+        return torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1).to(dtype)
+
+    expert_module.apply_rope = apply_rope_cat
+
     def vis_emb_forward_fixed(self, pixel_values, patch_attention_mask=None, tgt_sizes=None):
         batch_size, _, max_im_h, max_im_w = pixel_values.shape
-        patch_embeds = self.patch_embedding(pixel_values)
-        embeddings = patch_embeds.flatten(2).transpose(1, 2)
+        # The stride-16 16x16 patch conv as patchify + MatMul: the same products and
+        # sum. TensorRT runs the conv on a slow implicit-GEMM kernel; a GEMM it fuses.
+        conv, p = self.patch_embedding, self.patch_size
+        ch, gh, gw = pixel_values.shape[1], max_im_h // p, max_im_w // p
+        patches = pixel_values.reshape(batch_size, ch, gh, p, gw, p).permute(0, 2, 4, 1, 3, 5)
+        patches = patches.reshape(batch_size, gh * gw, ch * p * p)
+        embeddings = patches @ conv.weight.reshape(conv.out_channels, -1).t() + conv.bias
         max_nb_patches_h = max_im_h // self.patch_size
         max_nb_patches_w = max_im_w // self.patch_size
         boundaries = torch.arange(

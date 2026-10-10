@@ -10,9 +10,10 @@ from candidate_cache import verify_candidate
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument('--cache-dir', type=Path, required=True)
+parser.add_argument('--bundle', type=Path, default=Path.home()/'bundles/smolvla-base-split')
 args, _ = parser.parse_known_args()
 cache = args.cache_dir.expanduser().resolve()
-bundle = Path.home()/'bundles/smolvla-base-split'
+bundle = args.bundle.expanduser().resolve()
 manifest = verify_candidate(cache, bundle)
 original = groot_trt.prebuild_engines
 

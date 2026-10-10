@@ -11,6 +11,8 @@ TensorRT network API, FP32 and strongly typed, and cached beside the model's eng
     lerp   out = x1 * w + a * (1 - w)     w is a [1,1,1] input, one buffer per step
     axpy   out = a + c * b                c is baked in
     silu   out = x * sigmoid(x)
+    siglip_u8  out[1,3,H,W] = lut[x[H,W,3]]   SigLIP's [-1,1] scaling of a uint8 image
+                                              as a table gather, so it is exact
 """
 
 from __future__ import annotations
@@ -56,6 +58,19 @@ def build_op(op: str, shape: list[int], c: float | None, path: str) -> None:
         x = net.add_input("x", f32, shape)
         sg = net.add_activation(x, trt.ActivationType.SIGMOID).get_output(0)
         out = net.add_elementwise(x, sg, E.PROD).get_output(0)
+    elif op == "siglip_u8":
+        from .smolvla_split import siglip_lut
+
+        h, w, ch = shape
+        x = net.add_input("x", trt.uint8, shape)
+        idx = net.add_cast(x, trt.int32).get_output(0)
+        table = np.ascontiguousarray(siglip_lut())      # must outlive the build
+        lut = net.add_constant(trt.Dims([256]), trt.Weights(table)).get_output(0)
+        g = net.add_gather(lut, idx, 0).get_output(0)            # [H,W,3] fp32
+        sh = net.add_shuffle(g)
+        sh.first_transpose = trt.Permutation((2, 0, 1))
+        sh.reshape_dims = (1, ch, h, w)
+        out = sh.get_output(0)
     else:
         raise ValueError(op)
     out.name = "out"

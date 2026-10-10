@@ -19,9 +19,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['baseline','ffn'], required=True)
 parser.add_argument('--base-cache', type=Path, required=True)
 parser.add_argument('--out', type=Path, required=True)
+parser.add_argument('--bundle', type=Path, default=Path.home()/'bundles/smolvla-base-split')
+parser.add_argument('--opt-level', type=int, default=2, help='TensorRT builder optimization level')
 args = parser.parse_args()
 base = args.base_cache.expanduser().resolve()
-bundle = Path.home()/'bundles/smolvla-base-split'
+bundle = args.bundle.expanduser().resolve()
 base_manifest = verify_candidate(base, bundle)
 dest = args.out.expanduser().resolve()
 dest.mkdir(parents=True, exist_ok=False)
@@ -107,7 +109,7 @@ if args.mode == 'ffn':
                             consumers=[l.name for l,i in downstream],packed_weight_sha256=hashlib.sha256(packed.tobytes()).hexdigest()))
 
 config = builder.create_builder_config()
-config.builder_optimization_level = 2
+config.builder_optimization_level = args.opt_level
 config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE,512<<20)
 config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
 timing = base/'timing.cache'
@@ -119,8 +121,8 @@ assert plan is not None
 (dest/'timing.cache').write_bytes(config.get_timing_cache().serialize())
 manifest = dict(base_manifest)
 manifest.update(mode='expert-'+args.mode,base_cache=str(base),vision_candidate=base_manifest,
-                expert_build_s=time.perf_counter()-started,expert_patches=patches,
-                additional_source_sha256={source.name:sha256(source)},
+                expert_build_s=time.perf_counter()-started,expert_opt_level=args.opt_level,expert_patches=patches,
+                additional_source_sha256={**base_manifest.get('additional_source_sha256', {}), source.name:sha256(source)},
                 all_engine_sha256={p.name:sha256(p) for p in dest.glob('*.engine')},
                 expert_kernel_sha256=sha256(Path(__file__).with_name('ffn_kernel.py')),
                 expert_plugin_sha256=sha256(Path(__file__).with_name('ffn_plugin.py')),

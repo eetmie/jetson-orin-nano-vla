@@ -1,0 +1,592 @@
+{
+  "mode": "expert-ffn+vision-triton-attention-flat",
+  "build_s": 26.249635696411133,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "1334fafa3803b4e8b97ce1722f0318163cb9d6814e83746229e827c5aa0170b6",
+  "patches": [
+    {
+      "softmax": "node_Softmax_299",
+      "input": "val_299",
+      "replaced_output": "scaled_dot_product_attention",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_4"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_371",
+      "input": "val_375",
+      "replaced_output": "scaled_dot_product_attention_1",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_8"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_443",
+      "input": "val_451",
+      "replaced_output": "scaled_dot_product_attention_2",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_12"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_515",
+      "input": "val_527",
+      "replaced_output": "scaled_dot_product_attention_3",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_16"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_587",
+      "input": "val_603",
+      "replaced_output": "scaled_dot_product_attention_4",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_20"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_659",
+      "input": "val_679",
+      "replaced_output": "scaled_dot_product_attention_5",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_24"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_731",
+      "input": "val_755",
+      "replaced_output": "scaled_dot_product_attention_6",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_28"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_803",
+      "input": "val_831",
+      "replaced_output": "scaled_dot_product_attention_7",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_32"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_875",
+      "input": "val_907",
+      "replaced_output": "scaled_dot_product_attention_8",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_36"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_947",
+      "input": "val_983",
+      "replaced_output": "scaled_dot_product_attention_9",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_40"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1019",
+      "input": "val_1059",
+      "replaced_output": "scaled_dot_product_attention_10",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_44"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1091",
+      "input": "val_1135",
+      "replaced_output": "scaled_dot_product_attention_11",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_transpose_48"
+      ]
+    }
+  ],
+  "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+  "plugin_sha256": "2b573d7921923718e22f040bf0a17210a5cae6383c80ddcb8cabd6dcb518f818",
+  "accumulation": "FP32",
+  "implementation": "Triton AOT",
+  "warps": 4,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-base-trt",
+  "attention_kernel_sha256": "05b78f54a4679b5320c579032c89c4480a3c019f5e166d0efcb34dd04ae21014",
+  "block_m": 128,
+  "block_n": 64,
+  "stages": 2,
+  "alignment16": true,
+  "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization",
+  "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-ffn-20261010T1041Z",
+  "vision_candidate": {
+    "mode": "triton-attention-aligned",
+    "build_s": 26.249635696411133,
+    "tensorrt": "10.16.2.10",
+    "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+    "engine_sha256": "0d18afd25382331bb4e3595cc614da5ef0fc78b478e27ec8813afd3aa900af44",
+    "patches": [
+      {
+        "softmax": "node_Softmax_299",
+        "input": "val_299",
+        "replaced_output": "scaled_dot_product_attention",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_4"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_371",
+        "input": "val_375",
+        "replaced_output": "scaled_dot_product_attention_1",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_8"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_443",
+        "input": "val_451",
+        "replaced_output": "scaled_dot_product_attention_2",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_12"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_515",
+        "input": "val_527",
+        "replaced_output": "scaled_dot_product_attention_3",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_16"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_587",
+        "input": "val_603",
+        "replaced_output": "scaled_dot_product_attention_4",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_20"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_659",
+        "input": "val_679",
+        "replaced_output": "scaled_dot_product_attention_5",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_24"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_731",
+        "input": "val_755",
+        "replaced_output": "scaled_dot_product_attention_6",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_28"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_803",
+        "input": "val_831",
+        "replaced_output": "scaled_dot_product_attention_7",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_32"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_875",
+        "input": "val_907",
+        "replaced_output": "scaled_dot_product_attention_8",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_36"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_947",
+        "input": "val_983",
+        "replaced_output": "scaled_dot_product_attention_9",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_40"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_1019",
+        "input": "val_1059",
+        "replaced_output": "scaled_dot_product_attention_10",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_44"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_1091",
+        "input": "val_1135",
+        "replaced_output": "scaled_dot_product_attention_11",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_transpose_48"
+        ]
+      }
+    ],
+    "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+    "plugin_sha256": "2b573d7921923718e22f040bf0a17210a5cae6383c80ddcb8cabd6dcb518f818",
+    "accumulation": "FP32",
+    "implementation": "Triton AOT",
+    "warps": 4,
+    "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-base-trt",
+    "attention_kernel_sha256": "05b78f54a4679b5320c579032c89c4480a3c019f5e166d0efcb34dd04ae21014",
+    "block_m": 128,
+    "block_n": 64,
+    "stages": 2,
+    "alignment16": true,
+    "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization"
+  },
+  "expert_build_s": 39.26626245499938,
+  "expert_patches": [
+    {
+      "sigmoid": "node_Sigmoid_177",
+      "input": "mul_14",
+      "replaced": "mul_15",
+      "consumers": [
+        "node_linear_6"
+      ],
+      "packed_weight_sha256": "a577c0689281cb9aca506c04806d27da33f8f3107027a97f2fe126caa6480b13"
+    },
+    {
+      "sigmoid": "node_Sigmoid_327",
+      "input": "mul_25",
+      "replaced": "mul_26",
+      "consumers": [
+        "node_linear_13"
+      ],
+      "packed_weight_sha256": "6c180758139040c37c47171e81f50f250b73fa601977d3d084825395a1425583"
+    },
+    {
+      "sigmoid": "node_Sigmoid_492",
+      "input": "mul_41",
+      "replaced": "mul_42",
+      "consumers": [
+        "node_linear_20"
+      ],
+      "packed_weight_sha256": "5d22e663119bae6c06366349010bb617690461725a9591308a1be9deddd4fd4e"
+    },
+    {
+      "sigmoid": "node_Sigmoid_639",
+      "input": "mul_52",
+      "replaced": "mul_53",
+      "consumers": [
+        "node_linear_27"
+      ],
+      "packed_weight_sha256": "99571eae31cbd107d1a74ba96c471c7ff9a7f08186df0ac999eae196029fdada"
+    },
+    {
+      "sigmoid": "node_Sigmoid_804",
+      "input": "mul_68",
+      "replaced": "mul_69",
+      "consumers": [
+        "node_linear_34"
+      ],
+      "packed_weight_sha256": "2e4a992bce2f9aee7e251a9ddfcf741eef4eac79f35b30034d7d82be95bc12ef"
+    },
+    {
+      "sigmoid": "node_Sigmoid_951",
+      "input": "mul_79",
+      "replaced": "mul_80",
+      "consumers": [
+        "node_linear_41"
+      ],
+      "packed_weight_sha256": "c35d97b6459d34706be9ecd3c82e7cccfc2547f65fd1de751ab5ba4742449cab"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1116",
+      "input": "mul_95",
+      "replaced": "mul_96",
+      "consumers": [
+        "node_linear_48"
+      ],
+      "packed_weight_sha256": "a8fee79e24dbc13a5325335bee532e53598d084a0be2994e7c6c3e79cd86544c"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1263",
+      "input": "mul_106",
+      "replaced": "mul_107",
+      "consumers": [
+        "node_linear_55"
+      ],
+      "packed_weight_sha256": "71b1b3fe8e68b0964a861609323f1565ce3e40c41280596c93d72e030765e6f7"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1428",
+      "input": "mul_122",
+      "replaced": "mul_123",
+      "consumers": [
+        "node_linear_62"
+      ],
+      "packed_weight_sha256": "8fca02a723bbc4fdc38ce9d107d1823dc2ce5ae10862c8e8623c09de615f86ce"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1575",
+      "input": "mul_133",
+      "replaced": "mul_134",
+      "consumers": [
+        "node_linear_69"
+      ],
+      "packed_weight_sha256": "38d8bea2ca2a72fe567141c34396d030d61b3574b5af9604c4c9ccfd6896f37e"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1740",
+      "input": "mul_149",
+      "replaced": "mul_150",
+      "consumers": [
+        "node_linear_76"
+      ],
+      "packed_weight_sha256": "98bf4facc3d2b9e6ed9b9ec904c6c909940e829e9a211e789b4f2dc0f19013d0"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1887",
+      "input": "mul_160",
+      "replaced": "mul_161",
+      "consumers": [
+        "node_linear_83"
+      ],
+      "packed_weight_sha256": "f40fcb2dfd6304e5be2a2cfb950693bf45319399aa21c40547294b029b466220"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2052",
+      "input": "mul_176",
+      "replaced": "mul_177",
+      "consumers": [
+        "node_linear_90"
+      ],
+      "packed_weight_sha256": "5d550dd518d07fc4379c4c333dabf8c4f8b195dbff6ee7be50686890d357960a"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2199",
+      "input": "mul_187",
+      "replaced": "mul_188",
+      "consumers": [
+        "node_linear_97"
+      ],
+      "packed_weight_sha256": "e88ab6f9bd7fdfb9782c7c5241014a9ca878c5b94fc8108a3f8dd3edc6c196c5"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2364",
+      "input": "mul_203",
+      "replaced": "mul_204",
+      "consumers": [
+        "node_linear_104"
+      ],
+      "packed_weight_sha256": "ab8d08a7149a40ae229c97b67081e072f1b14efb7f7dd731c44e6f39c963178c"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2511",
+      "input": "mul_214",
+      "replaced": "mul_215",
+      "consumers": [
+        "node_linear_111"
+      ],
+      "packed_weight_sha256": "f7ef7ff413297fe7c30a09456f90942ad1090f3f6716777dc82ea8a8f6493327"
+    }
+  ],
+  "additional_source_sha256": {
+    "smolvlm_expert_decode.onnx": "44b77ea384fc353429bef11b3259c4fc846d0d69c175020291ebf4071c62e754"
+  },
+  "all_engine_sha256": {
+    "action_in.engine": "25dafa97ffa031e47047546050687d86b731cc2738bf88105149eaa34e286b47",
+    "prefill.engine": "4c47b7bd130f7b250e450db31be748374729d17353179de1711b210c2d7c32ec",
+    "action_out.engine": "5fbeebce028312fa0f36777fa6b3d10f1aebeac5e88118aef5d3a0a23add3d5f",
+    "decode.engine": "ac8dc8d19af7ac9bc93b5870f0b2a3a95fe8e33b63d06ac3c1f2a0fa62d63546",
+    "op_silu_3ec14fc460d7.engine": "02f02222ada25693d8b10308e56e495e27b0f703b15976a535a5ba4dbb352f5d",
+    "op_axpy_2bf70fd1c0f9.engine": "e4811e20cdb4eb0294b7b687cac2ae9a1f2e766dc51b8c44764ff71b9b078406",
+    "state_proj.engine": "955c85bea49c3fd8c81334fb8797da980cb92867c79f341f2569520de07ab0c5",
+    "op_axpy_4afaa4added7.engine": "bc7d21fba13abacd0d81006d41f4827aa3c4878bffbb9ef9dfe7d20adf346937",
+    "time_out.engine": "c83b30d7f41603ad305902250191e561992e9795bac90b5c9697787feb344d22",
+    "time_in.engine": "4e64d16ff6b115cd6e47954a83a4c6b54b29916906c3ecd668746213c58884fb",
+    "vision.engine": "1334fafa3803b4e8b97ce1722f0318163cb9d6814e83746229e827c5aa0170b6"
+  },
+  "expert_kernel_sha256": "4d88ae4a84bf86a8b7a8a4c0cfa9bb0fb9eb1e83ab7229c62b65f94fd7f44602",
+  "expert_plugin_sha256": "3a7425f5de69a715f19008f70e84b76c4495780401ac1ce7b18a17c518d4696b",
+  "expert_precision": "FP32 accumulation, HALF projection/sigmoid/SiLU/product rounding",
+  "vision_rebuilt": {
+    "mode": "triton-attention-flat",
+    "build_s": 14.514909505844116,
+    "tensorrt": "10.16.2.10",
+    "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+    "engine_sha256": "1334fafa3803b4e8b97ce1722f0318163cb9d6814e83746229e827c5aa0170b6",
+    "patches": [
+      {
+        "softmax": "node_Softmax_299",
+        "input": "val_299",
+        "replaced_output": "view_7",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_308"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_371",
+        "input": "val_375",
+        "replaced_output": "view_11",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_380"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_443",
+        "input": "val_451",
+        "replaced_output": "view_15",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_452"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_515",
+        "input": "val_527",
+        "replaced_output": "view_19",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_524"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_587",
+        "input": "val_603",
+        "replaced_output": "view_23",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_596"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_659",
+        "input": "val_679",
+        "replaced_output": "view_27",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_668"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_731",
+        "input": "val_755",
+        "replaced_output": "view_31",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_740"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_803",
+        "input": "val_831",
+        "replaced_output": "view_35",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_812"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_875",
+        "input": "val_907",
+        "replaced_output": "view_39",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_884"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_947",
+        "input": "val_983",
+        "replaced_output": "view_43",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_956"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_1019",
+        "input": "val_1059",
+        "replaced_output": "view_47",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_1028"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_1091",
+        "input": "val_1135",
+        "replaced_output": "view_51",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_1100"
+        ]
+      }
+    ],
+    "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+    "plugin_sha256": "c3a848ab32323ad7cd7d77d15d804941143f51b52653eff6783cd68a7cdce3e0",
+    "accumulation": "FP32",
+    "implementation": "Triton AOT",
+    "warps": 4,
+    "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-expert-ffn-20261010T1041Z",
+    "attention_kernel_sha256": "eafa0a9b961b58328d7fe3178632aec88c8c59d766de91644c871257fdb53218",
+    "block_m": 64,
+    "block_n": 64,
+    "stages": 3,
+    "alignment16": true,
+    "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization",
+    "layout": "[1,S,H,D] projection views, no transposes",
+    "mask": "constant all-true, not read"
+  }
+}

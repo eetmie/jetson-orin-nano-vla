@@ -1,0 +1,484 @@
+{
+  "mode": "expert-ffn",
+  "build_s": 25.054154872894287,
+  "tensorrt": "10.16.2.10",
+  "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+  "engine_sha256": "7d403126bebcc831f22a2026890dc6eba6020ae67c09d569cd4ce24f4b0fe851",
+  "patches": [
+    {
+      "softmax": "node_Softmax_299",
+      "input": "val_299",
+      "replaced_output": "view_7",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_308"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_371",
+      "input": "val_375",
+      "replaced_output": "view_11",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_380"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_443",
+      "input": "val_451",
+      "replaced_output": "view_15",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_452"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_515",
+      "input": "val_527",
+      "replaced_output": "view_19",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_524"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_587",
+      "input": "val_603",
+      "replaced_output": "view_23",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_596"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_659",
+      "input": "val_679",
+      "replaced_output": "view_27",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_668"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_731",
+      "input": "val_755",
+      "replaced_output": "view_31",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_740"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_803",
+      "input": "val_831",
+      "replaced_output": "view_35",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_812"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_875",
+      "input": "val_907",
+      "replaced_output": "view_39",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_884"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_947",
+      "input": "val_983",
+      "replaced_output": "view_43",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_956"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1019",
+      "input": "val_1059",
+      "replaced_output": "view_47",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_1028"
+      ]
+    },
+    {
+      "softmax": "node_Softmax_1091",
+      "input": "val_1135",
+      "replaced_output": "view_51",
+      "input_dtype": "DataType.HALF",
+      "output_dtype": "DataType.HALF",
+      "consumers": [
+        "node_MatMul_1100"
+      ]
+    }
+  ],
+  "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+  "plugin_sha256": "c3a848ab32323ad7cd7d77d15d804941143f51b52653eff6783cd68a7cdce3e0",
+  "accumulation": "FP32",
+  "implementation": "Triton AOT",
+  "warps": 4,
+  "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-kv-trt",
+  "attention_kernel_sha256": "eafa0a9b961b58328d7fe3178632aec88c8c59d766de91644c871257fdb53218",
+  "block_m": 64,
+  "block_n": 64,
+  "stages": 3,
+  "alignment16": true,
+  "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization",
+  "layout": "[1,S,H,D] projection views, no transposes",
+  "mask": "constant all-true, not read",
+  "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-kv-flat-20261010T1247Z",
+  "all_engine_sha256": {
+    "action_in.engine": "78ab5a52820020c6c432f0b784ea097a94da5c306d600faaad70ed15fa9eee8f",
+    "prefill.engine": "f7f94f26dcc8616a6300d5a7d935ed70dd889989d84581503d0362973966bfd4",
+    "action_out.engine": "5fbeebce028312fa0f36777fa6b3d10f1aebeac5e88118aef5d3a0a23add3d5f",
+    "decode.engine": "55d6a1abbdfb6b1793e8c12282a6b88e5329a27e4308eb81a5de5b9fd4447704",
+    "op_silu_3ec14fc460d7.engine": "02f02222ada25693d8b10308e56e495e27b0f703b15976a535a5ba4dbb352f5d",
+    "op_axpy_2bf70fd1c0f9.engine": "e4811e20cdb4eb0294b7b687cac2ae9a1f2e766dc51b8c44764ff71b9b078406",
+    "state_proj.engine": "955c85bea49c3fd8c81334fb8797da980cb92867c79f341f2569520de07ab0c5",
+    "op_axpy_4afaa4added7.engine": "bc7d21fba13abacd0d81006d41f4827aa3c4878bffbb9ef9dfe7d20adf346937",
+    "time_out.engine": "6e98336d6ad799eb3e4b0dc20fc483502c73ed30ca8dba78a47926a8b730fdaa",
+    "time_in.engine": "6646b4ecc4e46f63f9d36a8d3660d95d8bd4086a6e536429e5afa5fa54d96fc8",
+    "vision.engine": "7d403126bebcc831f22a2026890dc6eba6020ae67c09d569cd4ce24f4b0fe851"
+  },
+  "additional_source_sha256": {
+    "smolvlm_text.onnx": "f8cea5aa1ce1e520c3e7437e38c4d798b41241d325cd332afa86a7653cc20460",
+    "state_projector.onnx": "44312884e1d486cf7147d47d2ea5eed6c10fc0ecf73dfb7c6c916df55f45e717",
+    "time_in_projector.onnx": "1e852b1c43412109ed819e25e111e8a2aa511c62ecbb63ddd7036ea261259d30",
+    "smolvlm_expert_prefill.onnx": "44e93cf240138d7753ce026f5c84a56d0b3a4e46dab2e61b3592a5239a7550c2",
+    "action_out_projector.onnx": "c62bf7aa698e8acc1ac36f0e162f00c3d5b47ca1768275688145f10a77367237",
+    "smolvlm_expert_decode.onnx": "7633390bba83fbd615800f689108ca5bb9ab23a4b5d3871a623eb3e372b2875f",
+    "action_in_projector.onnx": "4e934619c4529ef6009bdd85ff261bfb78416e6393e2ca857300813232d4e9ca",
+    "time_out_projector.onnx": "2c6ad8fbbbb6c18062420857d13c702c7e76a67f946a31dde5ef9c13ad07006b"
+  },
+  "vision_candidate": {
+    "mode": "triton-attention-flat",
+    "build_s": 25.054154872894287,
+    "tensorrt": "10.16.2.10",
+    "source_onnx_sha256": "3cbb64b832d7848f22bd4272c15e5f1ad438e0a331c6554905dd2829ce8f1059",
+    "engine_sha256": "7d403126bebcc831f22a2026890dc6eba6020ae67c09d569cd4ce24f4b0fe851",
+    "patches": [
+      {
+        "softmax": "node_Softmax_299",
+        "input": "val_299",
+        "replaced_output": "view_7",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_308"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_371",
+        "input": "val_375",
+        "replaced_output": "view_11",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_380"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_443",
+        "input": "val_451",
+        "replaced_output": "view_15",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_452"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_515",
+        "input": "val_527",
+        "replaced_output": "view_19",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_524"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_587",
+        "input": "val_603",
+        "replaced_output": "view_23",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_596"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_659",
+        "input": "val_679",
+        "replaced_output": "view_27",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_668"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_731",
+        "input": "val_755",
+        "replaced_output": "view_31",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_740"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_803",
+        "input": "val_831",
+        "replaced_output": "view_35",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_812"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_875",
+        "input": "val_907",
+        "replaced_output": "view_39",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_884"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_947",
+        "input": "val_983",
+        "replaced_output": "view_43",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_956"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_1019",
+        "input": "val_1059",
+        "replaced_output": "view_47",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_1028"
+        ]
+      },
+      {
+        "softmax": "node_Softmax_1091",
+        "input": "val_1135",
+        "replaced_output": "view_51",
+        "input_dtype": "DataType.HALF",
+        "output_dtype": "DataType.HALF",
+        "consumers": [
+          "node_MatMul_1100"
+        ]
+      }
+    ],
+    "kernel_sha256": "5d1290e9cf5535baaa7cfae96aaaeb6cdbb736cd4788c7ee9b3718d36202e953",
+    "plugin_sha256": "c3a848ab32323ad7cd7d77d15d804941143f51b52653eff6783cd68a7cdce3e0",
+    "accumulation": "FP32",
+    "implementation": "Triton AOT",
+    "warps": 4,
+    "baseline_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-kv-trt",
+    "attention_kernel_sha256": "eafa0a9b961b58328d7fe3178632aec88c8c59d766de91644c871257fdb53218",
+    "block_m": 64,
+    "block_n": 64,
+    "stages": 3,
+    "alignment16": true,
+    "precision_note": "HALF score/Add rounding retained; online probabilities round before global normalization",
+    "layout": "[1,S,H,D] projection views, no transposes",
+    "mask": "constant all-true, not read",
+    "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/smolvla-kv-trt",
+    "all_engine_sha256": {
+      "action_in.engine": "78ab5a52820020c6c432f0b784ea097a94da5c306d600faaad70ed15fa9eee8f",
+      "prefill.engine": "f7f94f26dcc8616a6300d5a7d935ed70dd889989d84581503d0362973966bfd4",
+      "action_out.engine": "5fbeebce028312fa0f36777fa6b3d10f1aebeac5e88118aef5d3a0a23add3d5f",
+      "decode.engine": "3995ed9a065dd418324d93430708b8681e960b6745e909527ae2a82980d97d30",
+      "op_silu_3ec14fc460d7.engine": "02f02222ada25693d8b10308e56e495e27b0f703b15976a535a5ba4dbb352f5d",
+      "op_axpy_2bf70fd1c0f9.engine": "e4811e20cdb4eb0294b7b687cac2ae9a1f2e766dc51b8c44764ff71b9b078406",
+      "state_proj.engine": "955c85bea49c3fd8c81334fb8797da980cb92867c79f341f2569520de07ab0c5",
+      "op_axpy_4afaa4added7.engine": "bc7d21fba13abacd0d81006d41f4827aa3c4878bffbb9ef9dfe7d20adf346937",
+      "time_out.engine": "6e98336d6ad799eb3e4b0dc20fc483502c73ed30ca8dba78a47926a8b730fdaa",
+      "time_in.engine": "6646b4ecc4e46f63f9d36a8d3660d95d8bd4086a6e536429e5afa5fa54d96fc8",
+      "vision.engine": "7d403126bebcc831f22a2026890dc6eba6020ae67c09d569cd4ce24f4b0fe851"
+    },
+    "additional_source_sha256": {
+      "smolvlm_text.onnx": "f8cea5aa1ce1e520c3e7437e38c4d798b41241d325cd332afa86a7653cc20460",
+      "state_projector.onnx": "44312884e1d486cf7147d47d2ea5eed6c10fc0ecf73dfb7c6c916df55f45e717",
+      "time_in_projector.onnx": "1e852b1c43412109ed819e25e111e8a2aa511c62ecbb63ddd7036ea261259d30",
+      "smolvlm_expert_prefill.onnx": "44e93cf240138d7753ce026f5c84a56d0b3a4e46dab2e61b3592a5239a7550c2",
+      "action_out_projector.onnx": "c62bf7aa698e8acc1ac36f0e162f00c3d5b47ca1768275688145f10a77367237",
+      "smolvlm_expert_decode.onnx": "7633390bba83fbd615800f689108ca5bb9ab23a4b5d3871a623eb3e372b2875f",
+      "action_in_projector.onnx": "4e934619c4529ef6009bdd85ff261bfb78416e6393e2ca857300813232d4e9ca",
+      "time_out_projector.onnx": "2c6ad8fbbbb6c18062420857d13c702c7e76a67f946a31dde5ef9c13ad07006b"
+    }
+  },
+  "expert_build_s": 39.55173193500377,
+  "expert_patches": [
+    {
+      "sigmoid": "node_Sigmoid_177",
+      "input": "mul_14",
+      "replaced": "mul_15",
+      "consumers": [
+        "node_linear_6"
+      ],
+      "packed_weight_sha256": "a577c0689281cb9aca506c04806d27da33f8f3107027a97f2fe126caa6480b13"
+    },
+    {
+      "sigmoid": "node_Sigmoid_325",
+      "input": "mul_25",
+      "replaced": "mul_26",
+      "consumers": [
+        "node_linear_11"
+      ],
+      "packed_weight_sha256": "6c180758139040c37c47171e81f50f250b73fa601977d3d084825395a1425583"
+    },
+    {
+      "sigmoid": "node_Sigmoid_490",
+      "input": "mul_41",
+      "replaced": "mul_42",
+      "consumers": [
+        "node_linear_18"
+      ],
+      "packed_weight_sha256": "5d22e663119bae6c06366349010bb617690461725a9591308a1be9deddd4fd4e"
+    },
+    {
+      "sigmoid": "node_Sigmoid_635",
+      "input": "mul_52",
+      "replaced": "mul_53",
+      "consumers": [
+        "node_linear_23"
+      ],
+      "packed_weight_sha256": "99571eae31cbd107d1a74ba96c471c7ff9a7f08186df0ac999eae196029fdada"
+    },
+    {
+      "sigmoid": "node_Sigmoid_800",
+      "input": "mul_68",
+      "replaced": "mul_69",
+      "consumers": [
+        "node_linear_30"
+      ],
+      "packed_weight_sha256": "2e4a992bce2f9aee7e251a9ddfcf741eef4eac79f35b30034d7d82be95bc12ef"
+    },
+    {
+      "sigmoid": "node_Sigmoid_945",
+      "input": "mul_79",
+      "replaced": "mul_80",
+      "consumers": [
+        "node_linear_35"
+      ],
+      "packed_weight_sha256": "c35d97b6459d34706be9ecd3c82e7cccfc2547f65fd1de751ab5ba4742449cab"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1110",
+      "input": "mul_95",
+      "replaced": "mul_96",
+      "consumers": [
+        "node_linear_42"
+      ],
+      "packed_weight_sha256": "a8fee79e24dbc13a5325335bee532e53598d084a0be2994e7c6c3e79cd86544c"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1255",
+      "input": "mul_106",
+      "replaced": "mul_107",
+      "consumers": [
+        "node_linear_47"
+      ],
+      "packed_weight_sha256": "71b1b3fe8e68b0964a861609323f1565ce3e40c41280596c93d72e030765e6f7"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1420",
+      "input": "mul_122",
+      "replaced": "mul_123",
+      "consumers": [
+        "node_linear_54"
+      ],
+      "packed_weight_sha256": "8fca02a723bbc4fdc38ce9d107d1823dc2ce5ae10862c8e8623c09de615f86ce"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1565",
+      "input": "mul_133",
+      "replaced": "mul_134",
+      "consumers": [
+        "node_linear_59"
+      ],
+      "packed_weight_sha256": "38d8bea2ca2a72fe567141c34396d030d61b3574b5af9604c4c9ccfd6896f37e"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1730",
+      "input": "mul_149",
+      "replaced": "mul_150",
+      "consumers": [
+        "node_linear_66"
+      ],
+      "packed_weight_sha256": "98bf4facc3d2b9e6ed9b9ec904c6c909940e829e9a211e789b4f2dc0f19013d0"
+    },
+    {
+      "sigmoid": "node_Sigmoid_1875",
+      "input": "mul_160",
+      "replaced": "mul_161",
+      "consumers": [
+        "node_linear_71"
+      ],
+      "packed_weight_sha256": "f40fcb2dfd6304e5be2a2cfb950693bf45319399aa21c40547294b029b466220"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2040",
+      "input": "mul_176",
+      "replaced": "mul_177",
+      "consumers": [
+        "node_linear_78"
+      ],
+      "packed_weight_sha256": "5d550dd518d07fc4379c4c333dabf8c4f8b195dbff6ee7be50686890d357960a"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2185",
+      "input": "mul_187",
+      "replaced": "mul_188",
+      "consumers": [
+        "node_linear_83"
+      ],
+      "packed_weight_sha256": "e88ab6f9bd7fdfb9782c7c5241014a9ca878c5b94fc8108a3f8dd3edc6c196c5"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2350",
+      "input": "mul_203",
+      "replaced": "mul_204",
+      "consumers": [
+        "node_linear_90"
+      ],
+      "packed_weight_sha256": "ab8d08a7149a40ae229c97b67081e072f1b14efb7f7dd731c44e6f39c963178c"
+    },
+    {
+      "sigmoid": "node_Sigmoid_2495",
+      "input": "mul_214",
+      "replaced": "mul_215",
+      "consumers": [
+        "node_linear_95"
+      ],
+      "packed_weight_sha256": "f7ef7ff413297fe7c30a09456f90942ad1090f3f6716777dc82ea8a8f6493327"
+    }
+  ],
+  "expert_kernel_sha256": "4d88ae4a84bf86a8b7a8a4c0cfa9bb0fb9eb1e83ab7229c62b65f94fd7f44602",
+  "expert_plugin_sha256": "3a7425f5de69a715f19008f70e84b76c4495780401ac1ce7b18a17c518d4696b",
+  "expert_precision": "FP32 accumulation, HALF projection/sigmoid/SiLU/product rounding"
+}

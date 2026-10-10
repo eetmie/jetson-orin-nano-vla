@@ -69,6 +69,19 @@ class TrtSplitSmolVLABackend(Backend):
                                 r["noise"], key=("fixture",))
         rep = _cmp(dev, host)
         rep["identical"] = bool(np.array_equal(dev, host))
+        # The uint8 path must give the vision engine the host conversion's exact floats.
+        from ..vendor.smolvla_split import resize_pad_canvas, siglip_normalize
+        img = np.random.default_rng(0).integers(0, 256, (480, 640, 3), dtype=np.uint8)
+        canvas = resize_pad_canvas(img)
+        d = self.device.d
+        d.upload(self.device.canvas[0], canvas)
+        d.enqueue(self.device.to_pix, {"x": self.device.canvas[0], "out": self.device.pix[0]})
+        d.download(self.device.pix[0])
+        d.sync()
+        gpu = self.device.pix[0].host().copy()
+        if not np.array_equal(gpu, siglip_normalize(canvas)):
+            raise ValueError("GPU uint8 -> SigLIP conversion differs from the host one")
+        self.fixture_parity["gpu_image_conversion"] = "identical to host"
         ok = _cmp(dev, r["action_pred"])
         self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok}
         if ok["cosine"] < self.fixture_parity["threshold"] or \
@@ -117,7 +130,14 @@ class TrtSplitSmolVLABackend(Backend):
             raise ValueError(f"{len(obs.images)} cameras given but the export has "
                              f"{b.n_cam_slots} camera slot(s)")
         t0 = time.perf_counter()
-        pix = [preprocess(im) for im in obs.images]
+        if self.device is not None:
+            from ..vendor.smolvla_split import resize_pad_canvas
+            # Resize + pad on the CPU straight into the pinned upload buffer; the float
+            # conversion runs on the GPU.
+            pix = [resize_pad_canvas(im, out=self.device.canvas_buffer(i))
+                   for i, im in enumerate(obs.images)]
+        else:
+            pix = [preprocess(im) for im in obs.images]
         lang = b.language(obs.task)
         state = pad_state(self.norm.normalize_state(
             np.asarray(obs.state, np.float32).reshape(-1)))

@@ -27,28 +27,30 @@ def main():
     parser.add_argument('--control', type=Path, required=True)
     parser.add_argument('--candidate', action='append', required=True, help='LABEL=CACHE_PATH')
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--bundle', action='append', default=[], help='LABEL=BUNDLE_PATH (default: smolvla-base-split)')
     args = parser.parse_args()
     if args.out.exists():
         raise FileExistsError(args.out)
     bundle = Path.home()/'bundles/smolvla-base-split'
+    bundles = {arg.split('=', 1)[0]: Path(arg.split('=', 1)[1]).expanduser().resolve() for arg in args.bundle}
     caches = [('control', args.control.expanduser())]+[
         (arg.split('=', 1)[0], Path(arg.split('=', 1)[1]).expanduser()) for arg in args.candidate]
     manifests = {}
     for label, cache in caches:
-        manifest = verify_candidate(cache, bundle)
+        manifest = verify_candidate(cache, bundles.get(label, bundle))
         manifests[label] = manifest
-    allowed = {cache.resolve() for _, cache in caches}
+    allowed = {cache.resolve(): bundles.get(label, bundle) for label, cache in caches}
     original = groot_trt.prebuild_engines
     def verified_prebuild(b, cache, *a, **kw):
         if Path(cache).expanduser().resolve() in allowed:
-            if b.root.resolve() != bundle.resolve():
+            if b.root.resolve() != allowed[Path(cache).expanduser().resolve()].resolve():
                 raise ValueError('candidate cache belongs to a different bundle')
             return {}
         return original(b, cache, *a, **kw)
     groot_trt.prebuild_engines = verified_prebuild
     backends = {}
     for label, cache in caches:
-        be = TrtSplitSmolVLABackend(bundle, str(cache), chain='graph')
+        be = TrtSplitSmolVLABackend(bundles.get(label, bundle), str(cache), chain='graph')
         be.load()
         backends[label] = be
     with np.load(bundle/'fixture.npz') as fixture:
