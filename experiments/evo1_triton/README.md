@@ -26,6 +26,8 @@ so far that TensorRT's FP16-accumulating tactics cost accuracy (see the playbook
 Not kept: a Triton kernel for the vision attention (1025 tokens, 16 heads, 2 views)
 reaches 1.39 ms per call against TensorRT's 1.49 ms — about 2 ms per inference.
 
+**Accumulation.** The build scripts now default to `--accumulate fp32` (every FP16 MatMul accumulates in FP32, see the [playbook](../../docs/07-optimization-playbook.md)); the tables above were measured with TensorRT's own choice, which `--accumulate auto` reproduces.
+
 ## Reproduce
 
 ```bash

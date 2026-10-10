@@ -266,9 +266,69 @@ def infer(bundle: Bundle, run, pixel_values: np.ndarray, state: np.ndarray,
 
 # ── engines ──────────────────────────────────────────────────────────────────
 
+# "fp32": every FP16 x FP16 MatMul accumulates in FP32 and FP32 graphs run without TF32.
+# "auto": TensorRT's own choice, which uses FP16-accumulating tactics for many GEMMs.
+# Set by `bench trt-split --accumulate`; part of every engine's cache key.
+ACCUMULATE = "fp32"
+
+
+def accumulate_fp32(net) -> int:
+    """Rewrite each FP16 x FP16 MatrixMultiply as Cast(FP32) -> MatMul -> Cast(FP16).
+
+    The operands are FP16 values, so every product is exact in FP32; TensorRT builds the
+    pattern as FP16-input, FP32-accumulate tensor-core kernels (pi0.5's exporter writes
+    its graphs this way). On SmolVLA: +1.1 % latency, action error -21..39 %.
+    Returns how many MatMuls were rewritten.
+    """
+    import tensorrt as trt
+
+    layers = [net.get_layer(i) for i in range(net.num_layers)]
+    users: dict[str, list] = {}
+    for layer in layers:
+        for j in range(layer.num_inputs):
+            t = layer.get_input(j)
+            if t is not None:
+                users.setdefault(t.name, []).append((layer, j))
+    outputs = {net.get_output(i).name for i in range(net.num_outputs)}
+    count = 0
+    for layer in layers:
+        if layer.type != trt.LayerType.MATRIX_MULTIPLY:
+            continue
+        a, b = layer.get_input(0), layer.get_input(1)
+        if a.dtype != trt.float16 or b.dtype != trt.float16:
+            continue
+        layer.__class__ = trt.IMatrixMultiplyLayer
+        mm = net.add_matrix_multiply(net.add_cast(a, trt.float32).get_output(0), layer.op0,
+                                     net.add_cast(b, trt.float32).get_output(0), layer.op1)
+        mm.name = f"{layer.name}_fp32acc"
+        y = net.add_cast(mm.get_output(0), trt.float16).get_output(0)
+        old = layer.get_output(0)
+        for consumer, j in users.get(old.name, []):
+            consumer.set_input(j, y)
+        if old.name in outputs:
+            name = old.name
+            net.unmark_output(old)
+            old.name = f"{name}_fp16acc"
+            y.name = name
+            net.mark_output(y)
+        count += 1
+    return count
+
+
+def configure_accumulate(net, cfg, mode: str) -> int:
+    """Apply an --accumulate mode to a parsed network and its builder config."""
+    import tensorrt as trt
+
+    if mode == "auto":
+        return 0
+    if mode != "fp32":
+        raise ValueError(f"accumulate must be fp32 or auto, not {mode!r}")
+    cfg.clear_flag(trt.BuilderFlag.TF32)
+    return accumulate_fp32(net)
+
 
 def build_one(onnx_path: str, engine_path: str, timing_cache: str, opt_level: int,
-              workspace_mb: int) -> None:
+              workspace_mb: int, accumulate: str = "auto") -> None:
     import tensorrt as trt
 
     logger = trt.Logger(trt.Logger.WARNING)
@@ -283,6 +343,7 @@ def build_one(onnx_path: str, engine_path: str, timing_cache: str, opt_level: in
     cfg = builder.create_builder_config()
     cfg.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace_mb << 20)
     cfg.builder_optimization_level = opt_level
+    configure_accumulate(net, cfg, accumulate)
     tc = Path(timing_cache)
     cache = cfg.create_timing_cache(tc.read_bytes() if tc.exists() else b"")
     cfg.set_timing_cache(cache, ignore_mismatch=False)
@@ -294,7 +355,7 @@ def build_one(onnx_path: str, engine_path: str, timing_cache: str, opt_level: in
 
 
 def prebuild_engines(bundle: Bundle, cache_dir: str | Path, opt_level: int = 2,
-                     workspace_mb: int = 512) -> dict:
+                     workspace_mb: int = 512, accumulate: str | None = None) -> dict:
     """Build every missing or stale engine, one subprocess each, serially.
 
     An engine is keyed by the sha256 of the ONNX it came from plus the TensorRT and CUDA
@@ -306,8 +367,11 @@ def prebuild_engines(bundle: Bundle, cache_dir: str | Path, opt_level: int = 2,
     """
     cache = Path(cache_dir).expanduser()
     cache.mkdir(parents=True, exist_ok=True)
+    accumulate = accumulate or ACCUMULATE
     stack = (f"tensorrt={_trt_version()} cudart={_cudart_version()} "
              f"opt_level={opt_level} workspace_mb={workspace_mb} strongly_typed")
+    if accumulate != "auto":            # auto keeps the key engines were built under before
+        stack += f" accumulate={accumulate}"
     onnx_path_of = getattr(bundle, "onnx_path", lambda n: bundle.root / f"{n}.onnx")
     built = {}
     for name in bundle.names:
@@ -320,9 +384,10 @@ def prebuild_engines(bundle: Bundle, cache_dir: str | Path, opt_level: int = 2,
         subprocess.run(
             [sys.executable, "-c",
              "import sys; from bench.vendor.groot_trt import build_one; "
-             "build_one(sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5]))",
+             "build_one(sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5]), "
+             "sys.argv[6])",
              str(onnx_path), str(eng), str(cache / "timing.cache"), str(opt_level),
-             str(workspace_mb)],
+             str(workspace_mb), accumulate],
             check=True, cwd=str(Path(__file__).resolve().parents[2]))
         key.write_text(sha + "\n")
         built[name] = round(time.time() - t0, 1)

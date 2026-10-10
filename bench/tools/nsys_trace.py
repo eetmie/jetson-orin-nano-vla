@@ -212,6 +212,7 @@ def main() -> None:
     ap.add_argument("--task", default=None)
     ap.add_argument("--views", type=int, default=None)
     ap.add_argument("--cache-dir", default=None)
+    ap.add_argument("--accumulate", choices=["fp32", "auto"], default="fp32")
     ap.add_argument("--chain", choices=["host", "device", "graph"], default="host",
                     help="host labels every engine call; device and graph show kernels only")
     ap.add_argument("--iters", type=int, default=20)

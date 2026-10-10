@@ -19,6 +19,8 @@ if out.exists():
 cache = Path(args[args.index('--cache-dir')+1]).expanduser().resolve()
 bundle = Path(args[args.index('--bundle')+1]).expanduser().resolve()
 manifest = verify(cache, bundle)
+# Report what the cache was built with (older caches predate the option: auto).
+groot_trt.ACCUMULATE = manifest.get('accumulate') or 'auto'
 original = groot_trt.prebuild_engines
 
 

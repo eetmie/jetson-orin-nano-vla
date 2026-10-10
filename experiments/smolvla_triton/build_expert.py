@@ -14,6 +14,9 @@ import tensorrt as trt
 import tensorrt.plugin as trtp
 import ffn_plugin
 from candidate_cache import sha256, verify_candidate
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from bench.vendor.groot_trt import configure_accumulate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['baseline','ffn'], required=True)
@@ -21,6 +24,7 @@ parser.add_argument('--base-cache', type=Path, required=True)
 parser.add_argument('--out', type=Path, required=True)
 parser.add_argument('--bundle', type=Path, default=Path.home()/'bundles/smolvla-base-split')
 parser.add_argument('--opt-level', type=int, default=2, help='TensorRT builder optimization level')
+parser.add_argument('--accumulate', choices=['fp32', 'auto'], default='fp32', help='as bench trt-split --accumulate')
 args = parser.parse_args()
 base = args.base_cache.expanduser().resolve()
 bundle = args.bundle.expanduser().resolve()
@@ -110,6 +114,7 @@ if args.mode == 'ffn':
 
 config = builder.create_builder_config()
 config.builder_optimization_level = args.opt_level
+accumulated = configure_accumulate(net, config, args.accumulate)
 config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE,512<<20)
 config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
 timing = base/'timing.cache'
@@ -121,7 +126,7 @@ assert plan is not None
 (dest/'timing.cache').write_bytes(config.get_timing_cache().serialize())
 manifest = dict(base_manifest)
 manifest.update(mode='expert-'+args.mode,base_cache=str(base),vision_candidate=base_manifest,
-                expert_build_s=time.perf_counter()-started,expert_opt_level=args.opt_level,expert_patches=patches,
+                expert_build_s=time.perf_counter()-started,expert_opt_level=args.opt_level,expert_accumulate=args.accumulate,expert_fp32_accumulated_matmuls=accumulated,expert_patches=patches,
                 additional_source_sha256={**base_manifest.get('additional_source_sha256', {}), source.name:sha256(source)},
                 all_engine_sha256={p.name:sha256(p) for p in dest.glob('*.engine')},
                 expert_kernel_sha256=sha256(Path(__file__).with_name('ffn_kernel.py')),

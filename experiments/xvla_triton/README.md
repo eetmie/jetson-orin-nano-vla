@@ -47,6 +47,8 @@ Next: the vision tower, 89 ms for three views, spends 18.9 ms in layout copies a
 10.3 ms in depthwise 3×3 convolutions on sm50 kernels around DaViT's NCHW↔token round
 trips; see [the playbook](../../docs/07-optimization-playbook.md).
 
+**Accumulation.** The build scripts now default to `--accumulate fp32` (every FP16 MatMul accumulates in FP32, see the [playbook](../../docs/07-optimization-playbook.md)); the tables above were measured with TensorRT's own choice, which `--accumulate auto` reproduces.
+
 ## Reproduce on the Nano
 
 For the FP16-boundary bundle, first on the export machine:

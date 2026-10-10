@@ -1,0 +1,47 @@
+{
+  "mode": "gemv",
+  "accumulate": "fp32",
+  "fp32_accumulated_matmuls": 3,
+  "bundle": "/home/joel/bundles/evo1-libero-split-kv16",
+  "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/evo1-kv16-fp32acc-trt",
+  "tensorrt": "10.16.2.10",
+  "patch": {
+    "matmul": "/pool/Gemm",
+    "bias_add": "/pool/Gemm_5",
+    "op1": "MatrixOperation.TRANSPOSE"
+  },
+  "tile": {
+    "BLOCK_N": 2,
+    "BLOCK_K": 2048,
+    "num_warps": 4
+  },
+  "kernel_sha256": "326d78821011f7431ad646ad07a44cdf155fed305077b248c6eb6e778115512f",
+  "plugin_sha256": "38c69d83d6965acded2473538429c7fc6526af3c1cf9f0b95874673b391a321d",
+  "precision": "FP32 accumulation and bias add, HALF in/out (TensorRT: FP16-accumulating tactic)",
+  "build_s": 8.3,
+  "source_sha256": {
+    "action_context.onnx": "27e19d25415d92f7e979c5018a20c88067bee30ed4a8076a4132fb1338e09cec",
+    "action_output.onnx": "364cc20e9604fb1100c3c7472f9cf3f2cd6ffc6d8930728d9aad2792886f2806",
+    "action_step.onnx": "a52556abdf4e34d57568603d03b36f110073eb529266f664bc1a19eea62f44f2",
+    "language_0.onnx": "fa86f22bdb12bb576642ae6d477ea2caeda593a7d289530f493024113b5dc29a",
+    "language_1.onnx": "8a12cbfafeb196d3847689c7f472f2646c970f2631e7c187b3ea9acadb4df6dd",
+    "language_2.onnx": "4d6866b70d00f977c6aa18d521248b6c89643bb3c3472633a8f24425af9b40e1",
+    "token_embedding.onnx": "066def47c0b44f6b42f008bef88c64849f49a07e5b82ba1654809cb828343c03",
+    "vision_0.onnx": "685bf31510b1c264703ae04f391b5b2e10c3193ce957beee06f7742139528b3e",
+    "vision_1.onnx": "0755e8e9c964004fc2f73fa42ee56a6f4c9771aff83fa4f0e4badb214dcbfad1",
+    "vision_2.onnx": "06002bf44a53243c337b50368885beb42aecd8879bdfc802a3bfa5b6bfa20706",
+    "vision_3.onnx": "5f8fd4ff28c93831fc6ccc447f29e6c2d51ff590d120a4281d9474123c5b4969"
+  },
+  "all_engine_sha256": {
+    "action_context.engine": "7032388ee0c705855d088dc2a356229569d01ec93c5feb3ddd6a4671c6b5c5ac",
+    "action_output.engine": "639af54476088903f5dba490f47a48cec678afa9a8a10b1ef3d668af258ba5a3",
+    "action_step.engine": "72a4250d27f879cbaba357318dd39f17a6c975021b2c230a1bcfdd44b2c9dec2",
+    "language_0.engine": "6d953ad0a971d7770de22bfc898a45b73da9394d8cc74a5df730329cc60f3cea",
+    "language_1.engine": "2648e58064df0967f9a3c396e1cf393f450699b527e529c62d9a541ce8ccfdd8",
+    "language_2.engine": "3646c9a6884e366f21a46c3980bf36f9c663481f5caf991622883b676ea6f82b",
+    "vision_0.engine": "2bae62c848825dc73455f96fc9a5cfb35e939abe4326b2b3bfa176800290424f",
+    "vision_1.engine": "2d5f34fe306491427a08a46356065ac407d8e339794900d7ebcb903e7e16d3fc",
+    "vision_2.engine": "8544f032b3531c6631d8698b1686e260356aeec40b6bbdee335b12005e0ff5d9",
+    "vision_3.engine": "9bc88480c41221cf8a45b68b0ed2cc5ae92e4f8aadba7f2d2bf89f7544160699"
+  }
+}

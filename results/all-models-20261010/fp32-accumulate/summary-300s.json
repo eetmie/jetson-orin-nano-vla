@@ -1,0 +1,104 @@
+{
+  "evo1": {
+    "p50_ms": 351.42,
+    "p95_ms": 352.66,
+    "p99_ms": 353.2,
+    "hz": 2.8451,
+    "n": 854,
+    "drift_pct": 0.1,
+    "stages_ms": {
+      "action_context": 2.11,
+      "denoise": 121.495,
+      "language": 34.575,
+      "preprocess": 7.976,
+      "vision": 184.165
+    },
+    "rss_mb": 2327.8,
+    "board_ram_mb": 2530.65,
+    "energy_j": 8.122,
+    "gpu_mhz": 1010.56,
+    "fixture_chunk_pct": 0.02132274033287425,
+    "bit_identical_to_host": true
+  },
+  "n16": {
+    "p50_ms": 284.65,
+    "p95_ms": 285.59,
+    "p99_ms": 285.88,
+    "hz": 3.5115,
+    "n": 1054,
+    "drift_pct": 0.2,
+    "stages_ms": {
+      "backbone": 62.346,
+      "denoise": 99.74,
+      "preprocess": 5.827,
+      "vision": 116.147
+    },
+    "rss_mb": 5042.8,
+    "board_ram_mb": 5364.58,
+    "energy_j": 6.646,
+    "gpu_mhz": 1010.23,
+    "fixture_chunk_pct": 0.06030412588472033,
+    "bit_identical_to_host": true
+  },
+  "n17": {
+    "p50_ms": 286.8,
+    "p95_ms": 287.42,
+    "p99_ms": 287.97,
+    "hz": 3.4859,
+    "n": 1046,
+    "drift_pct": 0.4,
+    "stages_ms": {
+      "backbone": 113.556,
+      "denoise": 101.82,
+      "preprocess": 3.866,
+      "vision": 66.882
+    },
+    "rss_mb": 5419.3,
+    "board_ram_mb": 5795.66,
+    "energy_j": 6.774,
+    "gpu_mhz": 1010.07,
+    "fixture_chunk_pct": 0.04098385110298383,
+    "bit_identical_to_host": true
+  },
+  "smolvla": {
+    "p50_ms": 105.11,
+    "p95_ms": 105.91,
+    "p99_ms": 106.34,
+    "hz": 9.5055,
+    "n": 2852,
+    "drift_pct": 0.0,
+    "stages_ms": {
+      "denoise": 39.129,
+      "prefill": 9.637,
+      "preprocess": 0.498,
+      "vision": 55.335
+    },
+    "rss_mb": 1495.1,
+    "board_ram_mb": 1597.51,
+    "energy_j": 2.29,
+    "gpu_mhz": 1008.52,
+    "fixture_chunk_pct": 0.13525465706746845,
+    "bit_identical_to_host": false
+  },
+  "xvla": {
+    "p50_ms": 353.65,
+    "p95_ms": 354.69,
+    "p99_ms": 355.12,
+    "hz": 2.827,
+    "n": 849,
+    "drift_pct": 0.1,
+    "stages_ms": {
+      "cond": 0.0,
+      "denoise": 252.153,
+      "preprocess": 2.459,
+      "text": 6.051,
+      "vision": 92.228
+    },
+    "rss_mb": 2708.2,
+    "board_ram_mb": 2802.71,
+    "energy_j": 8.212,
+    "gpu_mhz": 1010.09,
+    "fixture_chunk_pct": 0.04196198797049546,
+    "bit_identical_to_host": false
+  }
+}

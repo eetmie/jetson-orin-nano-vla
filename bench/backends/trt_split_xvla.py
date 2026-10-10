@@ -17,6 +17,11 @@ from ..vendor.imaging import map_views
 from .base import Backend, InferResult
 
 
+def _accumulate() -> str:
+    from ..vendor import groot_trt
+    return groot_trt.ACCUMULATE
+
+
 class TrtSplitXVLABackend(Backend):
     name = "trt-split-xvla"
     noise_injected = True
@@ -96,6 +101,7 @@ class TrtSplitXVLABackend(Backend):
             "configured_provider_priority_per_graph": {
                 n: "TensorrtExecutionProvider" for n in bd.names},
             "runtime": "tensorrt python, no onnxruntime",
+            "accumulate": _accumulate(),
             "tensorrt": trt.__version__,
             "shared_scratch_mb": round(self.engines.scratch_bytes / 2**20, 1),
             "engine_cache": str(Path(self.cache_dir).expanduser()),
