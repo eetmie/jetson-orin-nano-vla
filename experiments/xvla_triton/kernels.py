@@ -51,3 +51,32 @@ def xvla_attention_rows_aot(QKV, ROWS, O, N_Q: tl.constexpr, N_KV: tl.constexpr,
                             D: tl.constexpr):
     """xvla_attention_aot for the first N_Q rows; ROWS only carries the output shape."""
     xvla_attention_aot(QKV, O, N_Q, N_KV, H, SCALE, BLOCK_M, BLOCK_N, D)
+
+
+@triton.jit
+def dwconv_tokens_aot(X, W, B, Y, N_PIX: tl.constexpr, WIDTH: tl.constexpr, C: tl.constexpr,
+                      BLOCK_P: tl.constexpr, BLOCK_C: tl.constexpr):
+    """y = x + HALF(dwconv3x3(x) + b), in the token layout [views, H*W, C] (channels last).
+
+    DaViT's positional conv is a 3x3 depthwise convolution (stride 1, zero padding) whose
+    output is rounded to HALF and added to its input in HALF. The export runs it in NCHW
+    between two transposes; here the taps accumulate in FP32 and nothing is transposed.
+    """
+    view = tl.program_id(2)
+    pix = tl.program_id(0)*BLOCK_P + tl.arange(0, BLOCK_P)
+    ch = tl.program_id(1)*BLOCK_C + tl.arange(0, BLOCK_C)
+    row, col = pix // WIDTH, pix % WIDTH
+    height = N_PIX // WIDTH
+    base = X + view*N_PIX*C
+    inside = pix < N_PIX
+    acc = tl.zeros((BLOCK_P, BLOCK_C), tl.float32)
+    for dy in tl.static_range(3):
+        for dx in tl.static_range(3):
+            r, c = row + dy - 1, col + dx - 1
+            ok = inside & (r >= 0) & (r < height) & (c >= 0) & (c < WIDTH)
+            x = tl.load(base + (r*WIDTH + c)[:, None]*C + ch[None, :], mask=ok[:, None], other=0)
+            acc += x.to(tl.float32)*tl.load(W + ch*9 + dy*3 + dx).to(tl.float32)[None, :]
+    conv = (acc + tl.load(B + ch).to(tl.float32)[None, :]).to(tl.float16)
+    res = tl.load(base + pix[:, None]*C + ch[None, :], mask=inside[:, None], other=0)
+    out = (conv.to(tl.float32) + res.to(tl.float32)).to(tl.float16)
+    tl.store(Y + view*N_PIX*C + pix[:, None]*C + ch[None, :], out, mask=inside[:, None])

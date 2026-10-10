@@ -43,9 +43,28 @@ check over six image kinds with their own proprio and noise stays within 0.038 %
 control. Not kept: builder optimization level 5 (−0.18 ms). Triton GEMM tiles only tie
 TensorRT on the M=262 projections ([microbenchmarks](../../results/xvla-triton-20261010T1410Z/microbench/)).
 
-Next: the vision tower, 89 ms for three views, spends 18.9 ms in layout copies and
-10.3 ms in depthwise 3×3 convolutions on sm50 kernels around DaViT's NCHW↔token round
-trips; see [the playbook](../../docs/07-optimization-playbook.md).
+## Vision tower: depthwise convs in token layout
+
+The export keeps DaViT's stage tensors in NCHW: every block runs its 3×3 depthwise
+positional conv + residual in NCHW (TensorRT: an sm50 kernel, ~0.17 ms each) and
+transposes to tokens and back around it. `build_vision.py --mode dwconv` replaces each
+conv whose input comes from tokens and whose output goes back to tokens (42 of 48; the
+six at engine inputs and after strided convs stay) with `dwconv_tokens_aot`, which reads
+and writes `[views, H·W, C]` directly: FP32 taps, conv rounded to HALF, HALF residual
+add. Against an FP32 conv reference it is exact on all four stage shapes; 0.045 ms at
+14×14×1024, where 36 of the convs are. Index maps of every shuffle on both sides are
+checked before rewiring.
+
+| 300-second policy, FP32 accumulation | p50 ms | p99 ms | rate | vision ms | process RSS MB | energy |
+|---|---:|---:|---:|---:|---:|---:|
+| previous | 353.65 | 355.12 | 2.83 Hz | 92.2 | 2708 | 8.21 J |
+| token-layout depthwise convs | **342.08** | **343.25** | **2.92 Hz** | 81.1 | 2599 | 8.01 J |
+
+Full chunk 0.045 % of range (0.042 % before, mean error unchanged); the stress check
+stays within 0.039 % of the control ([runs](../../results/xvla-vision-20261010/)).
+Plugin attributes do not work with this TensorRT and numpy (scalar ints go through
+`int(array)`, NDArray annotations fail registration), so `plugin.py` registers one op
+per stage shape.
 
 **Accumulation.** The build scripts now default to `--accumulate fp32` (every FP16 MatMul accumulates in FP32, see the [playbook](../../docs/07-optimization-playbook.md)); the tables above were measured with TensorRT's own choice, which `--accumulate auto` reproduces.
 
@@ -67,6 +86,9 @@ cd ../..
   --bundle ~/bundles/xvla-base-split --cache-dir $C/xvla-actions-$stamp --chain graph \
   --warmup 10 --idle-s 3 --duration-s 300 --label xvla-actions-new --out results/xvla-actions-new.json
 ```
+
+For the vision engines on top of a denoiser cache:
+`../../.venv-torch-xvla/bin/python build_vision.py --mode dwconv --bundle <bundle> --base-cache <cache> --out <new cache>`.
 
 `--mode baseline` rebuilds the unchanged denoiser as a control, `--mode attention` skips
 the last-block change. `profile_candidate.py` traces a verified cache under Nsight;

@@ -31,7 +31,7 @@ These measure inference cost, not robot-task quality.
 | **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 351.42 ms | 352.66 ms | 2.85 Hz | 2.53 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 353.65 ms | 354.69 ms | 2.83 Hz | 2.80 GB |
+| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 342.08 ms | 342.94 ms | 2.92 Hz | 2.78 GB |
 | **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 286.80 ms | 287.42 ms | 3.49 Hz | 5.80 GB |
 | **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 284.65 ms | 285.59 ms | 3.51 Hz | 5.36 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
