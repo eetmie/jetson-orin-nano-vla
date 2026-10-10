@@ -281,3 +281,27 @@ class PromptTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class XVLAPreprocessTests(unittest.TestCase):
+    def test_lut_preprocess_matches_float_reference(self):
+        import cv2
+        from bench.vendor.xvla_trt import Bundle, IMAGENET_MEAN, IMAGENET_STD
+
+        def reference(image_u8, size=224):
+            x = image_u8.transpose(2, 0, 1).astype(np.float32) / 255.0
+            x = (x - IMAGENET_MEAN) / IMAGENET_STD
+            c, h, w = x.shape
+            if (h, w) == (size, size):
+                return x
+            ratio = max(w / size, h / size)
+            rh, rw = int(h / ratio), int(w / ratio)
+            r = cv2.resize(x.transpose(1, 2, 0), (rw, rh), interpolation=cv2.INTER_LINEAR)
+            canvas = np.zeros((size, size, c), np.float32)
+            canvas[size - rh:, size - rw:] = r
+            return np.ascontiguousarray(canvas.transpose(2, 0, 1))
+
+        rng = np.random.default_rng(5)
+        for shape in [(48, 64, 3), (224, 224, 3), (300, 200, 3)]:
+            img = rng.integers(0, 256, shape, dtype=np.uint8)
+            np.testing.assert_array_equal(Bundle.preprocess(None, img), reference(img))
