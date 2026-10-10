@@ -35,6 +35,10 @@ worth where it applied, and whether it changes any number.
 | 10 | builder optimization level | levels 3–5 | ≤1 % per engine, often noise; SmolVLA prefill got slower at 3 | — |
 | 11 | a bandwidth-bound GEMV/GEMM on an FP16-accumulating tactic (`h16816gemm` with a small grid, huge K) | Triton GEMV accumulating in FP32 | EVO1 output head (K=44800): same speed, policy error 0.075 % → 0.034 % | better accuracy, not exact |
 
+A Triton tile must also fit the 48 KiB of shared memory a kernel gets without an
+opt-in: TensorRT's AOT launcher does not opt in, and a 78 KiB π0.5 tile failed at
+enqueue (`plugin.py` asserts it now).
+
 Rejected on RAM: feeding SmolVLA's attention plugin one fused QKV projection (−0.38 ms
 for +9.3 MB RSS).
 
@@ -81,4 +85,4 @@ for +9.3 MB RSS).
 | X-VLA | 383.7 → ~349 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries ([experiment](../experiments/xvla_triton/)) | vision tower: 18.9 ms of layout copies and 10.3 ms of depthwise 3×3 convs on sm50 kernels around DaViT's NCHW↔token round trips (a token-layout depthwise conv plugin). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
 | EVO1 | 360.3 → ~340 ms: preprocessing, FP16 K/V cache, FP32-accumulating output head ([experiment](../experiments/evo1_triton/)) | GEMM-bound vision (TensorRT's 1025-token MHA is already within 7 % of a Triton kernel) |
 | GR00T N1.6 / N1.7 | 288 → ~275 / ~278 ms: preprocessing, FP16 `kv_*`/`mod_*` boundaries (bit-identical) | GEMM-bound; N1.7 `ds_*` boundaries need the deepstack scatter to work in FP16 bytes |
-| π0.5 | 474 → ~455 ms: preprocessing | attention: action-expert MQA runs 180×0.12 ms on an 8-block grid (split the keys), prefill MQA 18×1.0 ms with D=256; language GEMMs already FP32-accumulating at the practical limit |
+| π0.5 | 474 → 440.1 ms: preprocessing, Triton action-expert attention ([experiment](../experiments/pi05_triton/)) | prefill attention and the gated MLP: Triton kernels do not beat TensorRT there (D=256 attention 1.10 vs 1.0 ms; fused gate/up/GELU 9.86 vs 9.32 ms per layer) |

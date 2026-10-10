@@ -1,0 +1,42 @@
+{
+  "mode": "attention",
+  "bundle": "/home/joel/bundles/pi05-libero-compact-split",
+  "base_cache": "/home/joel/.cache/jetson-orin-nano-vla/pi05-libero-compact-trt",
+  "tensorrt": "10.16.2.10",
+  "patch": {
+    "softmax": "/block/Softmax",
+    "q": "/block/Add_4_output_0",
+    "k": "/block/Concat_2_output_0",
+    "v": "/block/Concat_3_output_0",
+    "mask": "/block/Slice_7_output_0",
+    "replaced": "/block/Reshape_5_output_0"
+  },
+  "tile": {
+    "BLOCK_M": 16,
+    "BLOCK_N": 64,
+    "num_warps": 8,
+    "num_stages": 1
+  },
+  "template_sha256": {
+    "action.onnx": "0aac83a922fd74bd116f1d62c375608a9607f28e6ab163365a33c8a3361188cf",
+    "action_input.onnx": "e3f830692881204526c2954f5c4cf578bc7d4a14967af7a908a2d5aa8c53dab2",
+    "action_output.onnx": "0aaa773f2af566155c89f7256d4589be3a26623ebb29b8e095b28c99b87c1ebd",
+    "language.onnx": "986f31e52968c89f4eec4b314a89e04d18a0327d4d70dd0d8711d5534a90348b",
+    "stem.onnx": "05f848bf2c512e09473fb059980563b1a8127c8f4a535c25e972a6c3cb34bf3b",
+    "vision.onnx": "547f84a9e7baca809adb4e4aef239c000d891d33fea2639b764a6bfceb0a1404",
+    "vision_tail.onnx": "b7e39109a7a20f8159003cd905aa52755d8afd5bb4e0ca6684b2a93edc63a0fe"
+  },
+  "engine_sha256": {
+    "action.engine": "59244398d23ff0dd6eef155e1a35d4a8b6219df4531c90d4e6a58018f65a01a2",
+    "action_input.engine": "2edb905f752faca55c35ef30741184e0013b595e58391c21f0798d80c23a0d98",
+    "action_output.engine": "759938894d3d0f507dfb33bab5bcd8e185b7156f543ca646895881727621bdd2",
+    "language.engine": "81186186f490cf033758457f2b1fb44b649c781d741f0209cb8a6e60d0a73253",
+    "stem.engine": "c0ae33d4b83d4ca373c884e596d38d50a809bda05e3c819fc2fe83f702f7f156",
+    "vision.engine": "3795efeb7bc60dbe22cb0b841b40ae5ef7cef48c9573179a6f32633140556548",
+    "vision_tail.engine": "86ac7e2e5978b2339cb10cb3f0f83e44cb732fdeff23b572095b5f6708e3c7ba"
+  },
+  "kernel_sha256": "8c020690191759d577c02aa3ffcff5dc68aeb8af2e20d08f660cf701a61d0dbb",
+  "plugin_sha256": "78f68d8a677269e402db1d6587ba95f426f9c73981bc2c6f25564969868e45eb",
+  "precision": "HALF QK (FP32 accumulation), exact 1/16 scale, FP32 mask+softmax, normalized probabilities rounded to HALF, HALF PV (FP32 accumulation): the exported order, two passes over keys",
+  "build_s": 36.9
+}
