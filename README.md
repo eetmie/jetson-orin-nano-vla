@@ -22,9 +22,7 @@ These measure inference cost, not robot-task quality.
 
 | model / runtime | views | p50 | p95 | rate | RAM in use |
 |---|---:|---:|---:|---:|---:|
-| SmolVLA PyTorch FP32 | 2 | 1167.93 ms | 1176.65 ms | 0.86 Hz | 4.13 GB |
-| SmolVLA split, ORT FP16 | 2 | 189.89 ms | 190.93 ms | 5.25 Hz | 2.39 GB |
-| **SmolVLA** split, pure TensorRT mixed FP16 | 2 | 148.94 ms | 149.93 ms | 6.71 Hz | 1.80 GB |
+| **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 126.78 ms | 127.71 ms | 7.88 Hz | 1.81 GB |
 | EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
 | **EVO1 LIBERO** split, pure TensorRT mixed FP16 | 2 | 360.33 ms | 360.77 ms | 2.78 Hz | 2.56 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
@@ -38,6 +36,9 @@ These measure inference cost, not robot-task quality.
 The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
 with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
 YMMV. `RAM in use` is the whole system while inferring.
+The SmolVLA row is the selected RAM/speed configuration from a 300-second run;
+its process RSS averages 1.46 GB. [The retained speed and RAM comparisons](results/smolvla-memory-20261010/summary.json)
+include the lower-RAM alternative and historical results.
 
 ## What every run logs
 
@@ -56,6 +57,14 @@ records:
 
 [The profile](docs/06-profile.md) adds an Nsight Systems trace of every model: where each
 stage's time goes and whether it is compute- or bandwidth-bound.
+
+The selected [SmolVLA configuration](experiments/smolvla_triton/#ram-and-speed-on-the-8-gb-nano)
+combines fused vision attention, packed expert gated projections, a lighter tokenizer
+and a bounded prompt cache. It uses an explicitly verified experimental engine cache;
+follow that reproduction command to obtain the row above. The ordinary ONNX build
+path retains its standard TensorRT engines. Both speed and RAM tests, including
+other candidates, are preserved in `results/`. Weights and main matrix operations
+remain FP16, with FP32 accumulation and sensitive operations retained for accuracy.
 
 ## Parity
 
@@ -130,7 +139,9 @@ Big thanks to the teams behind [LeRobot and SmolVLA](https://github.com/huggingf
 [NVIDIA Isaac GR00T](https://github.com/NVIDIA/Isaac-GR00T), and
 [Physical Intelligence's openpi](https://github.com/Physical-Intelligence/openpi) for
 sharing their models and code. Thanks also to [FlashRT](https://github.com/flashrt-project/FlashRT)
-for deployment and optimization ideas.
+for deployment and optimization ideas, and to Jeremy Gracey's
+[triton-kernel-lab](https://github.com/JeremyGracey-AI/triton-kernel-lab) for the
+Orin Nano softmax examples used in the [initial Triton experiments](experiments/smolvla_triton/).
 
 ## Scope
 

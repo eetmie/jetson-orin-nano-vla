@@ -25,11 +25,13 @@ and the quartile means are the answer. If quartile 4 is materially slower than q
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import math
 import platform
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
 from datetime import datetime, timezone
@@ -126,6 +128,37 @@ def _validated_infer(result, expected_shape: tuple[int, ...] | None = None) -> n
     return chunk
 
 
+def _package_versions() -> dict:
+    """Read installed versions without loading unused inference frameworks.
+
+    Importing packages just for __version__ leaves their allocations resident in
+    every measurement, including Torch-free TensorRT runs on shared-memory boards.
+    Prefer the actual version of an already-loaded module when available.
+    """
+    packages = {}
+    distributions = {
+        'torch': ('torch',),
+        'onnxruntime': ('onnxruntime', 'onnxruntime-gpu'),
+        'tensorrt': ('tensorrt', 'tensorrt-cu13', 'tensorrt-cu12'),
+        'transformers': ('transformers',),
+        'lerobot': ('lerobot',),
+        'numpy': ('numpy',),
+    }
+    for module, names in distributions.items():
+        loaded = sys.modules.get(module)
+        version = vars(loaded).get('__version__') if loaded is not None else None
+        if version is not None:
+            packages[module] = str(version)
+            continue
+        for name in names:
+            try:
+                packages[module] = importlib.metadata.version(name)
+                break
+            except importlib.metadata.PackageNotFoundError:
+                continue
+    return packages
+
+
 def collect_env() -> dict:
     """A fingerprint of the machine, so a number can be traced to a state."""
     def sh(*cmd, timeout=10):
@@ -172,12 +205,7 @@ def collect_env() -> dict:
             clock_state[name] = values
     env["clock_state"] = clock_state
     env["cuda"] = sh("bash", "-c", "nvcc --version 2>/dev/null | tail -2")
-    for mod in ("torch", "onnxruntime", "tensorrt", "transformers", "lerobot", "numpy"):
-        try:
-            m = __import__(mod)
-            env.setdefault("packages", {})[mod] = getattr(m, "__version__", "?")
-        except Exception:
-            pass
+    env['packages'] = _package_versions()
     env["git_sha"] = sh("git", "rev-parse", "HEAD")
     # results/ is the harness's own output: a run written just before this one must not
     # mark it dirty. Untracked code elsewhere still does.
