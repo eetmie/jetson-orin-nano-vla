@@ -18,16 +18,18 @@ python3 -m unittest discover -s tests -v
 |---|---:|---|
 | `test_core.py` | 15 | Percentiles, parity identity, finite actions, observation order, bounded benchmark work and atomic JSON writes. Backend substitutes do not test CUDA. |
 | `test_evo1.py` | 6 | Trained/bootstrap model validity, bundle metadata, fixture shape and deterministic noise. No engine execution. |
-| `test_trt_device.py` | 15 | Capture cleanup/failure, graph retirement, prompt/mask updates, camera changes and real NumPy/OpenCV preprocessing. CUDA calls are mocked. |
+| `test_trt_device.py` | 16 | Capture cleanup/failure, graph retirement, prompt/mask updates, camera changes, alternating chain buffers and real NumPy/OpenCV preprocessing. CUDA calls are mocked. |
+| `test_boundary_rule.py` | 1 | FP16 engine boundaries: a consumer-side cast proves exactness, a producer-side cast alone does not. Synthetic ONNX. |
 | `test_env_memory.py` | 1 | Framework versions are recorded without importing unused frameworks. |
 | `test_smolvla_candidate_cache.py` | 4 | Changed engine/source, unsafe manifest names and legacy vision-manifest compatibility. Synthetic files. |
 | `test_usage_setup.py` | 12 | Missing or changed weights, incomplete manifest coverage, unsafe paths, unsupported bundles, overwrite refusal, interpreter symlinks, isolated environment creation and pinned export command planning. Hub downloads are stubbed. |
-| `test_model_setup.py` | 9 | Selected cache chains for all six models, retained failure logs, manifest coverage, trained EVO1/GR00T identity, pinned fetch and matching Transformers download/cache revisions. No GPU inference. |
+| `test_model_setup.py` | 10 | Selected cache chains for all six models, retained failure logs, manifest coverage, trained EVO1/GR00T identity, pinned fetch and matching Transformers download/cache revisions. No GPU inference. |
+| `test_groot_candidate_cache.py` | 7 | Changed graph/engine/timestep constants, metadata/embeddings/external weights, missing or foreign engines, bundle identity, stale native build keys and accumulation mismatch. Synthetic files. |
 | `test_pi05_artifacts.py` | 14 | Trained-content identity, generation/size/SHA enforcement, strict HTTP ranges, transient retries, verified resume, overwrite refusal and model-flag conversion selection. Synthetic artifacts and network substitutes. |
 | `test_http_download.py` | 3 | Interrupted range recovery, chunk hash rechecks and repair, pin/size identity and unsafe state refusal. Synthetic HTTP responses. |
 | `test_hub_download.py` | 8 | Full SHA enforcement, Hub metadata identity, LFS/Git-blob checksums, credential boundaries, standard cached blob links, safe paths and preservation of changed files. Network substitutes. |
 
-The original 41 checks are retained; the expanded suite has **87 checks**.
+The original 41 checks are retained; the expanded suite has **97 checks**.
 Fast regression tests do not prove installer completeness or GPU compatibility.
 The hardware/export checks below supply that evidence.
 
@@ -144,6 +146,45 @@ retain verified chunks and use lower concurrency. N1.6's final large transfer
 passes through the public downloader at its default 32-worker setting.
 Logs and verification reports live in
 [the cold evidence directory](../results/cold-downloads-20261011/).
+
+## GR00T AOT follow-up — 2026-10-11
+
+A separate checkout at `~/vla-groot-triton-20261011` uses the checksum-verified
+fresh GR00T bundles and the isolated runtime/compiler environments from the
+previous audit. Ordinary and custom vision/DiT engines are rebuilt on the same
+Orin with matching FP32 accumulation, optimization level 2 and 512 MB workspace.
+The runtime has neither Torch nor Triton; Triton 3.6.0 compiles serialized SM87
+kernels in the builder environment. Both GR00T build doctors pass actual import,
+CUDA and AOT compilation probes.
+
+Vision-only, DiT-only and combined candidates pass the stock fixture, but the
+vision replacements fail a wider 12-case action comparison and are excluded from
+the selected recipe. The varied images, state and noise use fixed capture times
+so N1.7 compares identical history frames. DiT-only passes all cases, including
+N1.7's 14 used action dimensions. These comparisons measure drift from a matching
+native TensorRT control; the bundle fixture separately checks the stock FP32
+policy. They do not measure robot-task success.
+
+Both public setup commands pass from new engine work directories (26 ordinary
+engines and eight selected AOT engines each). Each fresh selected cache repeats
+all 12 stress cases successfully; N1.7 used-dimension drift stays within 0.103%.
+All 95 regression checks pass in the isolated Orin runtime as well as on the
+desktop. The pinned venvs and verified exports from the earlier audit are reused.
+
+The [GR00T evidence](../results/groot-triton-20261011/) retains both successful and
+rejected candidates, operator sweeps and paired speed/RAM measurements. Candidate
+wrappers verify graph, engine and timestep-constant hashes before loading;
+builders refuse stale native source/stack keys and accumulation mismatches.
+
+## GR00T follow-up — 2026-10-12
+
+The vision replacements of the first round failed because their kernels rounded scores
+to FP16 as the exported graph does, which is less accurate than TensorRT's own fused
+attention. With FP32 scores, vision, causal LLM and DiT replacements together beat the
+native engines against seven stock FP32 references per model (bundle fixture plus
+`reference*.py --seed 1..6`, scored on the embodiment's used action dims). That stock
+comparison, not drift from a native control, is now the acceptance check for GR00T
+kernels ([evidence](../results/groot-triton-20261012/)). 97 regression checks pass.
 
 ## Which experiment tests are active
 

@@ -74,15 +74,26 @@ class ModelSetupTests(unittest.TestCase):
                                         Path("/builder/python"), 10)
                 builds = [command for name, command in stages if "--base-cache" in command]
                 final = stages[-1][1]
+                self.assertTrue(builds, 'every selected recipe must build its AOT cache')
                 if builds:
                     last = builds[-1]
                     self.assertEqual(final[final.index("--cache-dir") + 1], last[last.index("--out") + 1])
                     self.assertIn("run_candidate.py", " ".join(final))
-                else:
-                    self.assertIn("groot", model)
-                    self.assertIn(str(work / "baseline-cache"), final)
                 self.assertIn("fp32", final)
                 self.assertTrue(all(str(work) in str(c) for _, c in stages))
+
+    def test_groot_selected_recipe_uses_all_attention_and_baseline_needs_no_compiler(self):
+        for model in ('groot-n16-base', 'groot-n17-base'):
+            work = self.root / model
+            stages = vla_setup.plan(model, self.root / 'bundle', work, Path('/runtime/python'),
+                                   Path('/builder/python'), 10)
+            attention = dict(stages)['attention']
+            self.assertEqual(attention[attention.index('--mode') + 1], 'all')
+            baseline = vla_setup.plan(model, self.root / 'bundle', work, Path('/runtime/python'),
+                                     Path('/builder/python'), 10, optimized=False)
+            self.assertEqual([name for name, _ in baseline], ['runtime-doctor', 'benchmark'])
+            self.assertNotIn('/builder/python', str(baseline))
+            self.assertIn(str(work / 'baseline-cache'), baseline[-1][1])
 
     def test_failed_stage_keeps_logs_and_does_not_run_benchmark(self):
         bundle = self.bundle()

@@ -95,7 +95,7 @@ def plan(model, bundle, work, runtime, builder, duration, accumulate="fp32", opt
                   "install_lean_tokenizer(); from bench.cli import main; raise SystemExit(main())"]
     stages = [("runtime-doctor", [str(runtime), "-m", "bench.tools.doctor", "--role", "runtime", "--model", model,
                                   "--out", str(work / "runtime-doctor.json")])]
-    use_plugins = optimized and family != "groot"
+    use_plugins = optimized
     if use_plugins:
         stages.append(("build-doctor", [str(builder), "-m", "bench.tools.doctor", "--role", "build", "--model", model,
                                        "--out", str(work / "build-doctor.json")]))
@@ -105,7 +105,8 @@ def plan(model, bundle, work, runtime, builder, duration, accumulate="fp32", opt
         specs = {"smolvla": [("vision", "build_vision.py", "triton-attention-flat"), ("expert", "build_expert.py", "ffn")],
                  "xvla": [("denoise", "build_denoise.py", "actions"), ("vision", "build_vision.py", "dwconv")],
                  "evo1": [("output", "build_output.py", "gemv")],
-                 "pi05": [("attention", "build_templates.py", "attention")]}[family]
+                 "pi05": [("attention", "build_templates.py", "attention")],
+                 "groot": [("attention", "build.py", "all")]}[family]
         base = work / "baseline-cache"
         for i, (name, script, mode) in enumerate(specs):
             dest = work / ("optimized-cache" if i == len(specs)-1 else f"{name}-cache")
@@ -189,7 +190,7 @@ def main(argv=None):
         if work.resolve().is_relative_to(bundle.resolve()):
             parser.error("work directories must be outside the portable bundles")
     needed = [args.runtime_python]
-    if args.mode == "optimized" and any(models.get(m).family != "groot" for m in selected):
+    if args.mode == "optimized":
         needed.append(args.build_python)
     for executable in needed:
         if not executable.is_file() or not os.access(executable, os.X_OK):

@@ -28,13 +28,14 @@ These measure inference cost, not robot-task quality.
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
 | **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 342.08 ms | 342.94 ms | 2.92 Hz | 2.78 GB |
-| **GR00T N1.7 3B** split, pure TensorRT mixed FP16 | 3 (×2 frames) | 286.80 ms | 287.42 ms | 3.49 Hz | 5.80 GB |
-| **GR00T N1.6 3B** split, pure TensorRT mixed FP16 | 3 | 284.65 ms | 285.59 ms | 3.51 Hz | 5.36 GB |
+| **GR00T N1.7 3B** TensorRT + AOT Triton, mixed FP16 | 3 (×2 frames) | 272.39 ms | 273.77 ms | 3.67 Hz | 5.72 GB |
+| **GR00T N1.6 3B** TensorRT + AOT Triton, mixed FP16 | 3 | 272.49 ms | 273.47 ms | 3.67 Hz | 5.30 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
 | **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 440.13 ms | 440.52 ms | 2.27 Hz | 6.28 GB |
 
 `RAM in use` is whole-system usage during inference. Bold rows are 300-second runs
-with FP32 accumulation ([run evidence](results/all-models-20261010/fp32-accumulate/)).
+with FP32 accumulation ([all-model evidence](results/all-models-20261010/fp32-accumulate/),
+[GR00T follow-up](results/groot-triton-20261012/)).
 The PyTorch and ORT rows use a second board with the same JetPack and clocks, which
 runs X-VLA and EVO1 a few percent faster. π0.5's padded-prefix row is an earlier run.
 See the [optimization playbook](docs/07-optimization-playbook.md) for kernel choices

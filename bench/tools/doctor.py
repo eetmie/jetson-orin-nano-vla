@@ -60,7 +60,7 @@ def probe(role: str, model: str = "smolvla-base") -> dict:
         return "SM87, CUDA 13 runtime allocation/free passed"
 
     check("CUDA driver and runtime", cuda)
-    if role == "build" and family != "groot":
+    if role == "build":
         check("triton", lambda: module("triton"))
 
         def aot():

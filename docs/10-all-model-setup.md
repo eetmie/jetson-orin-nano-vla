@@ -53,9 +53,10 @@ The work directory must be new. Models run serially so the 8 GB board only loads
 one policy at a time. The workflow verifies bundle checksums, imports and GPU
 access, builds ordinary engines and the selected AOT replacements, checks full
 action fixtures, then runs each benchmark for 300 seconds. Custom Triton AOT
-replacements are tested for SmolVLA, EVO1, X-VLA and pi0.5. Both GR00T versions are
-tested with ordinary native TensorRT engines; no GR00T Triton AOT replacement has
-been validated. `matrix.json` reports pass/fail; each model gets its own
+replacements are tested for all six models. Both GR00T versions replace the vision,
+LLM and DiT attention (`build.py --mode all`); the
+[GR00T experiment](../experiments/groot_triton/) retains operator sweeps, accuracy
+against stock references and speed/RAM comparisons, including rejected variants. `matrix.json` reports pass/fail; each model gets its own
 `setup.json`, stage logs, doctor reports, caches and benchmark JSON.
 `--keep-going` records failures and continues with the other models; the command
 still exits nonzero if any model fails.

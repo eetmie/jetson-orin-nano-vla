@@ -35,13 +35,28 @@ worth where it applied, and whether it changes any number.
 | 10 | builder optimization level | levels 3–5 | ≤1 % per engine, often noise; SmolVLA prefill got slower at 3 | — |
 | 11 | a bandwidth-bound GEMV/GEMM on an FP16-accumulating tactic (`h16816gemm` with a small grid, huge K) | Triton GEMV accumulating in FP32 | EVO1 output head (K=44800): same speed, policy error 0.075 % → 0.034 % | better accuracy, not exact |
 | 12 | a conv run in NCHW between transposes to and from tokens (DaViT positional convs on `sm50 conv2d` kernels, `__myl_*Tran*` copies around them) | a token-layout (channels-last) depthwise conv + residual plugin | X-VLA vision 92.2 → 81.1 ms, −109 MB RSS | exact against an FP32 conv; within 0.04 % end to end |
+| 13 | an attention mask built from the baked prompt alone (GR00T's text/image cross-attention biases), its masked rows still projected and attended | gather the visible K/V rows at export (constant indices), drop the mask | GR00T N1.6 / N1.7 −5.9 / −9.3 ms, −99 / −157 MB board RAM ([results](../results/groot-kvg-20261012/)) | masked rows contribute exp(−1e4) = 0; PyTorch FP32 ≤1.2e-6 |
+| 14 | an FP32-kept op (Euler update, final norm) whose graph output is cast FP32→FP16→FP32 at the edge; `out_roundtrip` scan: a graph output = Cast(FP32) of Cast(FP16) of an FP32 tensor | keep the op FP32 up to the output (GR00T `Euler` module, `strip_fp16_roundtrips` on outputs) | GR00T full-chunk mean error −45..49 %; free | better accuracy, not exact |
+| 15 | a constant causal mask in front of TensorRT's fused MHA (GR00T's LLM chunks): it computes and masks the whole upper triangle | Triton causal GQA kernel that skips the masked key tiles and reads Q/K/V in their producers' layouts | GR00T LLM attention 308 → 212 µs/layer (S=320), 542 → 321 µs (S=448) | FP32 scores: more accurate than native (see precision) |
+| 16 | one device buffer per engine output in a chained stage; pinned host copies of constants uploaded once | two buffers per shape, used alternately; synchronous pageable upload for load-time constants | GR00T −22 / −36 MB device memory (other chains not converted yet) | bit-identical |
 
 A Triton tile must also fit the 48 KiB of shared memory a kernel gets without an
 opt-in: TensorRT's AOT launcher does not opt in, and a 78 KiB π0.5 tile failed at
 enqueue (`plugin.py` asserts it now).
 
 Rejected on RAM: feeding SmolVLA's attention plugin one fused QKV projection (−0.38 ms
-for +9.3 MB RSS).
+for +9.3 MB RSS). The budget is a trade, not a ban: about +100 MB is fine for 5 ms.
+
+Rejected on accuracy: FP16 engine boundaries proven only on the producer side (the ONNX
+output is Cast(FP32) of an FP16 tensor). TensorRT fuses that FP16 op into an
+FP32-accumulating epilogue, so the boundary carried more than FP16: GR00T N1.6 hidden
+states in FP16 doubled the fixture error (0.060 → 0.130 %). `boundary_report` now
+accepts only the consumer-side proof (every reader casts to FP16 first).
+
+Not worth it: a custom GEMM for GR00T's DiT. A device-to-device copy reaches 96 GB/s;
+TensorRT's M = 51 GEMMs already read weights at 86–91 GB/s
+([bandwidth](../results/groot-kvg-20261012/bandwidth.json)). Sequence padding is free
+for the same reason in reverse: GEMM tile counts are equal at 291 and 320 rows.
 
 ## Precision to keep in mind
 
@@ -77,13 +92,25 @@ for +9.3 MB RSS).
 
 - `groot_trt.build_one` leaves TF32 enabled, so FP32 engines (projectors) run TF32;
   `pi05_trt` clears it.
+- A replacement kernel that reproduces the ONNX order literally can be **less** accurate
+  than TensorRT's own fused attention. The exported graphs round Q·Kᵀ and the scale to
+  FP16; TensorRT's MHA evidently does not. GR00T kernels that kept the FP16 score
+  rounding raised the policy error (LLM: mean +5..17 %; vision: failed the earlier
+  wider checks); with FP32 scores the same kernels beat native (N1.6 used-dim max error
+  0.269 → 0.245 %, N1.7 0.114 → 0.100 %).
+- Judge a replacement against stock FP32 over several inputs and on the embodiment's
+  used action dims, not against "matches native TensorRT": the native control is not
+  the truth. `reference*.py --seed N` makes extra stock references for GR00T;
+  [`stockcheck.py`](../results/groot-kvg-20261012/tools/stockcheck.py) scores a cache
+  against them. Padded action dims dominate full-chunk numbers and can hide a change
+  in the used ones.
 
 ## Per model
 
 | model | done | still open |
 |---|---|---|
-| SmolVLA | 126.8 → 102.9 ms ([results](../results/smolvla-native-20261010T1247Z/summary.json)); FP32 accumulation by default | — |
-| X-VLA | 383.7 → 342.1 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries, token-layout depthwise convs in the vision tower ([experiment](../experiments/xvla_triton/)) | the six stage-entrance convs (~1 ms). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
-| EVO1 | 360.3 → ~340 ms: preprocessing, FP16 K/V cache, FP32-accumulating output head ([experiment](../experiments/evo1_triton/)) | GEMM-bound vision (TensorRT's 1025-token MHA is already within 7 % of a Triton kernel) |
-| GR00T N1.6 / N1.7 | 288 → ~275 / ~278 ms: preprocessing, FP16 `kv_*`/`mod_*` boundaries (bit-identical) | GEMM-bound; N1.7 `ds_*` boundaries need the deepstack scatter to work in FP16 bytes |
+| SmolVLA | 126.8 → 102.9 ms ([results](../results/smolvla-native-20261010T1247Z/summary.json)); FP32 accumulation by default | `expert_decode` rounds `expert_out` (its final norm) to FP16 before the FP32 action projector (#14); chain buffers (#16) |
+| X-VLA | 383.7 → 342.1 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries, token-layout depthwise convs in the vision tower ([experiment](../experiments/xvla_triton/)) | the six stage-entrance convs (~1 ms); `vision_3` rounds `image_features` (a LayerNorm) to FP16 at its output — matters only if a reader takes FP32 (#14); chain buffers (#16). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
+| EVO1 | 360.3 → ~340 ms: preprocessing, FP16 K/V cache, FP32-accumulating output head ([experiment](../experiments/evo1_triton/)) | GEMM-bound vision (TensorRT's 1025-token MHA is already within 7 % of a Triton kernel); check the language model's attention mask for a constant causal pattern (#15); chain buffers (#16) |
+| GR00T N1.6 / N1.7 | 285.1 / 287.2 → 272.5 / 272.4 ms: K/V gathered to visible rows, FP32 Euler update, chain buffers ([results](../results/groot-kvg-20261012/)); Triton vision, causal LLM and DiT attention with FP32 scores ([results](../results/groot-triton-20261012/)) | N1.7 VL self-attention (~2 ms); SigLIP2's 72-channel tail |
 | π0.5 | 474 → 440.1 ms: preprocessing, Triton action-expert attention ([experiment](../experiments/pi05_triton/)) | prefill attention and the gated MLP: Triton kernels do not beat TensorRT there (D=256 attention 1.10 vs 1.0 ms; fused gate/up/GELU 9.86 vs 9.32 ms per layer) |
