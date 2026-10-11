@@ -52,8 +52,10 @@ python3 -m bench.tools.vla_setup --model all \
 The work directory must be new. Models run serially so the 8 GB board only loads
 one policy at a time. The workflow verifies bundle checksums, imports and GPU
 access, builds ordinary engines and the selected AOT replacements, checks full
-action fixtures, then runs each benchmark for 300 seconds. GR00T uses ordinary
-native engines. `matrix.json` reports pass/fail; each model gets its own
+action fixtures, then runs each benchmark for 300 seconds. Custom Triton AOT
+replacements are tested for SmolVLA, EVO1, X-VLA and pi0.5. Both GR00T versions are
+tested with ordinary native TensorRT engines; no GR00T Triton AOT replacement has
+been validated. `matrix.json` reports pass/fail; each model gets its own
 `setup.json`, stage logs, doctor reports, caches and benchmark JSON.
 `--keep-going` records failures and continues with the other models; the command
 still exits nonzero if any model fails.
@@ -69,6 +71,23 @@ All native subprocesses run with Hub access disabled. The bundle supplies their
 tokenizers and processors. Runtime and builder venvs link only JetPack's TensorRT
 Python package; other system Python packages cannot satisfy missing imports.
 AOT kernels are serialized into engines. The runtime venv has no Triton or Torch.
+
+`evo1-libero` and `pi05-libero` actions are specific to LIBERO's embodiment.
+Camera history and other input requirements are in the
+[model contracts](03-backends.md).
+
+## Comparison runtimes
+
+The optional `scripts/run_all.sh` runner includes the SmolVLA and X-VLA PyTorch
+references when their environments exist (`scripts/10_env_torch.sh` and
+`scripts/13_env_torch_xvla.sh`) and their checkpoints have been fetched with
+`python -m bench fetch --model MODEL --what torch`.
+
+The historical ORT measurements used
+[`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx) and
+[`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx) with
+`bench ort-split`. Building X-VLA's ORT engines needs 4 GB swap and a freshly booted,
+headless board; see the [host setup](01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board).
 
 ## Pins and evidence
 

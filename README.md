@@ -1,15 +1,10 @@
 # jetson-orin-nano-vla
 
-The [all-model benchmark workflow](docs/10-all-model-setup.md) creates dedicated
-runtime/compiler environments and builds fresh engines for each listed model.
-Model revisions, upstream source and Python dependency closures are pinned.
-See the [test audit](docs/09-test-audit.md) for actual validation coverage.
-
-**Tested on JetPack 7.2.1 (L4T R39.2.1).**
-
 Recipes and measurements for running VLA models on an **8 GB Jetson Orin Nano Super**:
 four public base checkpoints and the trained EVO1 LIBERO and π0.5 LIBERO checkpoints,
 all on a pure TensorRT runtime (`bench trt-split`).
+
+**Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
 | model | upstream checkpoint |
 |---|---|
@@ -38,19 +33,12 @@ These measure inference cost, not robot-task quality.
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
 | **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 440.13 ms | 440.52 ms | 2.27 Hz | 6.28 GB |
 
-The pure TensorRT rows come from one board, the PyTorch and ORT rows from a second one
-with the same JetPack and clock settings, which runs X-VLA and EVO1 a few percent faster.
-YMMV. `RAM in use` is the whole system while inferring.
-Bold rows are 300-second runs of each model's current configuration with FP32
-accumulation, the default ([runs](results/all-models-20261010/fp32-accumulate/));
-it costs 1–3 % latency against TensorRT's own GEMM choices and cuts the full-chunk
-action error by up to 4× (GR00T N1.6) — both sets are in
-[the playbook](docs/07-optimization-playbook.md). Board RAM is unchanged; process RSS
-reads 46–121 MB higher for some models with the same engine sizes. SmolVLA, X-VLA,
-EVO1 and π0.5 use the [SmolVLA](experiments/smolvla_triton/), [X-VLA](experiments/xvla_triton/),
-[EVO1](experiments/evo1_triton/) and [π0.5](experiments/pi05_triton/) experiment caches; all models use exact host
-preprocessing and FP16 engine boundaries ([all-model round](results/all-models-20261010/)).
-The π0.5 rows always accumulate in FP32; its padded-prefix row predates the round.
+`RAM in use` is whole-system usage during inference. Bold rows are 300-second runs
+with FP32 accumulation ([run evidence](results/all-models-20261010/fp32-accumulate/)).
+The PyTorch and ORT rows use a second board with the same JetPack and clocks, which
+runs X-VLA and EVO1 a few percent faster. π0.5's padded-prefix row is an earlier run.
+See the [optimization playbook](docs/07-optimization-playbook.md) for kernel choices
+and speed, RAM and precision tradeoffs.
 
 ## What every run logs
 
@@ -70,16 +58,6 @@ records:
 [The profile](docs/06-profile.md) adds an Nsight Systems trace of every model: where each
 stage's time goes and whether it is compute- or bandwidth-bound.
 
-The selected [SmolVLA configuration](experiments/smolvla_triton/#layout-cross-attention-kv-and-rope)
-combines fused vision attention, packed expert gated projections, cross-attention K/V
-computed once per observation (`export.sh --hoist-cross-kv`), image scaling on the GPU,
-a lighter tokenizer and a bounded prompt cache. The setup workflow builds and verifies
-that configuration in a new engine cache.
-The ordinary ONNX build path retains its standard TensorRT engines. Weights and
-activations stay FP16 with norms and softmax in FP32; the custom kernels accumulate in
-FP32. Current builds also default TensorRT's FP16 MatMuls to FP32 accumulation;
-`--accumulate auto` restores TensorRT's own choice.
-
 ## Parity
 
 Every pure TensorRT model reproduces the stock PyTorch FP32 actions to **cosine 0.99999
@@ -95,7 +73,9 @@ refuses to run if the engines miss it. Per-model values are in
 
 Export on a Linux Python 3.12 machine with enough memory for the stock policy, copy
 each whole bundle to the Orin, then build and benchmark there. The
-[all-model recipe](docs/10-all-model-setup.md) includes all six export commands.
+[all-model workflow](docs/10-all-model-setup.md) provides all six export commands,
+dedicated runtime/compiler environments and pinned model, source and dependency
+versions.
 
 ```bash
 # on the export machine
@@ -115,34 +95,11 @@ python3 -m bench.tools.vla_setup --model all --bundles-dir ~/vla-bundles \
     --work-dir ~/vla-runs/all-new --keep-going
 ```
 
-Environment and work directories must be new. The workflow checks bundle hashes,
-imports, CUDA access and action parity, builds the selected Triton replacements,
-and measures each model for 300 seconds. Models run serially to fit the board.
-Use `--duration-s 10` for a functional smoke test. The native runtime needs neither
-Torch nor Triton; Triton is installed only in the separate builder environment.
-Model and auxiliary checkpoint revisions, upstream source, and complete Python
-dependency closures are pinned. See the [test audit](docs/09-test-audit.md) for
-fresh-clone coverage and its limits.
-
-The optional comparison runner `scripts/run_all.sh` runs the PyTorch reference for SmolVLA and X-VLA when its venv exists
-(`scripts/10_env_torch.sh`, `scripts/13_env_torch_xvla.sh`) and the checkpoint has been
-fetched (`python -m bench fetch --model <model> --what torch`).
-
-- GR00T N1.7 reads its tokenizer from the gated
-  [`nvidia/Cosmos-Reason2-2B`](https://huggingface.co/nvidia/Cosmos-Reason2-2B): accept
-  its terms on Hugging Face before exporting. It sees every camera now and 30 frames
-  earlier; the runtime reuses the earlier frame's encode.
-- `evo1-libero` and `pi05-libero` actions mean something for LIBERO's embodiment only.
-- π0.5 exports with `export/export.sh pi05-libero OUT`. This builds its pinned GPU
-  container, downloads and converts the pinned checkpoint, and creates the compact
-  prefix bundle for short prompts. See [its export recipe](export/pi05/).
-- The ORT rows ran the Hugging Face bundles ([`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx),
-  [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx)) with
-  `bench ort-split`. Building X-VLA's ORT engines needs 4 GB swap and a freshly booted,
-  headless board ([host setup](docs/01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board)).
-
-`export/` also takes your own fine-tuned LeRobot checkpoint; see
-[export/README.md](export/README.md).
+Environment and work directories must be new. The workflow verifies bundles and
+action parity, builds engines and runs models serially for 300 seconds each.
+Use `--duration-s 10` for a smoke test. Inference needs neither Torch nor Triton.
+See the [test audit](docs/09-test-audit.md) for validation coverage and the
+[export guide](export/README.md) for fine-tuned LeRobot checkpoints.
 
 ## Documentation
 
@@ -155,6 +112,7 @@ fetched (`python -m bench fetch --model <model> --what torch`).
 - [Metric definitions](docs/04-metrics.md)
 - [Benchmark runbook](docs/05-runbook.md)
 - [Profile: where the time goes](docs/06-profile.md)
+- [Optimization playbook](docs/07-optimization-playbook.md)
 - [Measured results](docs/RESULTS.md)
 
 ## Thanks

@@ -6,6 +6,13 @@ packed expert engines on the Jetson, then runs the stock-policy and device-chain
 fixture gates. It never needs a dated experiment cache. Keep the bundle and the
 resulting `setup.json`, doctor reports and logs together.
 
+The selected configuration combines fused vision attention, packed expert gated
+projections, cross-attention K/V computed once per observation, GPU image scaling
+and a lighter tokenizer with a bounded prompt cache. Weights and activations stay
+FP16; norms, softmax and accumulation use FP32. `--accumulate auto` restores
+TensorRT's own MatMul accumulation choice. Kernel details and measurements are in
+the [SmolVLA experiment](../experiments/smolvla_triton/#layout-cross-attention-kv-and-rope).
+
 ## Export machine
 
 Clone this repository on a Linux Python 3.12 machine with enough RAM for the stock
