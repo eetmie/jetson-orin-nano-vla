@@ -171,6 +171,10 @@ case "$FAMILY" in
         --embodiment "${EMBODIMENT:-robocasa_panda_omron}" \
         --views "$VIEWS" "${TASK_ARGS[@]}" --out "$FIXTURE"
     "$V/bin/python" -m vla_common.run_pinned "$HERE/groot/export_split_onnx.py" --ref "$FIXTURE" --out "$OUT"
+    # Boundaries whose every reader casts to FP16 first cross in FP16: same values, half the
+    # buffer (cross-attention K/V, modulation, conditioning).
+    "$V/bin/python" -m vla_common.half_boundary --bundle "$OUT" \
+        --names 'kv_[0-9]+|mod_[0-9]+|mod_out|state_features|vl'
     rm -f "$FIXTURE"
     ;;
   groot17)
@@ -189,6 +193,9 @@ case "$FAMILY" in
         --embodiment "${EMBODIMENT:-xdof_relative_eef_relative_joint}" --vlm-files "$VLM_FILES" \
         "${TASK_ARGS[@]}" --out "$FIXTURE"
     "$V/bin/python" -m vla_common.run_pinned "$HERE/groot/export_split_onnx17.py" --ref "$FIXTURE" --out "$OUT"
+    # As N1.6; N1.7's vl is read in FP32 by the VL self-attention, its DeepStack is not.
+    "$V/bin/python" -m vla_common.half_boundary --bundle "$OUT" \
+        --names 'kv_[0-9]+|mod_[0-9]+|mod_out|state_features|ds_[0-9]+'
     rm -f "$FIXTURE"
     ;;
   *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, evo1, GR00T N1.6, N1.7)"; exit 1 ;;

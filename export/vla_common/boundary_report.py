@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 """Which FP32 engine-boundary tensors of a mixed-FP16 bundle could cross in FP16 exactly.
 
-A graph output qualifies when its producer is Cast(to FP32) of an FP16 tensor; a graph
-input when every consumer is Cast(to FP16). A tensor that qualifies on every graph that
-produces or consumes it round-trips FP16 -> FP32 -> FP16 today, so passing it in FP16
-(fp16_mixed --half-io) changes no value and halves its buffer and traffic.
+A graph input is FP16-read when every consumer is Cast(to FP16). If that holds on every
+graph that reads a boundary, rounding once at the producer is the rounding each consumer
+already does: passing it in FP16 changes no value and halves its buffer and traffic.
 
-    python -m vla_common.boundary_report <bundle dir>
+An output whose ONNX producer is Cast(to FP32) of an FP16 tensor is NOT enough on its own:
+TensorRT fuses that FP16 op into an FP32-accumulating GEMM epilogue and emits more than
+FP16 precision. Measured on GR00T N1.6: FP16 hidden states between the LLM/DiT/vision
+chunks doubled the fixture error (0.060 -> 0.130 %). The producer column is reported for
+information only.
+
+    python -m vla_common.boundary_report <bundle dir> [--link out=in ...]
+
+--link names a host hop: an output the runtime copies into another graph's input (GR00T
+scatters `vision_tokens` into the LLM's `h`), so both count as one boundary.
 """
 
 from __future__ import annotations
 
-import sys
+import argparse
 from collections import defaultdict
 from pathlib import Path
 
@@ -54,8 +62,10 @@ def scan(path: Path):
     return outs, ins
 
 
-def _link(name: str) -> str:
+def _link(name: str, links: dict[str, str] | None = None) -> str:
     """The name a split graph's output takes as the next graph's input."""
+    if links and name in links:
+        return links[name]
     if name == "hidden_out":
         return "hidden_in"
     for suffix in ("_out", "_next"):
@@ -64,22 +74,43 @@ def _link(name: str) -> str:
     return name
 
 
-def main() -> None:
-    root = Path(sys.argv[1])
+def parse_links(items: list[str] | None) -> dict[str, str]:
+    return dict(x.split("=", 1) for x in items or [])
+
+
+def boundaries(root: Path, links: dict[str, str] | None = None):
+    """{boundary: [(graph, ok)]} for producers and consumers of every FP32 boundary."""
     produced, consumed = defaultdict(list), defaultdict(list)
     for f in sorted(root.glob("*.onnx")):
         outs, ins = scan(f)
         for k, ok in outs.items():
-            produced[_link(k)].append((f.stem, ok))
+            produced[_link(k, links)].append((f.stem, ok))
         for k, ok in ins.items():
             consumed[k].append((f.stem, ok))
+    return produced, consumed
+
+
+def exact(name: str, produced, consumed) -> str | None:
+    """'reads' when every consumer reads FP16 (see the module docstring), else None."""
+    if all(ok for _, ok in consumed[name]):
+        return "reads"
+    return None
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("bundle", type=Path)
+    ap.add_argument("--link", action="append", metavar="OUT=IN")
+    a = ap.parse_args()
+    produced, consumed = boundaries(a.bundle, parse_links(a.link))
     names = sorted(set(produced) & set(consumed))
-    exact = [k for k in names if all(ok for _, ok in produced[k] + consumed[k])]
-    print(f"{root.name}: {len(names)} FP32 tensors cross engines, {len(exact)} would be exact in FP16")
+    why = {k: exact(k, produced, consumed) for k in names}
+    print(f"{a.bundle.name}: {len(names)} FP32 tensors cross engines, "
+          f"{sum(v is not None for v in why.values())} would be exact in FP16")
     for k in names:
-        tag = "exact" if k in exact else "NOT exact"
-        print(f"  {tag:9s} {k:28s} from {[s for s, _ in produced[k]]} -> {len(consumed[k])} graph(s)"
-              + ("" if k in exact else f"  producers {produced[k]} consumers {consumed[k][:3]}"))
+        tag = f"exact ({why[k]})" if why[k] else "NOT exact"
+        print(f"  {tag:16s} {k:28s} from {[s for s, _ in produced[k]]} -> {len(consumed[k])} graph(s)"
+              + ("" if why[k] else f"  producers {produced[k]} consumers {consumed[k][:3]}"))
 
 
 if __name__ == "__main__":

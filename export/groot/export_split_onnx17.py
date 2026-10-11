@@ -10,7 +10,8 @@ Graphs (static shapes, one per TensorRT engine; see groot17_split.py for the pip
     cond_{k}    vlln + VL self-attention chunks (+ state encoder in cond_0)
     time        the two sinusoidal encodings of t, kept FP32
     mod_{k}     every DiT block's AdaLN modulation from t alone; run at load, then unloaded
-    kv_{k}      the cross-attention blocks' keys and values from vl; once per observation
+    kv_{k}      the cross-attention blocks' keys and values from vl, once per observation,
+                only for the rows each block's text/image mask lets through
     dit_{k}     one denoising step in chunks; the last adds the decoder and Euler update
 
 The vision engines take one frame per view. The history frame is a second pass through
@@ -33,7 +34,7 @@ import torch
 from export_split_onnx import SENSITIVE, dedupe_casts, dump, to_mixed_fp16, write_manifest
 from groot17_split import (MASK_NEG, PATCH, Cond, Contract, LlmChunk, VisionChunk,
                            layer_plans, load_policy, mrope, n_params, vlm)
-from groot_split import add_action_graphs
+from groot_split import add_action_graphs, cross_rows
 
 
 def main():
@@ -41,6 +42,9 @@ def main():
     ap.add_argument("--ref", required=True, help="reference17.py output: fixes the contract")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--seq-len", type=int, default=448)
+    ap.add_argument("--full-kv", action="store_true",
+                    help="cross-attention K/V over the whole sequence plus masks, instead of "
+                         "only the rows each block can see")
     ap.add_argument("--budget-m", type=float, default=105.0)
     ap.add_argument("--keep-fp32", action="store_true", help="also keep the FP32 graphs")
     a = ap.parse_args()
@@ -61,6 +65,7 @@ def main():
     ids_p = np.concatenate([ids[0], np.full(c.seq_len - n_real, pad_id)]).astype(np.int64)
     cos, sin = mrope(policy, torch.from_numpy(ids_p)[None], n_real, c)
     plans = layer_plans(policy, int(a.budget_m * 1e6))
+    rows = None if a.full_kv else cross_rows(torch.from_numpy(ids_p)[None], n_real, tok)
 
     fp32 = a.out.parent / (a.out.name + ".fp32")
     if fp32.exists():
@@ -100,7 +105,7 @@ def main():
             else:
                 add(f"cond_{k}", mod, (torch.zeros(1, S, D), torch.zeros(1, 1, S)),
                     ["vl", "pad_bias"], ["vl_out"])
-        add_action_graphs(add, policy, c, plans, S, D)
+        add_action_graphs(add, policy, c, plans, S, D, rows)
 
     emb = m.language_model.embed_tokens.weight.detach().to(torch.float16).numpy()
     np.save(fp32 / "embed_tokens.npy", emb)
@@ -114,6 +119,8 @@ def main():
         "image_hw": list(c.image_hw), "tokens_per_image": c.tokens_per_image,
         "image_mean": 0.5, "image_std": 0.5,
         "seq_len": S, "prompt_tokens": n_real, "image_token": tok, "pad_token": pad_id,
+        # Rows of the sequence a text / image cross-attention block projects K/V for.
+        "kv_rows": None if rows is None else {"text": len(rows[0]), "image": len(rows[1])},
         "task": meta["task"], "input_ids": ids_p.tolist(),
         "deepstack": n_ds, "mask_neg": MASK_NEG,
         "action_horizon": c.action_horizon, "action_dim": c.action_dim, "state_dim": c.state_dim,

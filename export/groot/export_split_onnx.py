@@ -9,7 +9,8 @@ Graphs (static shapes, one per TensorRT engine; see groot_split.py for the pipel
     cond        vlln + embodiment-sliced state encoder
     time        the two sinusoidal encodings of t, kept FP32
     mod_{k}     every DiT block's AdaLN modulation from t alone; run at load, then unloaded
-    kv_{k}      the cross-attention blocks' keys and values from vl; once per observation
+    kv_{k}      the cross-attention blocks' keys and values from vl, once per observation,
+                only for the rows each block's text/image mask lets through
     dit_{k}     one denoising step in chunks; the last adds the decoder and Euler update
 
 Chunks are packed to --budget-m million params, the per-engine TensorRT build budget
@@ -44,7 +45,8 @@ from vla_common.bundle import write_manifest  # noqa: E402
 from vla_common.fp16_weights import FP16_SENSITIVE_OPS  # noqa: E402
 
 from groot_split import (MASK_NEG, Cond, Contract, LlmChunk, VisionChunk,  # noqa: E402
-                         add_action_graphs, layer_plans, load_policy, n_params)
+                         add_action_graphs, cross_rows, layer_plans, load_policy,
+                         n_params)
 
 SENSITIVE = tuple(FP16_SENSITIVE_OPS)
 
@@ -55,6 +57,9 @@ SENSITIVE = tuple(FP16_SENSITIVE_OPS)
 # left that Add in FP16 (measured: llm_7 cos 0.567, actions cos 0.992). Stock PyTorch
 # upcasts the whole norm, so this is what the reference does too.
 RMSNORM_NODE = re.compile(r"(input_layernorm|post_attention_layernorm|q_norm|k_norm|^/norm)/")
+# Kept FP32 too: the DiT's Euler update, so the action iterate is not rounded to FP16
+# once per denoising step (groot_split.Euler).
+FP32_NODE = re.compile(RMSNORM_NODE.pattern + r"|^/euler/")
 
 
 def strip_fp16_roundtrips(m: onnx.ModelProto) -> int:
@@ -86,6 +91,27 @@ def strip_fp16_roundtrips(m: onnx.ModelProto) -> int:
         for i, x in enumerate(n.input):
             if x in rename:
                 n.input[i] = rename[x]
+    # The same round trip in front of a graph output (keep_io_types' output Cast after an
+    # FP32-kept node): the FP32 producer writes the output directly.
+    for o in m.graph.output:
+        n = prod.get(o.name)
+        if n is None or n.op_type != "Cast" or to(n) != F32:
+            continue
+        p = prod.get(n.input[0])
+        if p is None or p.op_type != "Cast" or to(p) != F16 or types.get(p.input[0]) != F32:
+            continue
+        q = prod.get(p.input[0])
+        if q is None:
+            continue
+        src = p.input[0]
+        q.output[list(q.output).index(src)] = o.name
+        for k in m.graph.node:
+            if k is not n:
+                for i, x in enumerate(k.input):
+                    if x == src:
+                        k.input[i] = o.name
+        n.output[0] = n.output[0] + "_unused"
+        rename[o.name] = src
     while True:                      # drop nodes nothing reads any more
         used = {x for n in m.graph.node for x in n.input} | outputs
         keep = [n for n in m.graph.node if any(o in used for o in n.output)]
@@ -101,7 +127,7 @@ def to_mixed_fp16(src: Path, dst: Path) -> None:
     from onnxruntime.transformers.onnx_model import OnnxModel
 
     m = onnx.load(str(src))
-    nodes = [n.name for n in m.graph.node if RMSNORM_NODE.search(n.name)]
+    nodes = [n.name for n in m.graph.node if FP32_NODE.search(n.name)]
     out = float16.convert_float_to_float16(
         m, keep_io_types=True, node_block_list=nodes,
         op_block_list=list(float16.DEFAULT_OP_BLOCK_LIST) + list(SENSITIVE))
@@ -155,6 +181,9 @@ def main():
     ap.add_argument("--ref", required=True, help="reference.py output: fixes the contract")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--seq-len", type=int, default=320)
+    ap.add_argument("--full-kv", action="store_true",
+                    help="cross-attention K/V over the whole sequence plus masks, instead of "
+                         "only the rows each block can see")
     ap.add_argument("--budget-m", type=float, default=105.0)
     ap.add_argument("--keep-fp32", action="store_true", help="also keep the FP32 graphs")
     a = ap.parse_args()
@@ -171,6 +200,9 @@ def main():
                  tuple(r["pixel_values"].shape[-2:]), int((ids == tok).sum()) // meta["views"],
                  a.seq_len)
     plans = layer_plans(policy, int(a.budget_m * 1e6))
+    pad_id = eagle.config.text_config.eos_token_id
+    ids_p = np.concatenate([ids[0], np.full(a.seq_len - n_real, pad_id)]).astype(np.int64)
+    rows = None if a.full_kv else cross_rows(torch.from_numpy(ids_p)[None], n_real, tok)
 
     fp32 = a.out.parent / (a.out.name + ".fp32")
     if fp32.exists():
@@ -199,13 +231,11 @@ def main():
         add("cond", Cond(policy, c.embodiment_id).eval(),
             (torch.zeros(1, S, D), torch.zeros(1, 1, c.state_dim)),
             ["features", "state"], ["vl", "state_features"])
-        add_action_graphs(add, policy, c, plans, S, D)
+        add_action_graphs(add, policy, c, plans, S, D, rows)
 
     emb = eagle.language_model.get_input_embeddings().weight.detach().to(torch.float16).numpy()
     np.save(fp32 / "embed_tokens.npy", emb)
 
-    pad_id = eagle.config.text_config.eos_token_id
-    ids_p = np.concatenate([ids[0], np.full(S - n_real, pad_id)]).astype(np.int64)
     bundle = {
         "schema": "groot-n1.6-split/2",
         "model": "nvidia/GR00T-N1.6-3B",
@@ -214,6 +244,8 @@ def main():
         "views": V, "image_hw": list(c.image_hw), "tokens_per_image": c.tokens_per_image,
         "image_mean": 0.5, "image_std": 0.5,
         "seq_len": S, "prompt_tokens": n_real, "image_token": tok, "pad_token": pad_id,
+        # Rows of the sequence a text / image cross-attention block projects K/V for.
+        "kv_rows": None if rows is None else {"text": len(rows[0]), "image": len(rows[1])},
         "task": meta["task"], "input_ids": ids_p.tolist(),
         "mask_neg": MASK_NEG,
         "action_horizon": c.action_horizon, "action_dim": c.action_dim, "state_dim": c.state_dim,

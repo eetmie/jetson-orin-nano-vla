@@ -84,6 +84,44 @@ class Device:
         shape, dt, _ = self.spec(name)[tensor]
         return DevBuf(shape, dt)
 
+    def chain_outputs(self, links: list[tuple[str, str]]) -> list[dict[str, DevBuf]]:
+        """Output buffers for a chain where each (engine, tensor) output is read only by
+        the next engine: two buffers per shape, used alternately, instead of one per
+        engine. Other outputs get their own buffers."""
+        pools: dict[tuple, list[DevBuf]] = {}
+        turn: dict[tuple, int] = {}
+        out = []
+        for name, chained in links:
+            bufs = {}
+            for n, (shape, dt, is_in) in self.spec(name).items():
+                if is_in:
+                    continue
+                if n != chained:
+                    bufs[n] = DevBuf(shape, dt)
+                    continue
+                key = (tuple(shape), np.dtype(dt).str)
+                if key not in pools:
+                    pools[key] = [DevBuf(shape, dt), DevBuf(shape, dt)]
+                pool = pools[key]
+                i = turn.get(key, 0)
+                bufs[n], turn[key] = pool[i % 2], i + 1
+            out.append(bufs)
+        return out
+
+    # -- one-time writes (load time; no pinned mirror kept) ------------------------
+    def set_once(self, dst: DevBuf, arr: np.ndarray) -> None:
+        """Synchronous copy from pageable memory, for constants written once at load:
+        unlike upload(), it leaves no pinned host buffer behind."""
+        x = np.ascontiguousarray(np.asarray(arr, dtype=dst.dtype).reshape(dst.shape))
+        _ck(self.cu.cudaStreamSynchronize(self.stream), "sync")
+        _ck(self.cu.cudaMemcpy(ctypes.c_void_p(dst.ptr), ctypes.c_void_p(x.ctypes.data),
+                               ctypes.c_size_t(dst.nbytes), _H2D), "H2D once")
+
+    def zero_once(self, dst: DevBuf) -> None:
+        _ck(self.cu.cudaStreamSynchronize(self.stream), "sync")
+        _ck(self.cu.cudaMemset(ctypes.c_void_p(dst.ptr), 0, ctypes.c_size_t(dst.nbytes)),
+            "cudaMemset")
+
     # -- stream work ------------------------------------------------------------
     def upload(self, dst: DevBuf, arr: np.ndarray) -> None:
         h = dst.host()
@@ -217,11 +255,13 @@ class DitChain:
             for k, v in c.items():
                 if k in needed:
                     bufs[k] = DevBuf(v.shape, v.dtype)
-                    d.upload(bufs[k], v)
+                    d.set_once(bufs[k], v)
             self.steps.append(bufs)
         self.kv_out = [d.outputs(n) for n in bundle.kv]
-        self.dit_out = {n: {k: v for k, v in d.outputs(n).items() if k != "actions_next"}
-                        for n in bundle.dit}
+        # Each chunk's hidden state is read only by the next chunk: two buffers suffice.
+        outs = d.chain_outputs([(n, "h_out") for n in bundle.dit])
+        self.dit_out = {n: {k: v for k, v in o.items() if k != "actions_next"}
+                        for n, o in zip(bundle.dit, outs)}
         a = d.buf_for(bundle.dit[0], "actions")
         self.actions = [a, DevBuf(a.shape, a.dtype)]
 
@@ -263,17 +303,19 @@ class Groot16Device:
         d, b = self.d, bundle.b
         bd = bundle
         self.vision_in = d.buf_for(bd.vision[0], "pixel_values")
-        self.vision_out = [d.outputs(n) for n in bd.vision]
+        # Chained activations alternate between two buffers per shape (exact: each is
+        # read only by the next engine on the same stream).
+        self.vision_out = d.chain_outputs([(n, "x_out") for n in bd.vision])
         # The prompt's text rows never change; only the image runs are rewritten.
         self.h0 = d.buf_for(bd.llm[0], "h")
-        d.upload(self.h0, bd.prompt_embeds)
-        self.llm_out = [d.outputs(n) for n in bd.llm]
+        d.set_once(self.h0, bd.prompt_embeds)
+        self.llm_out = d.chain_outputs([(n, "h_out") for n in bd.llm])
         self.state = d.buf_for("cond", "state")
         self.cond_out = d.outputs("cond")
         self.text_bias = DevBuf(bd.text_bias.shape, np.float32)
         self.image_bias = DevBuf(bd.image_bias.shape, np.float32)
-        d.upload(self.text_bias, bd.text_bias)
-        d.upload(self.image_bias, bd.image_bias)
+        d.set_once(self.text_bias, bd.text_bias)
+        d.set_once(self.image_bias, bd.image_bias)
         self.dit = DitChain(d, bd, bd.consts, {
             "vl": self.cond_out["vl"], "state_features": self.cond_out["state_features"],
             "text_bias": self.text_bias, "image_bias": self.image_bias})
@@ -771,28 +813,33 @@ class Groot17Device:
         d, bd, b = self.d, bundle, bundle.b
         self.history = FrameHistory(lag_s)
         self.vision_in = d.buf_for(bd.vision[0], "pixel_values")
-        self.vision_out = [d.outputs(n) for n in bd.vision]
+        self.vision_out = d.chain_outputs([(n, "x_out") for n in bd.vision])
         n_ds = b["deepstack"]
         self.now = [self.vision_out[-1]["vision_tokens"]] + [
             next(o[f"ds_{j}"] for o in self.vision_out if f"ds_{j}" in o) for j in range(n_ds)]
         self.past = [DevBuf(x.shape, x.dtype) for x in self.now]
         self.slots: list[list[DevBuf]] = []
         self.h0 = d.buf_for(bd.llm[0], "h")
-        d.upload(self.h0, bd.prompt_embeds)
+        d.set_once(self.h0, bd.prompt_embeds)
         self.ds_full = []
-        for _ in range(n_ds):
-            z = DevBuf(self.h0.shape, self.h0.dtype)
-            d.upload(z, np.zeros(z.shape, z.dtype))
+        for j in range(n_ds):
+            z = d.buf_for(next(n for n in bd.llm if f"ds_{j}" in bd.graph[n]["inputs"]),
+                          f"ds_{j}")
+            d.zero_once(z)
             self.ds_full.append(z)
-        self.llm_out = [d.outputs(n) for n in bd.llm]
+        # Each scatter target takes its source's dtype (DeepStack may cross in FP16 while
+        # the prompt stays FP32); offsets are computed per target below.
+        if any(t.dtype != x.dtype for t, x in zip([self.h0, *self.ds_full], self.now)):
+            raise ValueError("a scatter target and its image-token source differ in dtype")
+        self.llm_out = d.chain_outputs([(n, "h_out") for n in bd.llm])
         self.pad_bias = d.buf_for(bd.cond[0], "pad_bias")
-        d.upload(self.pad_bias, bd.pad_bias)
+        d.set_once(self.pad_bias, bd.pad_bias)
         self.state = d.buf_for(bd.cond[0], "state")
         self.cond_out = [d.outputs(n) for n in bd.cond]
         self.text_bias = DevBuf(bd.text_bias.shape, np.float32)
         self.image_bias = DevBuf(bd.image_bias.shape, np.float32)
-        d.upload(self.text_bias, bd.text_bias)
-        d.upload(self.image_bias, bd.image_bias)
+        d.set_once(self.text_bias, bd.text_bias)
+        d.set_once(self.image_bias, bd.image_bias)
         c_last = self.cond_out[-1] if len(self.cond_out) > 1 else self.cond_out[0]
         self.dit = DitChain(d, bd, bd.consts, {
             "vl": c_last["vl_out" if len(self.cond_out) > 1 else "vl"],
@@ -800,14 +847,16 @@ class Groot17Device:
             "text_bias": self.text_bias, "image_bias": self.image_bias})
         d.sync()
         # One image per run, past frames first: run k is frame k // V, view k % V.
-        V, row = b["views"], self.h0.shape[-1] * self.h0.dtype.itemsize
-        img_bytes = int(np.prod(self.now[0].shape[1:])) * self.now[0].dtype.itemsize
+        # Per run and target: (target index, dst byte offset, frame, src byte offset, bytes).
+        V, tok = b["views"], self.now[0].shape[1]
         runs = _runs(bd.image_positions)
-        if len(runs) != V * b["frames"] or any(
-                (e - s) * row != img_bytes for s, e in runs):
+        if len(runs) != V * b["frames"] or any(e - s != tok for s, e in runs):
             raise ValueError("image-token runs do not match frames x views")
-        self.copies = [(s * row, k // V, (k % V) * img_bytes, img_bytes)
-                       for k, (s, e) in enumerate(runs)]
+        self.copies = []
+        for k, (s, _) in enumerate(runs):
+            for j, t in enumerate([self.h0, *self.ds_full]):
+                row = t.shape[-1] * t.dtype.itemsize
+                self.copies.append((j, s * row, k // V, (k % V) * tok * row, tok * row))
         self.ev = [d.event() for _ in range(4)]
         self.graphs = None
         self._vision()
@@ -828,9 +877,9 @@ class Groot17Device:
     def _rest(self) -> None:
         d, bd = self.d, self.b
         frames = (self.past, self.now)
-        for dst, frame, src, n in self.copies:
-            for j, target in enumerate([self.h0] + self.ds_full):
-                d.d2d(target, frames[frame][j], n, dst, src)
+        targets = [self.h0, *self.ds_full]
+        for j, dst, frame, src, n in self.copies:
+            d.d2d(targets[j], frames[frame][j], n, dst, src)
         h = self.h0
         for name, out in zip(bd.llm, self.llm_out):
             feeds = {"h": h}

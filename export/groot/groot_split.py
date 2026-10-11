@@ -287,22 +287,62 @@ class ModChunk(nn.Module):
         return tuple(out)
 
 
+def attends_text(idx: int, every: int) -> bool:
+    """Which mask a cross-attention block uses (stock AlternateVLDiT): text or image."""
+    return idx % (2 * every) == 0
+
+
+def cross_rows(input_ids: torch.Tensor, n_real: int, image_token: int):
+    """Sequence rows a text-attending / an image-attending cross block can see: the zeros
+    of text_bias / image_bias. Every other row gets -1e4, whose exp is exactly 0 in the
+    FP32 softmax, so keys and values outside these rows never contribute."""
+    ids = input_ids[0]
+    valid = torch.arange(ids.shape[0]) < n_real
+    img = ids == image_token
+    return (torch.nonzero(~img & valid)[:, 0].tolist(),
+            torch.nonzero(img & valid)[:, 0].tolist())
+
+
 class KvChunk(nn.Module):
     """Cross-attention keys and values of the given DiT blocks, as [K | V] rows.
 
     They depend on the backbone features alone, so they run once per observation
-    instead of once per denoising step.
+    instead of once per denoising step. With `rows` (cross_rows), each block projects
+    only the rows its mask lets through, so the DiT needs no cross-attention mask.
     """
 
-    def __init__(self, policy, idxs: list[int]):
+    def __init__(self, policy, idxs: list[int], rows=None):
         super().__init__()
-        blocks = policy.action_head.model.transformer_blocks
+        dit = policy.action_head.model
+        blocks = dit.transformer_blocks
         self.k = nn.ModuleList(blocks[i].attn1.to_k for i in idxs)
         self.v = nn.ModuleList(blocks[i].attn1.to_v for i in idxs)
         self.out_names = [f"kv_{i}" for i in idxs]
+        self.text = [attends_text(i, dit.attend_text_every_n_blocks) for i in idxs]
+        self.gather = rows is not None
+        if self.gather:
+            self.register_buffer("text_rows", torch.tensor(rows[0]), persistent=False)
+            self.register_buffer("image_rows", torch.tensor(rows[1]), persistent=False)
 
     def forward(self, vl):
-        return tuple(torch.cat([k(vl), v(vl)], dim=-1) for k, v in zip(self.k, self.v))
+        if not self.gather:
+            return tuple(torch.cat([k(vl), v(vl)], dim=-1) for k, v in zip(self.k, self.v))
+        x = {True: vl.index_select(1, self.text_rows), False: vl.index_select(1, self.image_rows)}
+        return tuple(torch.cat([k(x[t]), v(x[t])], dim=-1)
+                     for k, v, t in zip(self.k, self.v, self.text))
+
+
+class Euler(nn.Module):
+    """x + dt * v. Its own module so the exporter keeps it FP32 (node names /euler/...):
+    the action iterate then stays FP32 across the steps, as in the stock FP32 loop,
+    instead of being rounded to FP16 once per step."""
+
+    def __init__(self, dt: float):
+        super().__init__()
+        self.dt = dt
+
+    def forward(self, x, v):
+        return x + self.dt * v
 
 
 class DitChunk(nn.Module):
@@ -317,15 +357,17 @@ class DitChunk(nn.Module):
     Inputs and outputs are named in `in_names` / `out_names`.
     """
 
-    def __init__(self, policy, a: int, b: int, c: Contract):
+    def __init__(self, policy, a: int, b: int, c: Contract, rows=None):
         super().__init__()
         head = policy.action_head
         dit = head.model
         self.a, self.b = a, b
+        self.rows = rows             # cross_rows: K/V arrive pre-gathered, no mask needed
         self.first = a == 0
         self.last = b == len(dit.transformer_blocks)
         self.every = dit.attend_text_every_n_blocks
         self.dt = 1.0 / c.steps
+        self.euler = Euler(self.dt)
         self.horizon = c.action_horizon
         blocks = []
         for i in range(a, b):
@@ -353,9 +395,9 @@ class DitChunk(nn.Module):
             self.d2 = _slice_cat_linear(dec.layer2, eid)
         cross = [i for i in range(a, b) if _is_cross(i)]
         bias = []
-        if any(i % (2 * self.every) == 0 for i in cross):
+        if rows is None and any(attends_text(i, self.every) for i in cross):
             bias.append("text_bias")
-        if any(i % (2 * self.every) != 0 for i in cross):
+        if rows is None and any(not attends_text(i, self.every) for i in cross):
             bias.append("image_bias")
         self.in_names = ((["actions", "tau", "state_features"] if self.first else ["h"])
                          + [f"mod_{i}" for i in range(a, b)]
@@ -373,7 +415,10 @@ class DitChunk(nn.Module):
             if n.startswith("mod_"):
                 return shapes.get(n, (1, mod_dim))
             if n.startswith("kv_"):
-                return (1, S, kv_dim)
+                if self.rows is None:
+                    return (1, S, kv_dim)
+                return (1, len(self.rows[0 if attends_text(int(n[3:]), self.every) else 1]),
+                        kv_dim)
             return shapes[n]
         return tuple(torch.zeros(*shape(n)) for n in self.in_names)
 
@@ -393,7 +438,8 @@ class DitChunk(nn.Module):
             if not _is_cross(idx):
                 h = block(h, temb=temb)
             else:
-                bias = x["text_bias" if idx % (2 * self.every) == 0 else "image_bias"]
+                bias = None if self.rows is not None else \
+                    x["text_bias" if attends_text(idx, self.every) else "image_bias"]
                 h = block(h, encoder_hidden_states=x[f"kv_{idx}"],
                           encoder_attention_mask=bias, temb=temb)
         if not self.last:
@@ -402,12 +448,14 @@ class DitChunk(nn.Module):
         h = self.norm_out(h) * (1 + scale[:, None]) + shift[:, None]
         h = self.proj_out_2(h)
         v = self.d2(F.relu(self.d1(h)))[:, -self.horizon:]
-        return x["actions"] + self.dt * v
+        return self.euler(x["actions"], v)
 
 
-def add_action_graphs(add, policy, c: Contract, plans: dict, S: int, D: int) -> None:
+def add_action_graphs(add, policy, c: Contract, plans: dict, S: int, D: int,
+                      rows=None) -> None:
     """The action head as graphs: time (FP32 sinusoids), mod_k (load-time constants),
-    kv_k (once per observation) and dit_k (per step). Shared by both exporters."""
+    kv_k (once per observation) and dit_k (per step). Shared by both exporters.
+    rows: cross_rows of the baked prompt, or None for full-length K/V plus masks."""
     dit = policy.action_head.model
     hd = policy.action_head.input_embedding_dim
     add("time", TimeEmb(policy).eval(), (torch.zeros(1),), ["t"], ["t_proj", "tau"])
@@ -417,12 +465,12 @@ def add_action_graphs(add, policy, c: Contract, plans: dict, S: int, D: int) -> 
         add(f"mod_{k}", m, (torch.zeros(1, td),), ["t_proj"], m.out_names)
     cross = [i for i in range(len(dit.transformer_blocks)) if _is_cross(i)]
     for k, (lo, hi) in enumerate(plans["kv"]):
-        m = KvChunk(policy, cross[lo:hi]).eval()
+        m = KvChunk(policy, cross[lo:hi], rows).eval()
         add(f"kv_{k}", m, (torch.zeros(1, S, D),), ["vl"], m.out_names)
     blk = dit.transformer_blocks[0]
     mod_dim, kv_dim = blk.norm1.linear.out_features, 2 * blk.attn1.to_k.out_features
     for k, (lo, hi) in enumerate(plans["dit"]):
-        m = DitChunk(policy, lo, hi, c).eval()
+        m = DitChunk(policy, lo, hi, c, rows).eval()
         add(f"dit_{k}", m, m.example(c, hd, mod_dim, kv_dim, S), m.in_names, m.out_names)
 
 
@@ -485,7 +533,7 @@ def biases(input_ids: torch.Tensor, attn: torch.Tensor, image_token: int):
 
 
 def run_split(policy, plans, c: Contract, pixel, input_ids, attn, state, noise,
-              dtype=torch.float32):
+              dtype=torch.float32, gather_kv: bool = False):
     """The whole split pipeline in PyTorch. Returns (actions, backbone_features)."""
     eagle = policy.backbone.model
     x = pixel.to(dtype)
@@ -503,11 +551,12 @@ def run_split(policy, plans, c: Contract, pixel, input_ids, attn, state, noise,
     actions = noise.to(dtype)
     dit = policy.action_head.model
     pool = {"state_features": sf, "text_bias": tb, "image_bias": ib}
+    rows = cross_rows(input_ids, int(attn.sum()), eagle.image_token_index) if gather_kv else None
     cross = [i for i in range(len(dit.transformer_blocks)) if _is_cross(i)]
     for lo, hi in plans["kv"]:
-        m = KvChunk(policy, cross[lo:hi])
+        m = KvChunk(policy, cross[lo:hi], rows)
         pool.update(zip(m.out_names, m(vl)))
-    chunks = [DitChunk(policy, a, b, c) for a, b in plans["dit"]]
+    chunks = [DitChunk(policy, a, b, c, rows) for a, b in plans["dit"]]
     mods = [ModChunk(policy, a, b, b == len(dit.transformer_blocks)) for a, b in plans["mod"]]
     time_emb = TimeEmb(policy).float()
     for t in c.timesteps():

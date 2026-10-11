@@ -28,7 +28,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from groot_split import MASK_NEG, plan, n_params  # noqa: F401  (re-exported)
-from groot_split import (DitChunk, KvChunk, ModChunk, TimeEmb, _is_cross,  # noqa: E402
+from groot_split import (DitChunk, KvChunk, ModChunk, TimeEmb, _is_cross, cross_rows,  # noqa: E402
                          action_plans)
 
 PATCH, MERGE = 16, 2
@@ -304,7 +304,8 @@ def masks(input_ids: torch.Tensor, n_real: int, image_token: int):
     return text_bias, image_bias, pad_bias
 
 
-def run_split(policy, plans, c: Contract, pixel, input_ids, n_real, state, noise):
+def run_split(policy, plans, c: Contract, pixel, input_ids, n_real, state, noise,
+              gather_kv: bool = False):
     """The whole split pipeline in PyTorch FP32. pixel [N,3,H,W] in prompt image order.
     Returns (actions, vl): vl is the conditioning after vlln + VL self-attention, which
     stock get_action writes back into backbone_output["backbone_features"]."""
@@ -339,11 +340,12 @@ def run_split(policy, plans, c: Contract, pixel, input_ids, n_real, state, noise
     actions = noise
     dit = policy.action_head.model
     pool = {"state_features": sf, "text_bias": tb, "image_bias": ib}
+    rows = cross_rows(input_ids, n_real, tok) if gather_kv else None
     cross = [i for i in range(len(dit.transformer_blocks)) if _is_cross(i)]
     for lo, hi in plans["kv"]:
-        m = KvChunk(policy, cross[lo:hi])
+        m = KvChunk(policy, cross[lo:hi], rows)
         pool.update(zip(m.out_names, m(vl)))
-    chunks = [DitChunk(policy, a, b, c) for a, b in plans["dit"]]
+    chunks = [DitChunk(policy, a, b, c, rows) for a, b in plans["dit"]]
     mods = [ModChunk(policy, a, b, b == len(dit.transformer_blocks)) for a, b in plans["mod"]]
     time_emb = TimeEmb(policy)
     for t in c.timesteps():

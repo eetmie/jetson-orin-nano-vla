@@ -336,3 +336,24 @@ class PreprocessExactnessTests(unittest.TestCase):
             shape[axis], shape[axis + 1] = w.shape
             ref = (taps * w.reshape(shape)).sum(axis=axis + 1)
             np.testing.assert_array_equal(_resize_axis(x, n_out, axis), ref)
+
+
+class ChainOutputTests(unittest.TestCase):
+    def test_chained_outputs_alternate_between_two_buffers(self):
+        import bench.vendor.trt_device as td
+
+        ptrs = iter(range(1000, 10**6, 1000))
+        d = Device.__new__(Device)
+        specs = {f"e{i}": {"x": ((2, 4), np.float32, True), "x_out": ((2, 4), np.float32, False),
+                           "aux": ((3,), np.float16, False)} for i in range(5)}
+        d.spec = lambda name: specs[name]
+        real = td._malloc
+        td._malloc = lambda n: next(ptrs)
+        try:
+            outs = d.chain_outputs([(f"e{i}", "x_out") for i in range(5)])
+        finally:
+            td._malloc = real
+        chained = [o["x_out"].ptr for o in outs]
+        self.assertEqual(len(set(chained)), 2)
+        self.assertTrue(all(a != b for a, b in zip(chained, chained[1:])))
+        self.assertEqual(len({o["aux"].ptr for o in outs}), 5)     # unchained: one each
