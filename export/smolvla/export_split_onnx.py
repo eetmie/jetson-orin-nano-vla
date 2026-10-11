@@ -228,6 +228,7 @@ def _export(model, args_tuple, path, input_names, output_names, dynamic_axes=Non
         model, args_tuple, path,
         input_names=input_names, output_names=output_names,
         dynamic_axes=dynamic_axes, opset_version=OPSET, do_constant_folding=False,
+        dynamo=False,  # AOT graph matching requires the tested legacy exporter layout.
     )
     import onnx
     onnx.checker.check_model(path)

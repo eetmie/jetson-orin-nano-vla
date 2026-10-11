@@ -1,45 +1,57 @@
-# pi0.5 LIBERO export (prototype)
+# pi0.5 LIBERO export
 
-Physical Intelligence's `pi05_libero` ([openpi](https://github.com/Physical-Intelligence/openpi)),
-exported as FP16 layer templates plus each layer's own weights, for `bench trt-split
---model pi05-libero`. These are the prototype's scripts as they ran. They have not been
-folded into `export/export.sh` yet.
-
-## Environment
-
-The export runs in the openpi container built from `Dockerfile` (NGC PyTorch 25.09,
-openpi's patched `transformers` 4.53.2, CPU-only JAX). Inside it, with the checkpoint
-directory mounted at `/workspace/checkpoints`:
+`export/export.sh pi05-libero OUT` builds the pinned NGC container, downloads the
+pinned public GCS checkpoint, converts it to PyTorch, and exports a complete
+compact FP16 bundle for `bench.tools.vla_setup --model pi05-libero`.
+Run on a Linux NVIDIA GPU export machine; build native engines on the Orin.
 
 ```bash
-gsutil -m cp -r gs://openpi-assets/checkpoints/pi05_libero/* /workspace/checkpoints/pi05_libero/
-python /opt/openpi/examples/convert_jax_model_to_pytorch.py --config_name pi05_libero \
-    --checkpoint_dir /workspace/checkpoints/pi05_libero \
-    --output_path /workspace/checkpoints/pi05_libero_pytorch
-cp -r /workspace/checkpoints/pi05_libero/assets /workspace/checkpoints/pi05_libero_pytorch/
+export/export.sh pi05-libero "$HOME/vla-bundles/pi05-libero"
+# Or use existing converted weights (trained tensor digest must match):
+export/pi05/export.sh "$HOME/vla-bundles/pi05-libero" /path/to/pi05_libero_pytorch
 ```
 
-## Stages
+`OUT` and `OUT.work` must be new. Logs, the container image ID and intermediate
+reference stages are retained in `OUT.work`. No historical experiment directory,
+manual weight copy, or additional `third_party/openpi` checkout is required.
+Interrupted remote downloads before conversion can resume with:
 
-Each script writes beside itself; the stages read each other by directory name.
+```bash
+export/pi05/export.sh --resume-download "$HOME/vla-bundles/pi05-libero"
+```
 
-| stage directory | scripts | writes |
-|---|---|---|
-| `orin_initial_20261010_001/` | `prepare_blocks.py`, `prepare_conditioning.py` | five reference fixtures from the stock mixed BF16/FP32 policy (images, prompts, injected noise, actions); the fixed ten-step AdaRMS modulation table |
-| `pi05_fp16_full_20261010/` | `prepare_full.py`, `export_utils.py` | the padded bundle: 968-token prefix, three image slots |
-| `pi05_fp16_compact_20261010/` | `prepare_compact.py` (with the first stage copied to `reference_initial/` and the second's bundle to `reference_baseline/`) | the compact bundle: real cameras and real prompt tokens only, 521-token prefix |
+Resume rechecks completed files against their pinned SHA-256 and verifies saved
+range hashes before fetching missing or changed chunks. Legacy partial files
+without range metadata restart. Large files use bounded HTTP ranges with transient retries;
+only complete checksum-verified files are published. A changed completed file
+is rejected and preserved. Completed bundles are never overwritten.
 
-A bundle is `bundle.json`, `templates/<kind>.onnx` (one per layer kind: stem, vision,
-vision_tail, language, action_input, action, action_output), `weights/<component>/` (67
-components), the FP16 embedding table the runtime memory-maps, the conditioning table,
-RoPE tables, `norm_stats.json` and `fixtures/` (full-FP16 PyTorch trajectories the board
-checks its engines against at load). The runtime also needs a `tasks` table of prompts
-tokenized for this bundle (`tokens`, `mask`, 200 each); the prototype's fixtures supply
-five.
+Pins are in `source-lock.json`, `checkpoint-lock.json`, `tokenizer-lock.json` and
+`constraints.txt`: upstream commit, immutable container digest, checkpoint object
+generations and SHA-256, tokenizer generation and SHA-256, and all Python modules.
+The raw checkpoint downloads use the [GCS generation selector](https://cloud.google.com/storage/docs/json_api/v1/objects/get).
+The converter selects adaptive normalization from the explicit model flag,
+so the local directory name does not affect the converted tensors.
+The seeded conversion also fixes initialization of the unused expert language
+output head. That head is absent from the trained JAX checkpoint and is never
+used for actions. The converted-weight gate checks every other named tensor's
+dtype, shape and bytes, plus tied-weight metadata, against the pinned reference.
+The actual complete converted-file checksum is recorded in the exported bundle.
 
-The compact bundle's prefix holds the two camera views (512 rows) plus 9 prompt tokens:
-enough for the fixture prompts, not for longer ones. Longer prompts need a larger
-capacity and new language/action templates.
+The pipeline creates five seeded stock mixed BF16/FP32 policy fixtures, checks
+cached versus live FP16 conditioning, exports all model layers into a padded
+baseline, then recomputes the compact reference with masked-view skipping and
+cleared padding. A separately recomputed gathered reference checks those changes
+bit for bit. The compact-versus-padded diagnostic retains its cosine and absolute
+error gates. It writes the task token table and hashes every portable artifact.
 
-The checkpoint's license is Physical Intelligence's; consult openpi before
-redistributing a bundle.
+The final bundle contains seven layer-template kinds, 67 sets of component
+weights, memory-mapped FP16 embeddings, normalization/conditioning/RoPE tables,
+five full-policy fixtures and the task token table. All 27 vision, 18 language
+and 18 action layers remain. The 521-token prefix fits two cameras plus the
+fixture prompts; longer prompts require a larger prefix and new templates.
+
+See [all-model setup](../../docs/10-all-model-setup.md) for board commands and
+[test audit](../../docs/09-test-audit.md) for validation evidence. The model is
+Physical Intelligence's `pi05_libero`; consult its upstream license before
+redistributing weights.

@@ -18,15 +18,19 @@ import torch
 from torch import nn
 
 from export_utils import accumulation, sha, structure_hash
-ROOT = Path(__file__).resolve().parent
-BASE = ROOT / 'reference_baseline'
+from paths import stage_root
+ROOT = stage_root()
+from paths import baseline_root
+BASE = baseline_root()
 PREFIX_CAPACITY = 521
 
-INITIAL = ROOT / 'reference_initial'
+from paths import initial_root
+INITIAL = initial_root()
 sys.path.insert(0, str(INITIAL))
 from prepare_blocks import GemmaBlock, VisionBlock, array
 
-CHECKPOINT = Path('/workspace/checkpoints/pi05_libero_pytorch')
+from paths import checkpoint
+CHECKPOINT = checkpoint()
 IMAGE_KEYS = ['base_0_rgb', 'left_wrist_0_rgb', 'right_wrist_0_rgb']
 
 
@@ -160,11 +164,11 @@ def main():
     sample_inputs = {}
     comparisons = []
 
-    def run(fixture, live=False, capture=False):
+    def run(fixture, live=False, capture=False, masked_reference=False):
         prefix_parts, pads, features = [], [], []
         with torch.inference_mode():
             for name in IMAGE_KEYS:
-                if not bool(fixture['image_mask_' + name].item()):
+                if not masked_reference and not bool(fixture['image_mask_' + name].item()):
                     continue
                 image = torch.from_numpy(fixture['image_' + name]).cuda().half()
                 if image.shape[1] != 3:
@@ -195,8 +199,16 @@ def main():
             # masked tail is cleared; no valid information is truncated.
             valid = torch.nonzero(pad[0], as_tuple=False).flatten()
             assert len(valid) <= PREFIX_CAPACITY, ('Prefix capacity exceeded', len(valid))
-            hidden = torch.cat((hidden[:, valid], torch.zeros((1, PREFIX_CAPACITY-len(valid), 2048),
-                                dtype=hidden.dtype, device=hidden.device)), dim=1)
+            tail_count = PREFIX_CAPACITY - len(valid)
+            if masked_reference:
+                # Independently recompute the former gathered reference: include
+                # masked camera features and retain masked token embeddings.
+                invalid = torch.nonzero(~pad[0], as_tuple=False).flatten()
+                assert len(invalid) >= tail_count
+                padding_tail = hidden[:, invalid[:tail_count]]
+            else:
+                padding_tail = torch.zeros((1, tail_count, 2048), dtype=hidden.dtype, device=hidden.device)
+            hidden = torch.cat((hidden[:, valid], padding_tail), dim=1)
             pad = torch.arange(PREFIX_CAPACITY, device=hidden.device)[None] < len(valid)
             mask = torch.where(pad[:, None, :, None] & pad[:, None, None, :], 0.0, -2.3819763e38)
             pos = torch.cumsum(pad, dim=-1) - 1
@@ -260,8 +272,8 @@ def main():
             compact_vs_padded = metric(cached['actions_normalized'], baseline['fp16_actions_normalized'])
             robot_vs_padded = metric(cached['actions_robot'], baseline['fp16_actions_robot'])
         assert compact_vs_padded['finite'] and compact_vs_padded['cosine'] >= 0.99999 and compact_vs_padded['max_abs'] <= 0.005, ('Compact-prefix diagnostic gate failed', i, compact_vs_padded)
-        with np.load(ROOT / 'fixtures_gathered_masked_tail' / f'fixture_{i}.npz') as gathered:
-            assert np.array_equal(cached['actions_normalized'], gathered['fp16_actions_normalized']), ('Skipping masked view/zero tail changed actions', i)
+        gathered = run(fixture, masked_reference=True)
+        assert np.array_equal(cached['actions_normalized'], gathered['actions_normalized']), ('Skipping masked view/zero tail changed actions', i)
         comparison = {'fixture': i, 'cached_vs_live_bit_equal': True,
             'skip_masked_view_and_zero_tail_vs_gathered_bit_equal': True,
             'compact_vs_padded_fp16_normalized': compact_vs_padded,

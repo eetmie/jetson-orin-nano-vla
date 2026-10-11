@@ -10,6 +10,7 @@ TILE = dict(BLOCK_M=64, BLOCK_N=64, num_warps=4, num_stages=2)   # swept on the 
 
 def _compile(n_q, rows_input=False):
     import triton
+    from bench.vendor.triton_compile import compile_sm87
     from kernels import xvla_attention_aot, xvla_attention_rows_aot
     signature = {'QKV': '*fp16', 'ROWS': '*fp16', 'O': '*fp16'} if rows_input else {'QKV': '*fp16', 'O': '*fp16'}
     src = triton.compiler.ASTSource(xvla_attention_rows_aot if rows_input else xvla_attention_aot,
@@ -17,7 +18,7 @@ def _compile(n_q, rows_input=False):
         constexprs={'N_Q': n_q, 'N_KV': SEQ, 'H': HEADS, 'SCALE': SCALE, 'BLOCK_M': TILE['BLOCK_M'],
                     'BLOCK_N': TILE['BLOCK_N'], 'D': DIM},
         attrs={(i,): [['tt.divisibility', 16]] for i in range(len(signature))})
-    k = triton.compile(src, options={'num_warps': TILE['num_warps'], 'num_stages': TILE['num_stages']})
+    k = compile_sm87(src, options={'num_warps': TILE['num_warps'], 'num_stages': TILE['num_stages']})
     assert getattr(k.metadata, 'global_scratch_size', 0) == 0
     launch = trtp.KernelLaunchParams()
     launch.grid_x = (n_q + TILE['BLOCK_M'] - 1)//TILE['BLOCK_M']
@@ -91,6 +92,7 @@ def _register_dwconv(views, n_pix, width, channels):
     def compile_dwconv(x: trtp.TensorDesc, w: trtp.TensorDesc, b: trtp.TensorDesc, outputs: Tuple[trtp.TensorDesc],
                        tactic: int) -> Tuple[Union[str, bytes], Union[str, bytes], trtp.KernelLaunchParams, trtp.SymExprs]:
         import triton
+        from bench.vendor.triton_compile import compile_sm87
         from kernels import dwconv_tokens_aot
         # Swept per stage shape on the board (bench_dwconv.py).
         t = dict(BLOCK_P=16, BLOCK_C=128, num_warps=4) if n_pix < 1000 and channels in (512, 1024) \
@@ -99,7 +101,7 @@ def _register_dwconv(views, n_pix, width, channels):
             signature={'X': '*fp16', 'W': '*fp16', 'B': '*fp16', 'Y': '*fp16'},
             constexprs={'N_PIX': n_pix, 'WIDTH': width, 'C': channels, 'BLOCK_P': t['BLOCK_P'], 'BLOCK_C': t['BLOCK_C']},
             attrs={(i,): [['tt.divisibility', 16]] for i in range(4)})
-        k = triton.compile(src, options={'num_warps': t['num_warps']})
+        k = compile_sm87(src, options={'num_warps': t['num_warps']})
         assert getattr(k.metadata, 'global_scratch_size', 0) == 0 and k.metadata.shared <= 48*1024
         launch = trtp.KernelLaunchParams()
         launch.grid_x = (n_pix + t['BLOCK_P'] - 1)//t['BLOCK_P']

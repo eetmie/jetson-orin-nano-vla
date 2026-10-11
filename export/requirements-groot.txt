@@ -1,9 +1,11 @@
+-c constraints-groot.txt
 # GR00T N1.6 exporter (export/setup.sh groot). transformers/diffusers/peft follow
 # Isaac-GR00T n1.6.1-release; flash-attn is NOT needed: the exporter runs the backbone
 # with eager attention (per-image for SigLIP2), which is what an ONNX trace needs.
 # The model code itself is NVIDIA's, fetched at a pinned commit by setup.sh.
 torch==2.11.0
 torchvision==0.26.0
+av==15.1.0  # gr00t.data imports video_utils at module load
 transformers==4.51.3
 diffusers==0.35.1
 peft==0.17.1

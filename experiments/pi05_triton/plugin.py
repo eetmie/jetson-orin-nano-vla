@@ -30,13 +30,14 @@ def compile_attention(q: trtp.TensorDesc, k: trtp.TensorDesc, v: trtp.TensorDesc
                       outputs: Tuple[trtp.TensorDesc], tactic: int
                       ) -> Tuple[Union[str, bytes], Union[str, bytes], trtp.KernelLaunchParams, trtp.SymExprs]:
     import triton
+    from bench.vendor.triton_compile import compile_sm87
     from kernels import mqa_attention_aot
     src = triton.compiler.ASTSource(mqa_attention_aot,
         signature={'Q': '*fp16', 'K': '*fp16', 'V': '*fp16', 'Mask': '*fp32', 'O': '*fp16'},
         constexprs={'N_Q': N_Q, 'N_KV': N_KV, 'H': HEADS, 'D': DIM, 'SCALE': SCALE,
                     'BLOCK_M': TILE['BLOCK_M'], 'BLOCK_N': TILE['BLOCK_N']},
         attrs={(i,): [['tt.divisibility', 16]] for i in range(5)})
-    k_ = triton.compile(src, options={'num_warps': TILE['num_warps'], 'num_stages': TILE['num_stages']})
+    k_ = compile_sm87(src, options={'num_warps': TILE['num_warps'], 'num_stages': TILE['num_stages']})
     assert getattr(k_.metadata, 'global_scratch_size', 0) == 0
     assert k_.metadata.shared <= 48*1024, f'{k_.metadata.shared} B of shared memory: over the 48 KiB AOT limit'
     launch = trtp.KernelLaunchParams()

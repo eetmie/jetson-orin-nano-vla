@@ -49,17 +49,38 @@ def product(l):
     assert l.type == trt.LayerType.ELEMENTWISE, l.name
     l.__class__ = trt.IElementWiseLayer
     assert l.op == trt.ElementWiseOperation.PROD, l.name
-def constant(t):
-    expected = tuple(t.shape)
+def constant_expr(t):
+    """Evaluate constant weight views, preserving every reshape and transpose."""
     layer = producers[t.name]
     if layer.type == trt.LayerType.SHUFFLE:
         layer.__class__ = trt.IShuffleLayer
-        assert list(layer.first_transpose)[:3] == [0,1,2]
-        assert list(layer.second_transpose)[:3] == [0,1,2]
-        layer = producers[layer.get_input(0).name]
+        values = constant_expr(layer.get_input(0))
+        values = values.transpose(tuple(layer.first_transpose)[:values.ndim])
+        if layer.num_inputs > 1 and layer.get_input(1) is not None:
+            shape = constant_expr(layer.get_input(1))
+            assert shape.ndim == 1 and np.issubdtype(shape.dtype, np.integer), layer.name
+            dims = tuple(int(d) for d in shape)
+        else:
+            try:
+                dims = tuple(layer.reshape_dims)
+            except ValueError:
+                dims = ()
+        if dims:
+            if layer.zero_is_placeholder:
+                dims = tuple(values.shape[i] if d == 0 else d for i,d in enumerate(dims))
+            values = values.reshape(dims)
+        values = values.transpose(tuple(layer.second_transpose)[:values.ndim])
+        assert values.shape == tuple(t.shape), (layer.name, values.shape, tuple(t.shape))
+        return values
+    if layer.type == trt.LayerType.CAST:
+        return constant_expr(layer.get_input(0)).astype(trt.nptype(t.dtype))
     assert layer.type == trt.LayerType.CONSTANT, layer.name
     layer.__class__ = trt.IConstantLayer
-    values = np.asarray(layer.weights)
+    return np.asarray(layer.weights).reshape(tuple(t.shape))
+
+def constant(t):
+    expected = tuple(t.shape)
+    values = constant_expr(t)
     assert values.dtype == np.float16 and values.size == 720*2048
     assert expected == (1,720,2048)
     return values.reshape(720,2048)

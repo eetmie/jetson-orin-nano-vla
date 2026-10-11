@@ -1,3 +1,4 @@
+-c constraints-smolvla.txt
 # SmolVLA exporter. Same lerobot + transformers as the board's .venv-torch, so the
 # exported graphs and the PyTorch reference come from the same modeling code.
 lerobot==0.5.1
@@ -5,4 +6,7 @@ transformers==5.3.0
 onnx==1.21.0
 onnxscript==0.7.0
 onnxruntime==1.28.0  # its float16 converter does the mixed-FP16 pass; CPU build is enough
-num2words            # the SmolVLM processor imports it; lerobot does not declare it
+num2words==0.5.14    # the SmolVLM processor imports it; lerobot does not declare it
+
+torch==2.10.0
+torchvision==0.25.0

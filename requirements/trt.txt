@@ -1,0 +1,5 @@
+# Shared native TensorRT benchmark runtime for every listed model.
+-r trt-smolvla.txt
+transformers==5.3.0
+Pillow==10.2.0
+sentencepiece==0.2.2

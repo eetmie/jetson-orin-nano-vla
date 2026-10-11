@@ -1,7 +1,7 @@
 # Export your own checkpoint
 
 Turns a LeRobot SmolVLA, X-VLA or EVO1 checkpoint (base or fine-tuned), or NVIDIA's
-GR00T N1.6/N1.7, into the split ONNX bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
+GR00T N1.6/N1.7 or the openpi pi0.5 LIBERO policy, into the split ONNX bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
 bundle to the Jetson:
 
 ```
@@ -15,7 +15,9 @@ device and are never copied.
 
 ## Setup
 
-Linux with Python 3.12. A GPU is not needed.
+Linux with Python 3.12. The LeRobot/GR00T exporters run on CPU; pi0.5 uses a pinned
+Docker container and needs NVIDIA GPU support. Follow the
+[all-model recipe](../docs/10-all-model-setup.md) for the six base checkpoints.
 
 ```bash
 export/setup.sh            # .venv-smolvla (lerobot 0.5.1) and .venv-xvla (lerobot 0.6.1)
@@ -25,8 +27,14 @@ EVO1 uses `.venv-xvla` (it is in LeRobot 0.6.1 too).
 
 ## Export
 
+For the selected SmolVLA Triton runtime, use
+`--views 2 --hoist-cross-kv`. Known remote checkpoints and their auxiliary models
+default to the full commit SHAs in `hub-lock.json`. Custom remote checkpoints need
+`--revision <full-checkpoint-commit-sha>`. HF revisions use separate download
+directories; local checkpoint paths do not accept `--revision`.
+
 ```bash
-export/export.sh lerobot/smolvla_base ~/bundles/smolvla-base-split --views 2
+export/export.sh lerobot/smolvla_base ~/bundles/smolvla-base-split --views 2 --hoist-cross-kv
 export/export.sh path/to/checkpoints/020000/pretrained_model ~/bundles/my-xvla
 export/export.sh zuoxingdong/evo1_libero ~/bundles/evo1-libero-split
 ```
@@ -36,7 +44,8 @@ export/export.sh zuoxingdong/evo1_libero ~/bundles/evo1-libero-split
 | `--views N` | the checkpoint's `observation.images.*` count | baked into the graphs; the runtime may feed fewer cameras, never more |
 | `--task "..."` | the dataset's tasks, if the checkpoint has them | repeatable; written into the bundle |
 | `--fps N` | the dataset's fps | written into the bundle |
-| `--hoist-cross-kv` | off | SmolVLA: prefill emits the cross-attention layers' expert K/V once per observation instead of decode re-projecting them every step, and the KV cache crosses engines in FP16. `trt-split` only |
+| `--hoist-cross-kv` | off | SmolVLA: prefill emits the cross-attention layers' expert K/V once per observation instead of decode re-projecting them every step, and the KV cache crosses engines in FP16. Required for the selected optimized setup. `trt-split` only |
+| `--revision SHA` | `hub-lock.json` | Full 40-character HF commit SHA; moving tags are rejected. |
 
 Every bundle gets mixed-FP16 graphs, which halve what stays resident on the board:
 X-VLA keeps LayerNorm and Softmax FP32; SmolVLA's three large graphs and every EVO1
@@ -102,11 +111,15 @@ On the Jetson, use the base profile of the same family (EVO1: `evo1-libero`) wit
 bundle:
 
 ```bash
-.venv-ort/bin/python -m bench trt-split --model smolvla-base \
-    --bundle ~/bundles/my-smolvla --views 1 --task "pick up the cube" --label my-smolvla.trt
+scripts/12_env_trt.sh
+scripts/14_env_triton.sh
+python3 -m bench.tools.vla_setup --model smolvla-base \
+    --bundle ~/bundles/my-smolvla --work-dir ~/vla-runs/my-smolvla-new
 ```
 
 `ort-split` runs the same bundles through ONNX Runtime, except `--hoist-cross-kv` ones.
+The optimized setup supports the documented base-model shapes; custom shapes can
+use the ordinary backend directly with explicit views/task and a separate cache.
 
 To check the conversion against the PyTorch policy, copy the checkpoint too, run
 `bench torch --checkpoint <dir>` with the same `--views` and `--task`, and compare the two
@@ -114,6 +127,19 @@ runs with `python -m bench parity` (see the README's parity gate).
 
 ## Provenance
 
+Complete exporter dependency closures are fixed in `constraints-*.txt`. Nested
+Hub reads use `vla_common.run_pinned`, which fixes both downloads and Transformers
+cache lookups to the lock. GR00T source uses sparse Git checkouts at full commits.
+The [pi0.5 exporter](pi05/README.md) pins its image digest, openpi source commit,
+raw GCS object generations, tokenizer and trained tensor contents.
+
 The exporters are vendored from the author's fine-tuning pipeline. Each file names its
 source path and commit in its first lines. GR00T's depends on model code outside
 LeRobot: NVIDIA's public repository, which `setup.sh groot` / `setup.sh groot17` fetches.
+
+Remote Hub files use `vla_common.hub_download`: immutable snapshot metadata,
+bounded HTTP ranges and transient retries, then size and LFS/Git-blob checksum
+verification before publication. Auxiliary processor/model files are preloaded
+at the pinned SHA into the Hub cache. This avoids relying on Xet transfers.
+Existing completed files must still match. Interrupted ranges resume after
+checking their saved chunk hashes; partial files without range metadata restart.

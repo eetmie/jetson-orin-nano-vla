@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The supported benchmark path for one model, in the order that fails cheapest first.
+# Legacy backend comparisons. For the selected optimized recipes, use bench.tools.vla_setup.
 #
 #   MODEL=smolvla-base scripts/run_all.sh
 #   MODEL=xvla-base    scripts/run_all.sh
@@ -20,8 +20,22 @@ cd "$(dirname "$0")/.."
 
 MODEL="${MODEL:-smolvla-base}"
 DEST="${DEST:-$HOME/bundles}"
+checkpoint_override=${CKPT+x}
 CKPT="${CKPT:-$DEST/$MODEL-torch}"
+bundle_override=${BUNDLE+x}
 BUNDLE="${BUNDLE:-$DEST/$MODEL-split}"
+# Prefer the exact locked snapshot when no explicit local input was supplied.
+read -r torch_pin split_pin < <(python3 - "$MODEL" <<'PYPINS'
+import json, sys
+from pathlib import Path
+from bench import models
+spec = models.get(sys.argv[1])
+lock = json.loads(Path("export/hub-lock.json").read_text())
+print(lock.get(spec.torch_repo, "-"), lock.get(spec.split_repo, "-"))
+PYPINS
+)
+[[ "$checkpoint_override" != x && -d "$DEST/$MODEL-torch--$torch_pin" ]] && CKPT="$DEST/$MODEL-torch--$torch_pin"
+[[ "$bundle_override" != x && -d "$DEST/$MODEL-split--$split_pin" ]] && BUNDLE="$DEST/$MODEL-split--$split_pin"
 ITERS="${ITERS:-100}"
 OBS="${OBS:-synthetic}"
 case "$MODEL" in

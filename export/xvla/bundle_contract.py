@@ -12,6 +12,9 @@ from pathlib import Path
 SCHEMA_VERSION = 2
 _PROCESSOR_JSONS = ("policy_preprocessor.json", "policy_postprocessor.json")
 _TOKENIZER_PATTERNS = (
+    # BART has no tokenizer_class in tokenizer_config.json. AutoTokenizer needs
+    # model_type from config.json to select its special-token defaults.
+    "config.json",
     "tokenizer*",
     "vocab.json",
     "merges.txt",
@@ -238,6 +241,13 @@ def materialize_tokenizer(source: str | Path, out: str | Path) -> dict:
         shutil.rmtree(target)
     target.mkdir(parents=True)
     tokenizer.save_pretrained(target)
+    # Check the portable saved tokenizer, rather than relying on a host Hub
+    # cache that happens to contain the model config and special-token defaults.
+    saved = AutoTokenizer.from_pretrained(str(target), local_files_only=True)
+    prompt = "pick up the cube and place it in the box"
+    options = dict(max_length=50, padding="max_length", truncation=True)
+    if saved(prompt, **options)["input_ids"] != tokenizer(prompt, **options)["input_ids"]:
+        raise ValueError("saved tokenizer does not preserve source token IDs and padding")
     return {
         "source": str(source),
         "revision": revision,

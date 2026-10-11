@@ -14,8 +14,10 @@ import torch
 import torch.nn.functional as F
 from openpi.models_pytorch.pi0_pytorch import create_sinusoidal_pos_embedding
 
-ROOT = Path(__file__).resolve().parent
-WEIGHTS = Path('/workspace/checkpoints/pi05_libero_pytorch/model.safetensors')
+from paths import stage_root
+ROOT = stage_root()
+from paths import checkpoint
+WEIGHTS = checkpoint() / "model.safetensors"
 
 
 def main():

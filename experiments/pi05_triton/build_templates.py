@@ -9,7 +9,10 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import sys
 import time
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import numpy as np
 import tensorrt as trt

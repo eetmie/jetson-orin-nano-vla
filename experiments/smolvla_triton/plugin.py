@@ -4,6 +4,17 @@ import tensorrt as trt
 import tensorrt.plugin as trtp
 
 
+def compile_sm87(source, options):
+    """AOT emits SM87 PTX; automatic driver discovery would require Torch.
+
+    TensorRT owns device execution. AOT compilation needs only the explicit
+    hardware target; the usage doctor checks that the current device is SM87.
+    """
+    import triton
+    from triton.backends.compiler import GPUTarget
+    return triton.compile(source, target=GPUTarget("cuda", 87, 32), options=options)
+
+
 @trtp.register('nano_vla::row_softmax')
 def describe(inp: trtp.TensorDesc) -> trtp.TensorDesc:
     return inp.like()
@@ -23,7 +34,7 @@ def compile_kernel(inp: trtp.TensorDesc, outputs: Tuple[trtp.TensorDesc],
     src=triton.compiler.ASTSource(softmax_aot,
         signature={'X':f'*{dtype}','n_cols':'i32','row_stride':'i32','Y':f'*{dtype}'},
         constexprs={'BLOCK_N':1024})
-    compiled=triton.compile(src,options={'num_warps':4})
+    compiled=compile_sm87(src,options={'num_warps':4})
     launch=trtp.KernelLaunchParams()
     cols=inp.shape_expr[inp.ndim-1]
     launch.grid_x=inp.shape_expr.numel()//cols
@@ -59,7 +70,7 @@ def _compile_attention(q, aligned):
         signature={'Q':'*fp16','Kt':'*fp16','V':'*fp16','Mask':'*fp16','n_ctx':'i32','O':'*fp16'},
         constexprs={'BLOCK_M':128,'BLOCK_N':64,'D':64},
         attrs={(i,): [['tt.divisibility',16]] for i in range(6)} if aligned else {})
-    compiled=triton.compile(src,options={'num_warps':4,'num_stages':2})
+    compiled=compile_sm87(src,options={'num_warps':4,'num_stages':2})
     assert getattr(compiled.metadata,'global_scratch_size',0)==0
     launch=trtp.KernelLaunchParams()
     seq=q.shape_expr[2]
@@ -110,7 +121,7 @@ def compile_masked(inp: trtp.TensorDesc, mask: trtp.TensorDesc, outputs: Tuple[t
     src=triton.compiler.ASTSource(masked_softmax_aot,
         signature={'X':'*fp16','Mask':'*fp16','n_cols':'i32','row_stride':'i32','Y':'*fp16'},
         constexprs={'BLOCK_N':1024})
-    compiled=triton.compile(src,options={'num_warps':4})
+    compiled=compile_sm87(src,options={'num_warps':4})
     cols=inp.shape_expr[inp.ndim-1]
     launch=trtp.KernelLaunchParams()
     launch.grid_x=inp.shape_expr.numel()//cols
@@ -173,7 +184,7 @@ def compile_attention_native(q: trtp.TensorDesc, k: trtp.TensorDesc, v: trtp.Ten
         constexprs={'N_CTX':seq,'H':heads,'SCALE':VISION_SCALE,'BLOCK_M':tile['BLOCK_M'],
                     'BLOCK_N':tile['BLOCK_N'],'D':dim},
         attrs={(i,): [['tt.divisibility',16]] for i in range(4)})
-    compiled=triton.compile(src,options={'num_warps':tile['num_warps'],'num_stages':tile['num_stages']})
+    compiled=compile_sm87(src,options={'num_warps':tile['num_warps'],'num_stages':tile['num_stages']})
     assert getattr(compiled.metadata,'global_scratch_size',0)==0
     launch=trtp.KernelLaunchParams()
     launch.grid_x=seq//tile['BLOCK_M']
@@ -208,7 +219,7 @@ def compile_attention_qkv(qkv: trtp.TensorDesc, outputs: Tuple[trtp.TensorDesc],
         constexprs={'N_CTX':seq,'H':heads,'SCALE':VISION_SCALE,'BLOCK_M':tile['BLOCK_M'],
                     'BLOCK_N':tile['BLOCK_N'],'D':dim},
         attrs={(i,): [['tt.divisibility',16]] for i in range(2)})
-    compiled=triton.compile(src,options={'num_warps':tile['num_warps'],'num_stages':tile['num_stages']})
+    compiled=compile_sm87(src,options={'num_warps':tile['num_warps'],'num_stages':tile['num_stages']})
     assert getattr(compiled.metadata,'global_scratch_size',0)==0
     launch=trtp.KernelLaunchParams()
     launch.grid_x=seq//tile['BLOCK_M']

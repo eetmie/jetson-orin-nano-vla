@@ -1,4 +1,12 @@
-# 2. Environments — three venvs, and why they cannot be one
+# 2. Python environments
+
+For all six native models, use the
+[all-model setup workflow](10-all-model-setup.md). `.venv-trt` supplies TensorRT,
+NumPy, OpenCV, tokenizers/processors and monitoring; `.venv-triton` adds the
+SM87 AOT compiler. Both isolate Python dependencies and link only JetPack's
+TensorRT package. Neither needs Torch. The reference/ORT environments below
+remain available for optional comparisons; their constraints capture the existing
+board environments and have not received the same fresh-install validation.
 
 | venv | backend | brings |
 |---|---|---|
@@ -78,7 +86,8 @@ then "resolves" it by downgrading numpy, which breaks lerobot's own `numpy>=2` p
 Installing both **into** the venv settles it:
 
 ```bash
-pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"
+pip install -c requirements/torch-xvla-constraints.txt --ignore-installed \
+    "numpy==2.5.2" "scipy==1.18.1"
 ```
 
 `scripts/13_env_torch_xvla.sh` does this and then asserts that `XVLAPolicy` imports.

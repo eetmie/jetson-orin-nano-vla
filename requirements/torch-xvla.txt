@@ -1,3 +1,4 @@
+-c torch-xvla-constraints.txt
 # Backend: stock PyTorch for X-VLA (LeRobot XVLAPolicy).
 #
 # SEPARATE from requirements/torch.txt on purpose. The X-VLA export tooling only works
@@ -9,7 +10,7 @@
 #   pip install -r requirements/torch-xvla.txt
 #   pip install --force-reinstall --no-deps torch==2.11.0 torchvision==0.26.0 \
 #       --extra-index-url https://pypi.jetson-ai-lab.io/sbsa/cu130
-#   pip install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"     # NOT optional
+#   pip install -c requirements/torch-xvla-constraints.txt --ignore-installed numpy==2.5.2 scipy==1.18.1
 #
 # scripts/13_env_torch_xvla.sh does this in the right order.
 #
@@ -20,7 +21,8 @@
 # venv settles it.
 
 lerobot[xvla]==0.6.1
--r bench.txt
+numpy==2.5.2
+opencv-python-headless==4.13.0.92
 
 # Not a mistake: the X-VLA *PyTorch* backend imports preprocess_image from the vendored
 # xvla_split_ort, which imports onnxruntime at module scope. Without this the torch

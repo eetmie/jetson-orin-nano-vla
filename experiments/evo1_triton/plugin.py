@@ -23,12 +23,13 @@ def tune(x: trtp.TensorDesc, w: trtp.TensorDesc, b: trtp.TensorDesc, outputs: Tu
 def compile_gemv(x: trtp.TensorDesc, w: trtp.TensorDesc, b: trtp.TensorDesc, outputs: Tuple[trtp.TensorDesc],
                  tactic: int) -> Tuple[Union[str, bytes], Union[str, bytes], trtp.KernelLaunchParams, trtp.SymExprs]:
     import triton
+    from bench.vendor.triton_compile import compile_sm87
     from kernels import gemv_bias_aot
     src = triton.compiler.ASTSource(gemv_bias_aot,
         signature={'X': '*fp16', 'W': '*fp16', 'B': '*fp16', 'Y': '*fp16'},
         constexprs={'N': N, 'K': K, 'BLOCK_N': TILE['BLOCK_N'], 'BLOCK_K': TILE['BLOCK_K']},
         attrs={(i,): [['tt.divisibility', 16]] for i in range(4)})
-    k = triton.compile(src, options={'num_warps': TILE['num_warps']})
+    k = compile_sm87(src, options={'num_warps': TILE['num_warps']})
     assert getattr(k.metadata, 'global_scratch_size', 0) == 0
     launch = trtp.KernelLaunchParams()
     launch.grid_x = N//TILE['BLOCK_N']

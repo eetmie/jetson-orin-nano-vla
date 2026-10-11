@@ -1,8 +1,9 @@
 # jetson-orin-nano-vla
 
-> **Work in progress.** The numbers below are real, but the scripts are not turn-key
-> yet: expect to adapt paths, bundles and experiment caches before the tests run on
-> your own board.
+The [all-model benchmark workflow](docs/10-all-model-setup.md) creates dedicated
+runtime/compiler environments and builds fresh engines for each listed model.
+Model revisions, upstream source and Python dependency closures are pinned.
+See the [test audit](docs/09-test-audit.md) for actual validation coverage.
 
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
 
@@ -72,11 +73,12 @@ stage's time goes and whether it is compute- or bandwidth-bound.
 The selected [SmolVLA configuration](experiments/smolvla_triton/#layout-cross-attention-kv-and-rope)
 combines fused vision attention, packed expert gated projections, cross-attention K/V
 computed once per observation (`export.sh --hoist-cross-kv`), image scaling on the GPU,
-a lighter tokenizer and a bounded prompt cache. It uses an explicitly verified
-experimental engine cache; follow that reproduction command to obtain the row above.
+a lighter tokenizer and a bounded prompt cache. The setup workflow builds and verifies
+that configuration in a new engine cache.
 The ordinary ONNX build path retains its standard TensorRT engines. Weights and
 activations stay FP16 with norms and softmax in FP32; the custom kernels accumulate in
-FP32, while TensorRT chooses FP16-accumulating kernels for many of its own GEMMs.
+FP32. Current builds also default TensorRT's FP16 MatMuls to FP32 accumulation;
+`--accumulate auto` restores TensorRT's own choice.
 
 ## Parity
 
@@ -91,35 +93,38 @@ refuses to run if the engines miss it. Per-model values are in
 
 ## Run it
 
-Export on the machine you fine-tune on, copy the bundle to the Orin whole, and run it
-there. Engines are built on the Orin on the first run and cached.
+Export on a Linux Python 3.12 machine with enough memory for the stock policy, copy
+each whole bundle to the Orin, then build and benchmark there. The
+[all-model recipe](docs/10-all-model-setup.md) includes all six export commands.
 
 ```bash
 # on the export machine
-export/setup.sh                       # SmolVLA, X-VLA and EVO1
-export/export.sh lerobot/smolvla_base ~/bundles/smolvla-base-split --views 2
-export/export.sh lerobot/xvla-base ~/bundles/xvla-base-split
-export/export.sh zuoxingdong/evo1_libero ~/bundles/evo1-libero-split \
-    --task "pick up the black bowl and place it on the plate"
-
-export/setup.sh groot                 # GR00T N1.6
-export/export.sh nvidia/GR00T-N1.6-3B ~/bundles/groot-n16-base-split
-export/setup.sh groot17               # GR00T N1.7
-export/export.sh nvidia/GR00T-N1.7-3B ~/bundles/groot-n17-base-split
+export/setup.sh smolvla
+export/export.sh lerobot/smolvla_base ~/vla-bundles/smolvla-base \
+    --views 2 --hoist-cross-kv
 
 # on the Orin
 scripts/00_host_prep.sh
-scripts/11_env_ort.sh
-MODEL=smolvla-base   BUNDLE=~/bundles/smolvla-base-split   scripts/run_all.sh
-MODEL=groot-n16-base BUNDLE=~/bundles/groot-n16-base-split scripts/run_all.sh
+scripts/12_env_trt.sh
+scripts/14_env_triton.sh
+python3 -m bench.tools.vla_setup --model smolvla-base \
+    --bundle ~/vla-bundles/smolvla-base --work-dir ~/vla-runs/smolvla-new
+
+# With all six bundles in subdirectories named by model key:
+python3 -m bench.tools.vla_setup --model all --bundles-dir ~/vla-bundles \
+    --work-dir ~/vla-runs/all-new --keep-going
 ```
 
-Engines accumulate every FP16 MatMul in FP32 by default (`--accumulate fp32`, ~1 %
-slower than letting TensorRT choose, and 20–40 % lower action error on SmolVLA);
-`--accumulate auto` gives TensorRT's own choice. The two are cached in separate
-directories.
+Environment and work directories must be new. The workflow checks bundle hashes,
+imports, CUDA access and action parity, builds the selected Triton replacements,
+and measures each model for 300 seconds. Models run serially to fit the board.
+Use `--duration-s 10` for a functional smoke test. The native runtime needs neither
+Torch nor Triton; Triton is installed only in the separate builder environment.
+Model and auxiliary checkpoint revisions, upstream source, and complete Python
+dependency closures are pinned. See the [test audit](docs/09-test-audit.md) for
+fresh-clone coverage and its limits.
 
-`run_all.sh` also runs the PyTorch reference for SmolVLA and X-VLA when its venv exists
+The optional comparison runner `scripts/run_all.sh` runs the PyTorch reference for SmolVLA and X-VLA when its venv exists
 (`scripts/10_env_torch.sh`, `scripts/13_env_torch_xvla.sh`) and the checkpoint has been
 fetched (`python -m bench fetch --model <model> --what torch`).
 
@@ -128,9 +133,9 @@ fetched (`python -m bench fetch --model <model> --what torch`).
   its terms on Hugging Face before exporting. It sees every camera now and 30 frames
   earlier; the runtime reuses the earlier frame's encode.
 - `evo1-libero` and `pi05-libero` actions mean something for LIBERO's embodiment only.
-- π0.5 is a prototype: its export (`export/pi05/`) runs in the openpi container and is
-  not an `export.sh` entry yet. The compact prefix packs only the real camera views and
-  prompt tokens, and fits short prompts.
+- π0.5 exports with `export/export.sh pi05-libero OUT`. This builds its pinned GPU
+  container, downloads and converts the pinned checkpoint, and creates the compact
+  prefix bundle for short prompts. See [its export recipe](export/pi05/).
 - The ORT rows ran the Hugging Face bundles ([`eetmie/smolvla-base-onnx`](https://huggingface.co/eetmie/smolvla-base-onnx),
   [`eetmie/xvla-base-onnx`](https://huggingface.co/eetmie/xvla-base-onnx)) with
   `bench ort-split`. Building X-VLA's ORT engines needs 4 GB swap and a freshly booted,
@@ -143,6 +148,9 @@ fetched (`python -m bench fetch --model <model> --what torch`).
 
 - [Host setup](docs/01-host-setup.md)
 - [Python environments](docs/02-environments.md)
+- [Benchmark all six models](docs/10-all-model-setup.md)
+- [Optimized SmolVLA setup](docs/08-smolvla-setup.md)
+- [Test audit and clean-install coverage](docs/09-test-audit.md)
 - [Model and runtime contracts](docs/03-backends.md)
 - [Metric definitions](docs/04-metrics.md)
 - [Benchmark runbook](docs/05-runbook.md)

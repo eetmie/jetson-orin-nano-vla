@@ -68,12 +68,18 @@ network_inputs={net.get_input(i).name for i in range(net.num_inputs)}
 def emulate(layer,arr):
     """Apply one parsed Reshape/Transpose shuffle to an index array."""
     layer.__class__=trt.IShuffleLayer
-    assert layer.num_inputs==1 or layer.get_input(1) is None, f'{layer.name}: dynamic reshape'
     arr=arr.transpose(tuple(layer.first_transpose)[:arr.ndim])
-    try:
-        dims=tuple(layer.reshape_dims)
-    except ValueError:  # nbDims -1: no reshape set
-        dims=()
+    if layer.num_inputs>1 and layer.get_input(1) is not None:
+        # Legacy ONNX may express an entirely static shape as a tensor of
+        # concatenated constants. Reject nonconstant shapes via constant_value.
+        shape=constant_value(layer.get_input(1))
+        assert shape.ndim==1 and np.issubdtype(shape.dtype,np.integer), layer.name
+        dims=tuple(int(d) for d in shape)
+    else:
+        try:
+            dims=tuple(layer.reshape_dims)
+        except ValueError:  # nbDims -1: no reshape set
+            dims=()
     if dims:
         if layer.zero_is_placeholder:
             dims=tuple(arr.shape[i] if d==0 else d for i,d in enumerate(dims))
@@ -83,11 +89,31 @@ def emulate(layer,arr):
 
 def constant_value(t):
     layer=producers[t.name]
-    while layer.type in [trt.LayerType.SHUFFLE,trt.LayerType.CAST]:
-        layer=producers[layer.get_input(0).name]
+    if layer.type==trt.LayerType.SHUFFLE:
+        return emulate(layer,constant_value(layer.get_input(0)))
+    if layer.type==trt.LayerType.CAST:
+        value=constant_value(layer.get_input(0))
+        return value.astype(trt.nptype(t.dtype),copy=False)
+    if layer.type==trt.LayerType.CONCATENATION:
+        layer.__class__=trt.IConcatenationLayer
+        return np.concatenate([constant_value(layer.get_input(i))
+                               for i in range(layer.num_inputs)],axis=layer.axis)
+    if layer.type in [trt.LayerType.UNSQUEEZE,trt.LayerType.SQUEEZE]:
+        value=constant_value(layer.get_input(0))
+        axes=constant_value(layer.get_input(1))
+        assert axes.ndim==1 and np.issubdtype(axes.dtype,np.integer), layer.name
+        operation=np.expand_dims if layer.type==trt.LayerType.UNSQUEEZE else np.squeeze
+        return operation(value,axis=tuple(int(axis) for axis in axes))
+    if layer.type==trt.LayerType.UNARY:
+        layer.__class__=trt.IUnaryLayer
+        assert layer.op==trt.UnaryOperation.SQRT, layer.name
+        # Current legacy ONNX export retains sqrt(constant) for SDPA scaling.
+        # Evaluate only this static expression, retaining its output precision.
+        value=constant_value(layer.get_input(0))
+        return np.sqrt(value.astype(np.float32)).astype(trt.nptype(t.dtype))
     assert layer.type==trt.LayerType.CONSTANT, layer.name
     layer.__class__=trt.IConstantLayer
-    return np.asarray(layer.weights)
+    return np.asarray(layer.weights).reshape(tuple(t.shape))
 
 
 def native(t,perm):

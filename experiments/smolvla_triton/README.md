@@ -1,5 +1,11 @@
 # Initial SmolVLA Triton tests on Orin Nano
 
+For the currently selected configuration, start with the
+[automated setup workflow](../../docs/08-smolvla-setup.md). It creates fresh caches
+from an explicit bundle and uses a dedicated Triton environment. The dated paths
+below document earlier measurements. AOT builds explicitly target SM87 so they
+can compile without Torch-dependent automatic driver discovery.
+
 The Desktop triton-kernel-lab softmax examples compile and run on the actual 8 GB
 Orin Nano Super (SM87). They also work inside serialized TensorRT engines through
 the AOT plugin API. **Neither initial policy candidate improves on TensorRT.**

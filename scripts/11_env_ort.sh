@@ -11,8 +11,8 @@ VENV="${1:-.venv-ort}"
 INDEX="https://pypi.jetson-ai-lab.io/sbsa/cu130"
 
 python3 -m venv --system-site-packages "$VENV"
-"$VENV/bin/pip" install -U pip wheel
-"$VENV/bin/pip" install -r requirements/ort-split.txt --extra-index-url "$INDEX"
+"$VENV/bin/pip" install -c requirements/ort-constraints.txt pip==26.2.1 wheel==0.48.0
+"$VENV/bin/pip" install -c requirements/ort-constraints.txt -r requirements/ort-split.txt --extra-index-url "$INDEX"
 
 "$VENV/bin/python" - <<'PY'
 import tensorrt, onnxruntime as ort

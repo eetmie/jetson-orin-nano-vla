@@ -2,6 +2,7 @@
 from typing import Tuple, Union
 import tensorrt as trt
 import tensorrt.plugin as trtp
+from plugin import compile_sm87
 
 @trtp.register('nano_vla::expert_gated_projection')
 def describe(x: trtp.TensorDesc, weight: trtp.TensorDesc) -> trtp.TensorDesc:
@@ -22,7 +23,7 @@ def compile_kernel(x: trtp.TensorDesc, weight: trtp.TensorDesc, outputs: Tuple[t
         signature={'X':'*fp16','Weight':'*fp16','Y':'*fp16'},
         constexprs={'M':50,'N':2048,'K':720,'BM':64,'BN':128,'BK':32},
         attrs={(i,):[['tt.divisibility',16]] for i in range(3)})
-    kernel = triton.compile(source,options={'num_warps':4,'num_stages':2,'enable_fp_fusion':False})
+    kernel = compile_sm87(source,options={'num_warps':4,'num_stages':2,'enable_fp_fusion':False})
     assert getattr(kernel.metadata,'global_scratch_size',0) == 0
     launch = trtp.KernelLaunchParams()
     launch.grid_x = 1

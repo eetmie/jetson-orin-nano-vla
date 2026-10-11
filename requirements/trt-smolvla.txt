@@ -1,0 +1,8 @@
+# Tested native SmolVLA runtime on JetPack 7.2.1 / Python 3.12.
+# TensorRT bindings are linked from JetPack; CUDA remains a system library.
+# Baseline and candidate use the saved Rust tokenizer via the setup workflow.
+-c trt-smolvla-constraints.txt
+numpy==2.5.2
+opencv-python-headless==5.0.0.93
+tokenizers==0.22.2
+psutil==7.2.2

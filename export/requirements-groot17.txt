@@ -1,3 +1,4 @@
+-c constraints-groot17.txt
 # GR00T N1.7 exporter (export/setup.sh groot17). transformers/diffusers/peft follow
 # Isaac-GR00T n1.7-release (Qwen3-VL needs transformers 4.57); flash-attn is NOT needed: the
 # exporter runs the backbone with eager attention, which is what an ONNX trace needs.

@@ -8,17 +8,17 @@ VENV="${1:-.venv-torch-xvla}"
 INDEX="https://pypi.jetson-ai-lab.io/sbsa/cu130"
 
 python3 -m venv --system-site-packages "$VENV"
-"$VENV/bin/pip" install -U pip wheel
-"$VENV/bin/pip" install -r requirements/torch-xvla.txt
+"$VENV/bin/pip" install -c requirements/torch-xvla-constraints.txt pip==26.2.1 wheel==0.48.0
+"$VENV/bin/pip" install -c requirements/torch-xvla-constraints.txt -r requirements/torch-xvla.txt
 # PINNED, not latest. An unpinned resolve picks up torch 2.13.0, whose
 # libtorch_cuda.so wants `ncclCommResume` -- a symbol JetPack 7.2 does not provide, so
 # `import torch` dies with an ImportError that names the symbol and nothing else. These
 # are the wheels .venv-torch already runs.
-"$VENV/bin/pip" install --force-reinstall --no-deps \
+"$VENV/bin/pip" install -c requirements/torch-xvla-constraints.txt --force-reinstall --no-deps \
     "torch==2.11.0" "torchvision==0.26.0" --extra-index-url "$INDEX"
 # See requirements/torch-xvla.txt: the JetPack scipy shadows through and breaks
 # `import lerobot`. Install both into the venv rather than letting pip downgrade numpy.
-"$VENV/bin/pip" install --ignore-installed "numpy>=2.2.6" "scipy>=1.14"
+"$VENV/bin/pip" install -c requirements/torch-xvla-constraints.txt --ignore-installed "numpy==2.5.2" "scipy==1.18.1"
 
 "$VENV/bin/python" - <<'PY'
 import torch, numpy, scipy

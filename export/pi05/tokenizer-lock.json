@@ -1,0 +1,12 @@
+{
+  "bucket": "big_vision",
+  "prefix": "",
+  "objects": [
+    {
+      "file": "paligemma_tokenizer.model",
+      "generation": "1711547605575873",
+      "size": 4264023,
+      "sha256": "8986bb4f423f07f8c7f70d0dbe3526fb2316056c17bae71b1ea975e77a168fc6"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+-c torch-constraints.txt
 # Backend: stock PyTorch (LeRobot SmolVLAPolicy).
 #
 # ORDER MATTERS on a Jetson. `pip install lerobot` resolves torch from PyPI, whose
@@ -18,5 +19,6 @@
 
 lerobot==0.5.1        # the pin the DGX Spark trains and exports with
 transformers==5.3.0   # pinned to match the Spark export; the tokenizer must agree
-num2words             # the SmolVLM processor imports it; lerobot does not declare it
--r bench.txt
+num2words==0.5.14     # the SmolVLM processor imports it; lerobot does not declare it
+numpy==2.5.2
+opencv-python-headless==4.13.0.92

@@ -19,11 +19,13 @@ from torch import nn
 
 from export_utils import ROOT, accumulation, pack, sha
 
-INITIAL = ROOT.parent / 'orin_initial_20261010_001'
+from paths import initial_root
+INITIAL = initial_root()
 sys.path.insert(0, str(INITIAL))
 from prepare_blocks import GemmaBlock, VisionBlock, array
 
-CHECKPOINT = Path('/workspace/checkpoints/pi05_libero_pytorch')
+from paths import checkpoint
+CHECKPOINT = checkpoint()
 IMAGE_KEYS = ['base_0_rgb', 'left_wrist_0_rgb', 'right_wrist_0_rgb']
 
 

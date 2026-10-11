@@ -22,8 +22,10 @@ from transformers.models.gemma.modeling_gemma import (
 )
 from transformers.models.siglip.modeling_siglip import SiglipEncoderLayer
 
-ROOT = Path(__file__).resolve().parent
-CHECKPOINT = Path('/workspace/checkpoints/pi05_libero_pytorch')
+from paths import stage_root
+ROOT = stage_root()
+from paths import checkpoint
+CHECKPOINT = checkpoint()
 WEIGHTS = CHECKPOINT / 'model.safetensors'
 
 

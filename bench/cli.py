@@ -282,6 +282,8 @@ def cmd_models(args) -> int:
 
 
 def cmd_fetch(args) -> int:
+    if getattr(args, "revision", None) and args.what == "both":
+        raise ValueError("--revision selects one repository: use --what torch or --what split")
     spec = models.get(args.model)
     cache = Path(args.dest).expanduser() if args.dest else Path.home() / "bundles"
     want = ["torch", "split"] if args.what == "both" else [args.what]
@@ -293,7 +295,8 @@ def cmd_fetch(args) -> int:
                   + (" Export it — see docs/03-backends.md." if kind == "split" else ""))
             continue
         print(f"fetching {kind}: {repo}")
-        path = models.fetch(repo, subdir=f"{spec.key}-{kind}", cache=cache)
+        path = models.fetch(repo, subdir=f"{spec.key}-{kind}", cache=cache,
+                            revision=getattr(args, "revision", None))
         print(f"  -> {path}")
         fetched += 1
     return 0 if fetched else 2
@@ -400,6 +403,7 @@ def main(argv=None) -> int:
     p.add_argument("--model", required=True, choices=sorted(models.REGISTRY))
     p.add_argument("--what", choices=["torch", "split", "both"], default="both")
     p.add_argument("--dest", default=None, help="default ~/bundles")
+    p.add_argument("--revision", help="full HF commit SHA; default: export/hub-lock.json")
     p.set_defaults(func=cmd_fetch)
 
     p = sub.add_parser("report", help="run JSONs -> markdown tables")

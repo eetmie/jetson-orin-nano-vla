@@ -9,7 +9,8 @@ import numpy as np
 import onnx
 from onnx import TensorProto, helper, numpy_helper, shape_inference
 
-ROOT = Path(__file__).resolve().parent
+from paths import stage_root
+ROOT = stage_root()
 
 
 def sha(path):

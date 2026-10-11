@@ -328,7 +328,8 @@ def describe() -> str:
     return "\n".join(rows)
 
 
-def fetch(repo: str, subdir: str | None = None, cache: Path | None = None) -> Path:
+def fetch(repo: str, subdir: str | None = None, cache: Path | None = None,
+          revision: str | None = None) -> Path:
     """Download an HF repo and return the local path.
 
     Large safetensors have been observed to stall here: the process stays alive, the
@@ -336,11 +337,19 @@ def fetch(repo: str, subdir: str | None = None, cache: Path | None = None) -> Pa
     never fires. If that happens, `scripts/fetch_models.sh` uses the `hf` CLI, whose
     resume behaviour is better, and a curl fallback is documented there.
     """
+    import json
+    import re
+    if revision is None:
+        pins = json.loads((Path(__file__).resolve().parents[1] / "export/hub-lock.json").read_text())
+        revision = pins.get(repo)
+    if not revision or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError(f"Unpinned {repo}: pass a full commit SHA with --revision")
     from huggingface_hub import snapshot_download
 
     local = snapshot_download(
         repo_id=repo,
-        local_dir=str((cache or Path.home() / "bundles") / (subdir or repo.replace("/", "__"))),
+        revision=revision,
+        local_dir=str((cache or Path.home() / "bundles") / ((subdir or repo.replace("/", "__")) + "--" + revision)),
         max_workers=4,
     )
     return Path(local)
