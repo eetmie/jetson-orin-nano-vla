@@ -54,12 +54,13 @@ def _build_policy(base: Path, seed: int, seq_len: int, max_views: int = 1,
     torch.manual_seed(seed)
 
     if checkpoint is not None:
-        policy = Evo1Policy.from_pretrained(str(checkpoint))
-        config = policy.config
-        # The checkpoint was trained against the Hub id; point it at the verified local
-        # base so the export never reaches the network mid-trace.
+        from lerobot.configs.policies import PreTrainedConfig
+        config = PreTrainedConfig.from_pretrained(str(checkpoint))
+        # Before construction: the checkpoint says cuda and names the Hub id. Build on the
+        # CPU from the verified local base, so the export never touches the GPU or network.
         config.vlm_model_name = str(base)
         config.device = "cpu"
+        policy = Evo1Policy.from_pretrained(str(checkpoint), config=config)
         config.vlm_dtype = "float32"
         config.use_amp = False
         config.use_flash_attn = False
