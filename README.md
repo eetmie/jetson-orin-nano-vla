@@ -13,7 +13,7 @@ all on a pure TensorRT runtime (`bench trt-split`).
 | X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) |
 | GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) |
 | GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) |
-| π0.5 LIBERO 3.3B (prototype) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` |
+| π0.5 LIBERO 3.3B (openpi) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` |
 | π0.5 base 3.3B (LeRobot) | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) |
 
 ## Measured fit

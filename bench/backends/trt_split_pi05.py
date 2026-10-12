@@ -1,4 +1,4 @@
-"""pi0.5 split bundles on the TensorRT runtime (prototype).
+"""pi0.5 split bundles on the TensorRT runtime (openpi LIBERO and LeRobot exports).
 
 Refitted layer templates, one device-resident chain, CUDA-graph replay by default. The
 bundle carries full-FP16 PyTorch reference trajectories; load runs them and refuses to
@@ -28,7 +28,7 @@ class TrtSplitPi05Backend(Backend):
     def __init__(self, bundle: Path, cache_dir: str, chain: str = "graph") -> None:
         self.bundle_dir = Path(bundle)
         self.cache_dir = cache_dir
-        # The prototype chain is device-resident by construction; there is no numpy one.
+        # The chain is device-resident by construction; there is no numpy one.
         self.chain = "device" if chain == "host" else chain
         self.bundle = None
 

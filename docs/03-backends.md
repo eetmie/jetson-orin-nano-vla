@@ -247,7 +247,7 @@ what was used). The first call uses the current frame for both slots.
 Engines go to `~/.cache/jetson-orin-nano-vla/groot-n17-base-trt` (N1.6 keeps
 `groot-trt`): graph names repeat between the two bundles.
 
-## pi0.5 LIBERO (prototype)
+## pi0.5 LIBERO contract (openpi)
 
 `trt-split --model pi05-libero` runs Physical Intelligence's `pi05_libero` from a bundle
 made by the scripts in `export/pi05/` (not yet `export/export.sh`). FP16 weights and

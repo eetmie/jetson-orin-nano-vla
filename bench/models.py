@@ -180,10 +180,10 @@ REGISTRY: dict[str, ModelSpec] = {
     "pi05-libero": ModelSpec(
         key="pi05-libero",
         family="pi05",
-        label="pi0.5 LIBERO (prototype)",
+        label="pi0.5 LIBERO (openpi)",
         params_m=3354.0,
-        # openpi's pi05_libero, converted to PyTorch and exported by the prototype
-        # pipeline (see export/pi05/README.md). Not a LeRobot policy.
+        # openpi's pi05_libero, converted to PyTorch and exported by export/pi05
+        # (see export/pi05/README.md). Not a LeRobot policy.
         torch_repo=None,
         split_repo=None,
         tokenizer="bundle",
@@ -195,7 +195,7 @@ REGISTRY: dict[str, ModelSpec] = {
         state_dim=8,
         action_dim=32,
         image_views=2,
-        notes="Prototype. Two cameras (base, wrist) plus the masked third slot; 10 Euler "
+        notes="openpi export. Two cameras (base, wrist) plus the masked third slot; 10 Euler "
               "steps; actions mean something for LIBERO's embodiment only.",
         extras={"deployable": True, "source": "Physical-Intelligence/openpi pi05_libero"},
     ),
