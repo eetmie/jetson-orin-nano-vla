@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-venv_for() { [[ -x "$HERE/.venv-$1/bin/python" ]] || { echo "missing $HERE/.venv-$1: run export/setup.sh $1"; exit 1; }; echo "$HERE/.venv-$1"; }
+venv_for() { [[ -x "$HERE/.venv-$1/bin/python" ]] || "$HERE/setup.sh" "$1" >&2; echo "$HERE/.venv-$1"; }
 
 download_hf() {
   local python="$1"; shift
@@ -69,7 +69,7 @@ else
   for hf_cli in "$HERE"/.venv-*/bin/hf; do
     if [[ -x "$hf_cli" ]]; then HF="$hf_cli"; break; fi
   done
-  [[ -n "$HF" ]] || { echo "no exporter venv yet: run export/setup.sh first"; exit 1; }
+  [[ -n "$HF" ]] || { echo "no exporter environment yet: use ./export.sh <model>"; exit 1; }
   if [[ -z "$REVISION" ]]; then
     REVISION=$(python3 - "$HERE/hub-lock.json" "$SRC" <<'PYREV'
 import json, sys
@@ -214,11 +214,4 @@ esac
 
 ( cd "$OUT" && sha256sum --quiet -c MANIFEST.sha256 ) && echo ">> manifest OK"
 echo
-echo "Copy $OUT to the Jetson, then benchmark it there:"
-case "$FAMILY" in
-  groot) PROFILE=groot-n16-base ;;
-  groot17) PROFILE=groot-n17-base ;;
-  evo1) PROFILE=evo1-libero ;;
-  *) PROFILE=${FAMILY}-base ;;
-esac
-echo "  python3 -m bench.tools.vla_setup --model $PROFILE --bundle <bundle> --work-dir <new-run-dir>"
+echo "Copy $OUT to the Jetson and run it there:  ./run.sh <bundle>"
