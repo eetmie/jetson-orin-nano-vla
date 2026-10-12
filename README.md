@@ -31,9 +31,9 @@ These measure inference cost, not robot-task quality.
 | **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 342.31 ms | 343.15 ms | 2.92 Hz | 2.93 GB |
 | **GR00T N1.7 3B** TensorRT + AOT Triton, mixed FP16 | 3 (×2 frames) | 272.39 ms | 273.77 ms | 3.67 Hz | 5.72 GB |
 | **GR00T N1.6 3B** TensorRT + AOT Triton, mixed FP16 | 3 | 272.49 ms | 273.47 ms | 3.67 Hz | 5.30 GB |
-| π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
-| **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 436.30 ms | 438.01 ms | 2.29 Hz | 6.30 GB |
-| **π0.5 base** pure TensorRT FP16, FP32 language residual, chunk 50 | 3 | 642.05 ms | 643.08 ms | 1.56 Hz | 6.13 GB |
+| π0.5 LIBERO (openpi) split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
+| **π0.5 LIBERO (openpi)** TensorRT + AOT Triton FP16, compact prefix | 2 | 436.30 ms | 438.01 ms | 2.29 Hz | 6.30 GB |
+| **π0.5 base (LeRobot)** pure TensorRT FP16, FP32 language residual, chunk 50 | 3 | 642.05 ms | 643.08 ms | 1.56 Hz | 6.13 GB |
 
 `RAM in use` is whole-system usage during inference. Bold rows are 300-second runs
 with FP32 accumulation ([all-model evidence](results/all-models-20261010/fp32-accumulate/),
