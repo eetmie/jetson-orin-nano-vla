@@ -3,7 +3,12 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")" && pwd)
 command -v uv >/dev/null || { echo "uv is missing: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2; exit 1; }
-uv sync --project "$ROOT" --frozen --quiet
+if [[ -x "$ROOT/.venv/bin/python" ]]; then
+    uv sync --project "$ROOT" --frozen --quiet
+else
+    echo "Installing the Python environment (first run only, ~1 GB download)..."
+    uv sync --project "$ROOT" --frozen
+fi
 PY="$ROOT/.venv/bin/python"
 
 # TensorRT is not on PyPI for JetPack; use the system package's bindings.
