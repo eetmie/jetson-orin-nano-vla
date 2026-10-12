@@ -64,8 +64,10 @@ verify() {
         systemctl is-active --quiet "$service" \
             || { echo "$service is not active" >&2; return 1; }
     done
-    systemctl is-enabled --quiet jetson-perf.service
-    systemctl is-active --quiet jetson-perf.service
+    systemctl is-enabled --quiet jetson-perf.service \
+        || { echo "jetson-perf.service is not enabled" >&2; return 1; }
+    systemctl is-active --quiet jetson-perf.service \
+        || { echo "jetson-perf.service failed or is inactive; inspect journalctl -b -u jetson-perf.service" >&2; return 1; }
     [[ "$(systemctl show nvpmodel.service -p Result --value)" == success ]] \
         || { echo "NVIDIA's boot power service failed; resolve startup ordering and reboot" >&2; return 1; }
     if "$disable_docker"; then
@@ -81,7 +83,8 @@ verify() {
         || { echo "expected a 4 GiB /swapfile" >&2; return 1; }
     [[ "$(stat -c %a /swapfile)" == 600 ]] \
         || { echo "/swapfile must have mode 600" >&2; return 1; }
-    swapon --noheadings --raw --show=NAME | grep -Fxq /swapfile
+    swapon --noheadings --raw --show=NAME | grep -Fxq /swapfile \
+        || { echo "/swapfile is not active" >&2; return 1; }
     /usr/local/sbin/jetson-perf.sh --verify
     inspect
     echo "host ready: headless, MAXN_SUPER, pinned clocks, 4 GiB swap, SSH/Tailscale active"
