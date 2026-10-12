@@ -1,9 +1,6 @@
-"""`python -m bench ...` — the whole harness from one entry point.
+"""`python -m bench trt-split ...`: one benchmark run of an exported bundle.
 
-A run is a **model** crossed with a **backend**. `--model` pulls defaults out of the
-registry (`bench/models.py`): where the weights live, where a split ONNX export lives,
-which tokenizer, and the shapes needed to build an input. This repository registers
-public base checkpoints and one nondeployable EVO1 infrastructure bootstrap.
+./run.sh drives this through the engine builds; call it directly to rerun a stage.
 """
 
 from __future__ import annotations
@@ -17,9 +14,7 @@ from pathlib import Path
 from . import models
 from .backends.base import artifact_manifest, load_export_info
 from .obs import make_obs
-from .parity import (ResultLoadError, attach_comparison_signature, load_results,
-                     parity_report)
-from .report import build_report
+from .parity import attach_comparison_signature
 from .runner import collect_env, run_benchmark, write_result
 
 DEFAULT_CACHE = str(Path.home() / ".cache" / "jetson-orin-nano-vla" / "trt")
@@ -132,8 +127,7 @@ def _finish(args, backend, r: Resolved) -> int:
         label=label, notes=args.notes, obs_ring_size=args.obs_ring_size)
     result["model"] = {"key": args.model, "family": r.family, "task": r.task,
                        "views": r.views, "cam_slots": r.cam_slots,
-                       "state_dim": r.state_dim, "action_dim": r.action_dim,
-                       "deployable": r.spec.extras.get("deployable", True)}
+                       "state_dim": r.state_dim, "action_dim": r.action_dim}
     paths = backend.artifact_paths()
     if paths:
         result["artifacts"] = artifact_manifest(paths)
@@ -157,75 +151,8 @@ def _finish(args, backend, r: Resolved) -> int:
 
 # ── subcommands ──────────────────────────────────────────────────────────────
 
-def cmd_torch(args) -> int:
-    bundle = Path(args.bundle) if args.bundle else None
-    r = Resolved(args, bundle)
-
-    if r.family in ("evo1", "groot"):
-        sys.exit(
-            f"{args.model} has no Jetson PyTorch backend; its reference outputs are "
-            "embedded in the split bundle for parity validation"
-        )
-
-    ckpt = args.checkpoint or r.spec.torch_repo
-    if not ckpt:
-        sys.exit("no checkpoint: pass --checkpoint.")
-    if not Path(ckpt).exists():
-        print(f"[torch] {ckpt} is not a local path — treating it as a Hugging Face id. "
-              f"`python -m bench fetch --model {args.model}` downloads it first if you "
-              f"would rather not do it inside the timed load.")
-
-    if r.family == "xvla":
-        from .backends.torch_xvla import TorchXVLABackend
-        be = TorchXVLABackend(
-            Path(ckpt), weights="float32", autocast="off", device="cuda",
-            tokenizer=r.tokenizer or "facebook/bart-large", num_steps=None,
-            valid_views=r.views, lang_len=r.spec.extras.get("lang_len"),
-            compile_model=False)
-    else:
-        from .backends.torch_smolvla import TorchSmolVLABackend
-        be = TorchSmolVLABackend(
-            Path(ckpt), bundle=bundle, weights="float32", autocast="off",
-            device="cuda", action_dim=r.action_dim or 32, tokenizer_dir=None,
-            compile_model=False, patch_half_out=False,
-            cam_slots=r.cam_slots, num_steps=None)
-    return _finish(args, be, r)
-
-
-def cmd_ort_split(args) -> int:
-    bundle = Path(args.bundle) if args.bundle else None
-    r = Resolved(args, bundle)
-    if bundle is None:
-        if r.spec.split_repo:
-            sys.exit(f"--bundle not given. Fetch the split export first:\n"
-                     f"  python -m bench fetch --model {args.model} --what split\n"
-                     f"then pass --bundle <that path>.")
-        sys.exit("--bundle is required: the split ONNX export directory.")
-
-    if r.family == "evo1":
-        from .backends.ort_split_evo1 import OrtSplitEvo1Backend
-        be = OrtSplitEvo1Backend(
-            bundle, cache_dir=args.cache_dir, precision="fp16",
-            num_steps=args.num_steps)
-    elif r.family == "xvla":
-        from .backends.ort_split_xvla import OrtSplitXVLABackend
-        be = OrtSplitXVLABackend(
-            bundle, cache_dir=args.cache_dir if args.cache_dir != DEFAULT_CACHE else None,
-            precision="fp16", num_steps=args.num_steps,
-            tokenizer=r.tokenizer, seed=args.seed, valid_views=r.views)
-    else:
-        from .backends.ort_split import OrtSplitBackend
-        be = OrtSplitBackend(
-            bundle, cache_dir=args.cache_dir, precision="fp16",
-            num_steps=args.num_steps, action_dim=r.action_dim or 32,
-            drop_cuda_ep=False, seed=args.seed, projectors="gpu",
-            trt_opt_level=None, trt_workspace_mb=None,
-            tokenizer=None, iobinding=True)
-    return _finish(args, be, r)
-
-
 def trt_backend(args, r: Resolved, bundle: Path):
-    """The trt-split backend for a resolved model; shared with bench/tools/nsys_trace.py."""
+    """The trt-split backend for a resolved model."""
     from .vendor import groot_trt
     groot_trt.ACCUMULATE = getattr(args, "accumulate", None) or groot_trt.ACCUMULATE
     # groot-n16-base keeps the directory its published run used.
@@ -254,7 +181,7 @@ def trt_backend(args, r: Resolved, bundle: Path):
         from .backends.trt_split_pi05 import TrtSplitPi05Backend
         return TrtSplitPi05Backend(bundle, cache_dir=cache,
                                    chain=getattr(args, "chain", "graph"))
-    sys.exit(f"trt-split does not serve {r.family}; use ort-split.")
+    sys.exit(f"trt-split does not serve {r.family}.")
 
 
 def cmd_trt_split(args) -> int:
@@ -266,89 +193,13 @@ def cmd_trt_split(args) -> int:
 
 
 def cmd_models(args) -> int:
-    print(models.describe())
-    print()
     for s in models.REGISTRY.values():
-        print(f"{s.key}: {s.label}")
-        print(f"  task default : {s.task!r}")
-        print(f"  chunk/steps  : {s.chunk_size} / {s.num_steps}")
-        print(f"  state/action : {s.state_dim} / {s.action_dim or 'full padded width'}")
-        print(f"  tokenizer    : {s.tokenizer}")
-        print(f"  noise        : {s.noise_distribution}")
-        if s.notes:
-            print(f"  note         : {s.notes}")
-        print()
+        print(f"{s.key:16} {s.label:28} {s.checkpoint}")
     return 0
-
-
-def cmd_fetch(args) -> int:
-    if getattr(args, "revision", None) and args.what == "both":
-        raise ValueError("--revision selects one repository: use --what torch or --what split")
-    spec = models.get(args.model)
-    cache = Path(args.dest).expanduser() if args.dest else Path.home() / "bundles"
-    want = ["torch", "split"] if args.what == "both" else [args.what]
-    fetched = 0
-    for kind in want:
-        repo = spec.torch_repo if kind == "torch" else spec.split_repo
-        if not repo:
-            print(f"!! {spec.key} has no {kind} artefact to fetch."
-                  + (" Export it — see docs/03-backends.md." if kind == "split" else ""))
-            continue
-        print(f"fetching {kind}: {repo}")
-        path = models.fetch(repo, subdir=f"{spec.key}-{kind}", cache=cache,
-                            revision=getattr(args, "revision", None))
-        print(f"  -> {path}")
-        fetched += 1
-    return 0 if fetched else 2
-
-
-def cmd_report(args) -> int:
-    md = build_report([Path(p) for p in args.paths])
-    if args.out:
-        Path(args.out).write_text(md)
-        print(f"wrote {args.out}")
-    else:
-        print(md)
-    return 0
-
-
-def cmd_parity(args) -> int:
-    try:
-        report = parity_report(
-            load_results([Path(path) for path in args.paths]), args.reference)
-    except (ResultLoadError, ValueError) as exc:
-        report = {"error": str(exc)}
-    print(json.dumps(report, indent=2))
-    if report.get("error") or not report.get("comparisons"):
-        return 2
-    # Only numerical PASS is a successful parity gate. Distribution-only PLAUSIBLE
-    # remains useful evidence but cannot certify cross-runtime equality.
-    return 0 if all(c.get("verdict") == "PASS"
-                    for c in report["comparisons"]) else 1
 
 
 def cmd_env(args) -> int:
     print(json.dumps(collect_env(), indent=2))
-    return 0
-
-
-def cmd_selftest(args) -> int:
-    """Prove the measurement plumbing works before trusting a number from it."""
-    import time
-    from .monitor import make_monitor
-    mon = make_monitor(None if args.monitor == "auto" else args.monitor)
-    print(f"sampler: {type(mon).__name__}")
-    mon.start()
-    time.sleep(0.5)
-    with mon.window("idle"):
-        time.sleep(args.seconds)
-    with mon.window("load"):
-        t0 = time.time()
-        x = 0
-        while time.time() - t0 < args.seconds:
-            x += 1
-    mon.stop()
-    print(json.dumps(mon.summary(), indent=2))
     return 0
 
 
@@ -358,30 +209,10 @@ def main(argv=None) -> int:
         description="VLA inference benchmarks on a Jetson Orin Nano 8 GB.")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    p = sub.add_parser("torch", help="baseline: the LeRobot policy in PyTorch")
-    p.add_argument("--checkpoint", default=None,
-                   help="local pretrained_model dir, or an HF id (default: the model's)")
-    p.add_argument("--bundle", default=None,
-                   help="split export bundle, for stats.json / tokenizer / task")
-    _add_model(p)
-    _add_common(p)
-    p.set_defaults(func=cmd_torch)
-
-    p = sub.add_parser("ort-split", help="split ONNX export on ORT + TensorRT EP")
-    p.add_argument("--bundle", default=None, help="the split export directory")
-    p.add_argument("--cache-dir", default=DEFAULT_CACHE,
-                   help="persistent TensorRT engine cache")
-    p.add_argument("--num-steps", type=int, default=None,
-                   help="override the bundle flow/denoising steps")
-    _add_model(p)
-    _add_common(p)
-    p.set_defaults(func=cmd_ort_split)
-
     p = sub.add_parser("trt-split", help="split ONNX export on the TensorRT runtime alone")
     p.add_argument("--bundle", default=None, help="the split export directory")
     p.add_argument("--cache-dir", default=None,
-                   help="persistent TensorRT engine cache (default: one directory per "
-                        "model next to the ORT cache; graph names repeat across models)")
+                   help="persistent TensorRT engine cache (default: one directory per model)")
     p.add_argument("--chain", choices=["graph", "device", "host"], default="graph",
                    help="graph (default): the device-resident chain replayed as a CUDA "
                         "graph; device: the same chain enqueued call by call; host: numpy "
@@ -399,31 +230,8 @@ def main(argv=None) -> int:
     p = sub.add_parser("models", help="what can be benchmarked")
     p.set_defaults(func=cmd_models)
 
-    p = sub.add_parser("fetch", help="download a model's artefacts from Hugging Face")
-    p.add_argument("--model", required=True, choices=sorted(models.REGISTRY))
-    p.add_argument("--what", choices=["torch", "split", "both"], default="both")
-    p.add_argument("--dest", default=None, help="default ~/bundles")
-    p.add_argument("--revision", help="full HF commit SHA; default: export/hub-lock.json")
-    p.set_defaults(func=cmd_fetch)
-
-    p = sub.add_parser("report", help="run JSONs -> markdown tables")
-    p.add_argument("paths", nargs="*", default=["results"])
-    p.add_argument("--out", default=None)
-    p.set_defaults(func=cmd_report)
-
-    p = sub.add_parser("parity", help="compare saved action chunks across runs")
-    p.add_argument("paths", nargs="*", default=["results"])
-    p.add_argument("--reference", required=True,
-                   help="exact label of the reference run (required; parity fails closed)")
-    p.set_defaults(func=cmd_parity)
-
     p = sub.add_parser("env", help="print the machine fingerprint")
     p.set_defaults(func=cmd_env)
-
-    p = sub.add_parser("selftest", help="check the monitors read real numbers")
-    p.add_argument("--seconds", type=float, default=4.0)
-    p.add_argument("--monitor", choices=["auto", "tegrastats", "psutil"], default="auto")
-    p.set_defaults(func=cmd_selftest)
 
     args = ap.parse_args(argv)
     return args.func(args)

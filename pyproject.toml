@@ -1,0 +1,23 @@
+[project]
+name = "jetson-orin-nano-vla"
+version = "1.0.0"
+description = "VLA models on an 8 GB Jetson Orin Nano Super with TensorRT and AOT Triton kernels"
+requires-python = "==3.12.*"
+# TensorRT itself comes from JetPack (python3-libnvinfer); run.sh links it into the venv.
+dependencies = [
+    "numpy==2.5.2",
+    "opencv-python-headless==5.0.0.93",
+    "pillow==10.2.0",
+    "psutil==7.2.2",
+    "sentencepiece==0.2.2",
+    "tokenizers==0.22.2",
+    "transformers==5.3.0",
+    # Compiles the AOT kernels into the engines; inference never imports it.
+    "triton==3.6.0",
+]
+
+[tool.uv]
+package = false
+# JetPack's interpreter: TensorRT's bindings are built for it.
+python-preference = "only-system"
+environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'"]

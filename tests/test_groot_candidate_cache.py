@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-path=Path(__file__).resolve().parents[1]/'experiments/groot_triton/candidate.py'
+path=Path(__file__).resolve().parents[1]/'bench/aot/groot/candidate.py'
 spec=importlib.util.spec_from_file_location('groot_candidate_cache',path)
 candidate=importlib.util.module_from_spec(spec);spec.loader.exec_module(candidate)
 

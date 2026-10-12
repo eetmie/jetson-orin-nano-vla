@@ -7,39 +7,11 @@ from pathlib import Path
 
 import numpy as np
 
-from bench import models
 from bench.backends.base import load_export_info
-from bench.evo1_parity import _compare
 from bench.obs import make_obs
-from bench.report import validity_table
 
 
-class Evo1RegistryTests(unittest.TestCase):
-    def test_bootstrap_is_explicitly_nondeployable(self):
-        spec = models.get("evo1-bootstrap")
-        self.assertEqual(spec.family, "evo1")
-        self.assertFalse(spec.extras["deployable"])
-        self.assertIsNone(spec.torch_repo)
-        self.assertIsNone(spec.split_repo)
-        self.assertEqual(spec.noise_distribution, "uniform")
-
-    def test_report_exposes_nondeployable_validity(self):
-        rendered = validity_table([{
-            "label": "evo1-bootstrap.ort",
-            "model": {"deployable": False},
-            "validity": {
-                "execution": "pass",
-                "instrumentation": "pass",
-                "placement": "not_checked",
-                "parity": "pass",
-                "provenance": "pass",
-            },
-        }])
-        self.assertIn("evo1-bootstrap.ort", rendered)
-        self.assertIn("**no**", rendered)
-        self.assertIn("| evo1-bootstrap.ort | pass | pass | not_checked | pass | **no** |",
-                      rendered)
-
+class Evo1BundleTests(unittest.TestCase):
     def test_bundle_json_is_an_export_contract(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -49,10 +21,6 @@ class Evo1RegistryTests(unittest.TestCase):
 
 
 class Evo1ObservationTests(unittest.TestCase):
-    def test_fixture_comparison_rejects_shape_mismatch(self):
-        with self.assertRaisesRegex(ValueError, "fixture shape mismatch"):
-            _compare(np.zeros((2, 3)), np.zeros((3, 2)))
-
     def test_uniform_noise_is_deterministic_and_bounded(self):
         source = make_obs(
             "synthetic",

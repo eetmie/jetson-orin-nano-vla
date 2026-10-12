@@ -1,3 +1,0 @@
-# AOT compilation only; runtime does not install this dependency.
--r trt.txt
-triton==3.6.0

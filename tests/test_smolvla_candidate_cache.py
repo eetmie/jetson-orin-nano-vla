@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from experiments.smolvla_triton.candidate_cache import sha256, verify_candidate
+from bench.aot.smolvla.candidate_cache import sha256, verify_candidate
 
 class CandidateCacheTests(unittest.TestCase):
     def setUp(self):
