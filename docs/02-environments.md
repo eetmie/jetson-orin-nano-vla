@@ -1,6 +1,6 @@
 # 2. Python environments
 
-For all six native models, use the
+For the seven supported native models, use the
 [all-model setup workflow](10-all-model-setup.md). `.venv-trt` supplies TensorRT,
 NumPy, OpenCV, tokenizers/processors and monitoring; `.venv-triton` adds the
 SM87 AOT compiler. Both isolate Python dependencies and link only JetPack's
@@ -63,7 +63,16 @@ Unused venvs consume disk space; they do not consume inference RAM.
 
 The [2026-10-12 experiment](09-test-audit.md#uv-native-environment-experiment--2026-10-12)
 checks repeated installation, all-model doctors and a fresh SmolVLA build/inference
-smoke test. uv remains opt-in; reference environments and exporters still use pip.
+smoke test. The subsequent [second-board clean install](09-test-audit.md#fresh-second-board-clean-install--2026-10-12)
+also passes fresh exports, builds and 300-second benchmarks for all seven models.
+The pinned uv path is validated for this native stack; it remains opt-in while
+reference environments and exporters retain their existing pip workflows.
+
+Use uv as the installer and keep the separate runtime/compiler venvs on bare
+metal. A venv adds no resident process, and switching installers does not itself
+lower inference RAM. The lean runtime saves memory by excluding Torch, ONNX Runtime
+and the Triton compiler. Keep heavy exports on the export host; the Jetson needs
+no Docker for this workflow.
 
 ## Optional reference and ORT environments
 

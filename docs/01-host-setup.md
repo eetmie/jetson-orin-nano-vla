@@ -11,7 +11,7 @@ For a fresh official image with SSH and Tailscale already connected:
 ```bash
 scripts/01_initial_setup.sh --inspect
 sudo scripts/01_initial_setup.sh --apply --disable-docker --reboot-if-needed
-# Reconnect after reboot; USB phone tethering may need manual re-enabling.
+# Reconnect after reboot, then verify the host.
 sudo scripts/01_initial_setup.sh --verify --disable-docker
 ```
 
@@ -36,8 +36,7 @@ CPU core, GPU/EMC clocks, swap, and NVIDIA's boot power service result.
 Passwordless sudo is useful for automated provisioning and was already enabled
 on the test image. Console auto-login is unnecessary: SSH, Tailscale, networking
 and clock pinning are system services. A login prompt on a headless console is
-normal. Network connectivity must work without a desktop session; campus TLS
-interception and a phone tether that resets on reboot are separate constraints.
+normal.
 
 `scripts/00_host_prep.sh` remains the earlier interactive power helper; use the
 initial setup recipe for full host provisioning.

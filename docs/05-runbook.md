@@ -18,7 +18,7 @@ sudo scripts/01_initial_setup.sh --verify --disable-docker
 
 The [host recipe](01-host-setup.md) checks headless boot, MAXN_SUPER GPU power
 masks, all CPU/GPU/EMC clocks, 4 GiB swap and required services. Console auto-login
-is unnecessary. A USB phone tether may need re-enabling after reboot.
+is unnecessary.
 
 ## 2. Create the native environments
 

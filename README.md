@@ -41,6 +41,10 @@ with FP32 accumulation ([all-model evidence](results/all-models-20261010/fp32-ac
 [π0.5 base](results/pi05-base-20261012/)).
 The PyTorch and ORT rows use a second board with the same JetPack and clocks, which
 runs X-VLA and EVO1 a few percent faster. π0.5's padded-prefix row is an earlier run.
+A [fresh second-board clean install](docs/09-test-audit.md#fresh-second-board-clean-install--2026-10-12)
+passes new downloads, exports, native/AOT builds, parity checks and five-minute
+benchmarks for all seven checkpoints using the pinned uv environments.
+
 See the [optimization playbook](docs/07-optimization-playbook.md) for kernel choices
 and speed, RAM and precision tradeoffs.
 

@@ -1,4 +1,4 @@
-# Test audit — 2026-10-10/11
+# Test audit — 2026-10-10/12
 
 Validation uses a fresh exporter clone on an aarch64 DGX Spark (Python 3.12.3)
 and a fresh Git
@@ -200,14 +200,15 @@ The first retained-bundle audit and its failed/corrected builds remain archived.
 Their older 52-test and SmolVLA-only claims describe that earlier run, not the
 expanded all-model validation.
 
-## Limits
+## Limits of the 2026-10-10/11 audit
 
 A second physical Jetson is not required to find Python imports and engine-build
 failures: isolated venvs, a new clone, empty Hub cache and fresh engine caches on
 this board exercise those paths. Static/internet audits alone cannot establish
 AOT compatibility or action parity. A freshly flashed matching JetPack image
 would additionally test inherited native system libraries; that OS-level test
-has not been performed. The optional PyTorch/ORT comparison environments have
+was not performed in the 2026-10-10/11 audit. The second-board clean-install
+validation below now supplies that evidence for the matching official image. The optional PyTorch/ORT comparison environments have
 captured dependency locks but have not been freshly installed in this round.
 Robot-task success, live camera capture and robot control are outside these
 synthetic benchmarking checks.
@@ -247,3 +248,93 @@ installation logs, exact installed package reports, all-model doctors, regressio
 logs and SmolVLA stage results. This establishes environment reproducibility and
 functional compatibility on the existing OS; it is not an installer performance
 comparison, a sustained inference measurement, or a fresh OS installation.
+
+## Fresh second-board clean install — 2026-10-12
+
+A second Orin Nano Super 8 GB, `pikkumasi2tb`, started with a fresh official
+JetPack 7.2.1 / L4T R39.2.1 image and Tailscale. This test provisions that image;
+it does not test flashing firmware or installing the image. The Spark exporter
+uses a new Git clone, four new pinned exporter environments, empty checkpoint
+and auxiliary caches, and fresh portable exports. Only Hub credentials and
+immutable NGC container layers are reused. Native benchmarks use source commit
+`1a0b409`; the host provisioner and diagnostic updates are recorded separately.
+
+**All seven complete pipelines pass:** pinned download/export, full-bundle
+manifest verification after transfer, runtime/build doctors, fresh ordinary
+TensorRT engines and the selected AOT engines, stock action fixtures, and a
+300-second synthetic inference measurement. The six-model `--model all` workflow
+and the separate pi05-base recipe are both covered. pi05-base uses native
+TensorRT throughout; its selected recipe has no AOT replacement. No historical
+checkpoint bytes or engine caches populate the run. Docker runs only on Spark
+for the openpi export, with no Docker daemon needed on the Jetson.
+
+| Model | p50 ms | Achieved Hz | Mean whole-system RAM MiB | p50 vs reference |
+|---|---:|---:|---:|---:|
+| smolvla-base | 109.64 | 9.11 | 1725 | +4.82% |
+| xvla-base | 354.14 | 2.82 | 2892 | +3.46% |
+| evo1-libero | 340.41 | 2.93 | 2623 | +2.11% |
+| groot-n16-base | 273.70 | 3.65 | 5265 | +0.44% |
+| groot-n17-base | 276.33 | 3.61 | 5711 | +1.45% |
+| pi05-base | 649.43 | 1.54 | 6114 | +1.15% |
+| pi05-libero | 435.02 | 2.30 | 6257 | -0.29% |
+
+Every final benchmark records successful execution, instrumentation, provenance
+and stock-fixture parity. The observation ring is synthetic and pre-materialized:
+these rates do not include camera acquisition or robot control. The automated
+regression suite runs 110 tests: all pass on Spark with ONNX available; the lean
+Jetson runtime passes 109 with the ONNX-only graph test skipped.
+
+The pinned uv runtime contains exactly 31 locked Python packages; the separate
+compiler contains 32, adding Triton. Both independent repeat installs reproduce
+the exact versions, and the pip 24.0 control matches the runtime closure. uv
+repeats share the NumPy inode through the cache. Every environment excludes
+system site-packages and links the actual JetPack TensorRT package. Runtime
+imports confirm no Torch, ONNX Runtime, Triton compiler or pip. uv supplies
+installation; venv supplies isolation. Neither adds an inference daemon.
+
+Initial setup issues and their corrections are retained in
+[the issue ledger](../results/clean-install-20261012/issues.json):
+
+- Missing GPU initialization recovered with one authorized warm reboot.
+- The first 25 W to MAXN_SUPER transition required a reboot, not merely a saved
+  power-mode label. Verification now checks TPC/FBP masks as well as clocks.
+- NVIDIA CDI refresh accessed the GPU before the vendor power service and left
+  incorrect masks. Disabling the unused scanner with Docker resolved the observed
+  boot race; the vendor service and masks passed after reboot.
+- A later clock check caught CPU0's unpinned minimum despite `jetson_clocks`
+  returning success. Bounded udev settling before pinning passed the subsequent
+  automatic boot check. Late device policy is the working explanation, not a
+  fully traced root cause.
+- Readiness checks now test each required service independently and provide
+  explicit clock-service and inactive-swap errors.
+
+The host recipe passes repeated apply and post-reboot verification: headless
+boot, 4 GiB swap, successful vendor power service, masks 240/2, all six CPU clock
+floors/ceilings at 1728 MHz, GPU at 1020 MHz, EMC at 3199 MHz, and active
+SSH/Tailscale/fan services. These are requested clock settings; actual sustained
+telemetry still records power/thermal reductions. Protections remain enabled.
+Passwordless sudo was already configured. No console auto-login was added.
+
+Physical conditions differ from the reference board: ambient location is not
+controlled, the fresh board has a USB phone, mouse and keyboard attached, and the
+reference has no external USB peripherals. Both report the same quiet fan
+profile and disconnected display output. Early sustained runs overlap bundle
+transfers. The timing differences do not establish an installer or silicon effect.
+
+A follow-up uses the same cached SmolVLA engines, source and parameters after all
+transfers finish. Its starting GPU temperature is 51.812°C and junction 52.343°C.
+It passes another 300-second run at **108.68 ms p50, 110.12 ms p95 and 9.21 Hz**:
+0.88% faster than the first fresh run, still 3.90% slower than the reference's
+104.60 ms. Mean whole-system RAM is 1710 MiB. Junction reaches 72.1°C, with 95,309
+OC3 events and actual CPU samples down to 859 MHz. Stopping transfers and starting
+cooler produced a small improvement; remaining physical differences are not isolated.
+
+Model builds and inference all complete successfully.
+
+[The evidence archive](../results/clean-install-20261012/README.md) includes the
+summary, export/transfer/native matrices, original failure logs, environment
+reports, host hashes, every model's setup/benchmark records and the quiet repeat.
+The final host-only commit `4725567` is installed after all measurements; readiness
+and the fresh-board regression suite pass again. Model bytes and engine binaries
+stay outside Git. Robot-task success and optional PyTorch/ORT installs remain
+outside this test.

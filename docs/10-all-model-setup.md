@@ -126,4 +126,7 @@ Its raw checkpoint object generations and SHA-256 hashes are in
 JetPack's native CUDA/TensorRT libraries belong to the documented platform and
 are recorded by doctor/benchmark reports. A fresh clone and venv test on an
 existing board does not establish that a fresh OS image has every system library.
+The [second-board clean-install test](09-test-audit.md#fresh-second-board-clean-install--2026-10-12)
+now passes all six workflow models plus the separate pi05-base recipe on a fresh
+matching official image, using the pinned uv native environments.
 See the [test audit](09-test-audit.md) for actual coverage and run evidence.
