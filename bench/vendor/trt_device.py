@@ -397,7 +397,7 @@ class XVLADevice:
         self.b, self.d = bundle, Device(engines)
         d, bd = self.d, bundle
         self.vision_in = d.buf_for(bd.vision[0], "pixel_values")
-        self.vision_out = [d.outputs(n) for n in bd.vision]
+        self.vision_out = d.chain_outputs([(n, "hidden_out") for n in bd.vision])
         feats = next(iter(self.vision_out[-1].values()))
         self.ids = d.buf_for(bd.text[0], "input_ids")
         img0 = d.spec(bd.text[0])["image_tokens"][0]
@@ -408,11 +408,11 @@ class XVLADevice:
             # Padded views read as exactly zero: a zeroed buffer the real views are
             # copied into, the rest never written.
             self.full = DevBuf((bd.num_views,) + feats.shape[1:], feats.dtype)
-            d.upload(self.full, np.zeros(self.full.shape, self.full.dtype))
+            d.zero_once(self.full)
         per_view = int(np.prod(feats.shape[1:])) * feats.dtype.itemsize
         self.image_tokens = DevBuf.view(self.full, 0, img0)
         self.aux = DevBuf.view(self.full, per_view, aux)
-        self.text_out = [d.outputs(n) for n in bd.text]
+        self.text_out = d.chain_outputs([(n, "hidden_out") for n in bd.text])
         self.cond_out = d.outputs("cond")
         x_t_spec = d.spec(bd.denoise[0])["x_t"][0]
         self.x1 = DevBuf(x_t_spec, np.float32)
@@ -425,12 +425,12 @@ class XVLADevice:
             s = i / bd.steps
             w = DevBuf((1,) * len(x_t_spec), np.float32)
             t = d.buf_for(bd.denoise[0], "t")
-            d.upload(w, np.array(s, np.float32))
-            d.upload(t, np.array([s], np.float32))
+            d.set_once(w, np.array(s, np.float32))
+            d.set_once(t, np.array([s], np.float32))
             self.steps.append((w, t))
-        self.den_out = [d.outputs(n) for n in bd.denoise[:-1]]
+        self.den_out = d.chain_outputs([(n, "hidden_out") for n in bd.denoise[:-1]])
         self.zeros = DevBuf(x_t_spec, np.float32)
-        d.upload(self.zeros, np.zeros(x_t_spec, np.float32))
+        d.zero_once(self.zeros)
         d.sync()
         self.feats = feats
         self.task_ids = None
@@ -513,10 +513,10 @@ class Evo1Device:
         d, bd = self.d, bundle
         self.use_graph = graph
         self.vision_in = d.buf_for(bd.vision[0], "pixel_values")
-        self.vision_out = [d.outputs(n) for n in bd.vision]
+        self.vision_out = d.chain_outputs([(n, "hidden_out") for n in bd.vision])
         self.h0 = d.buf_for(bd.language[0], "hidden_in")
         self.mask = d.buf_for(bd.language[0], "causal_mask")
-        self.lang_out = [d.outputs(n) for n in bd.language]
+        self.lang_out = d.chain_outputs([(n, "hidden_out") for n in bd.language])
         self.cmask = d.buf_for("action_context", "context_mask")
         self.state = d.buf_for("action_context", "state")
         self.cache = d.outputs("action_context")
@@ -528,7 +528,7 @@ class Evo1Device:
         self.time_index = []
         for i in range(bd.steps):
             ti = d.buf_for("action_step", "time_index")
-            d.upload(ti, np.asarray([min(int((i / bd.steps) * 999), 999)], np.int64))
+            d.set_once(ti, np.asarray([min(int((i / bd.steps) * 999), 999)], np.int64))
             self.time_index.append(ti)
         self.ev = [d.event() for _ in range(5)]
         self.task_ids = None
@@ -647,7 +647,7 @@ class SmolVLADevice:
         self.prefix = d.buf_for("prefill", "vlm_embeds")      # [1,prefix,960]
         self.scale = ops.get("axpy", self.img.shape, float(np.float32(np.sqrt(hidden))))
         self.zeros_img = DevBuf(self.img.shape, np.float32)
-        d.upload(self.zeros_img, np.zeros(self.img.shape, np.float32))
+        d.zero_once(self.zeros_img)
         n_img = self.img.shape[1]
         self.slots = [DevBuf.view(self.prefix, i * n_img * self.row, self.img.shape)
                       for i in range(bd.n_cam_slots)]
@@ -675,7 +675,7 @@ class SmolVLADevice:
             buf = DevBuf(cat_spec, np.float32)
             host = np.zeros(cat_spec, np.float32)
             host[..., self.a.shape[-1]:] = te
-            d.upload(buf, host)
+            d.set_once(buf, host)
             self.cat.append(buf)
         self.h = d.outputs("time_in")["output"]
         self.silu_out = DevBuf(self.h.shape, np.float32)

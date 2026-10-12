@@ -48,3 +48,10 @@ cd ../..
 `--base-cache` defaults to the plain `pi05-libero-compact-trt` cache that a normal
 `bench trt-split --model pi05-libero` run builds. `bench_attention.py` and
 `bench_mlp.py` are the kernel checks.
+
+## FP32 attention scores (2026-10-12)
+
+`build_templates.py --score-fp32` keeps q·k·(1/16) in FP32 instead of rounding the dot
+product to FP16. 300 s through `vla_setup`: 440.36 → 436.30 ms. Worst of the five fixtures: −7 % error against
+the FP16 PyTorch reference, unchanged against the original BF16/FP32 policy (itself the
+floor). Selected by `vla_setup`.

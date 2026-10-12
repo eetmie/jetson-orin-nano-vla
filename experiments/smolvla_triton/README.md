@@ -404,3 +404,10 @@ The row and online softmax examples come from Jeremy Gracey's
 The copied source and MIT notice are retained under `vendor/` (Copyright 2026
 Jeremy Gracey). Our changes adapt the kernel ABI to TensorRT AOT and add the
 model-specific mask/rounding/NaN handling. TensorRT provides the AOT plugin API.
+
+## FP32 attention scores: not kept (2026-10-12)
+
+`build_vision.py --score-fp32` (FP32 Q·Kᵀ·scale instead of the graph's FP16 operand
+scaling and score rounding) made the policy *less* accurate here, unlike GR00T, X-VLA
+and π0.5: against seven stock FP32 references the used-dim mean error rose on 6 of 7
+(+9 % mean, +8 % max). The option stays, off by default.

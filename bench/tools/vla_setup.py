@@ -102,15 +102,17 @@ def plan(model, bundle, work, runtime, builder, duration, accumulate="fp32", opt
         stages.append(("baseline", [*prefix, *common, "--cache-dir", str(work / "baseline-cache"),
                                     "--iters", "3", "--warmup", "2", "--idle-s", "0",
                                     "--out", str(work / "baseline.json")]))
-        specs = {"smolvla": [("vision", "build_vision.py", "triton-attention-flat"), ("expert", "build_expert.py", "ffn")],
-                 "xvla": [("denoise", "build_denoise.py", "actions"), ("vision", "build_vision.py", "dwconv")],
-                 "evo1": [("output", "build_output.py", "gemv")],
-                 "pi05": [("attention", "build_templates.py", "attention")],
-                 "groot": [("attention", "build.py", "all")]}[family]
+        # (stage, builder, mode, extra flags). --score-fp32: attention scores in FP32 instead
+        # of the graph's FP16 roundings; kept where it measured faster and closer to stock.
+        specs = {"smolvla": [("vision", "build_vision.py", "triton-attention-flat", []), ("expert", "build_expert.py", "ffn", [])],
+                 "xvla": [("denoise", "build_denoise.py", "actions", ["--score-fp32"]), ("vision", "build_vision.py", "dwconv", [])],
+                 "evo1": [("output", "build_output.py", "gemv", []), ("step", "build_step.py", "attention", [])],
+                 "pi05": [("attention", "build_templates.py", "attention", ["--score-fp32"])],
+                 "groot": [("attention", "build.py", "all", [])]}[family]
         base = work / "baseline-cache"
-        for i, (name, script, mode) in enumerate(specs):
+        for i, (name, script, mode, extra) in enumerate(specs):
             dest = work / ("optimized-cache" if i == len(specs)-1 else f"{name}-cache")
-            command = [str(builder), f"experiments/{family}_triton/{script}", "--mode", mode,
+            command = [str(builder), f"experiments/{family}_triton/{script}", "--mode", mode, *extra,
                        "--bundle", str(bundle), "--base-cache", str(base), "--out", str(dest)]
             if family != "pi05":
                 command += ["--accumulate", accumulate]

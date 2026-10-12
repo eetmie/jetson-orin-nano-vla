@@ -24,7 +24,9 @@ p.add_argument('--mode', choices=['baseline', 'attention'], required=True)
 p.add_argument('--bundle', type=Path, default=Path.home()/'bundles/pi05-libero-compact-split')
 p.add_argument('--base-cache', type=Path, default=Path.home()/'.cache/jetson-orin-nano-vla/pi05-libero-compact-trt')
 p.add_argument('--out', type=Path, required=True)
+p.add_argument('--score-fp32', action='store_true', help="FP32 attention scores instead of the graph's FP16 rounding")
 a = p.parse_args()
+plugin.SCORE_FP32 = a.score_fp32
 bundle, base, out = (x.expanduser().resolve() for x in (a.bundle, a.base_cache, a.out))
 meta = json.loads((bundle/'bundle.json').read_text())
 out.mkdir(parents=True, exist_ok=False)
@@ -192,7 +194,7 @@ assert plan is not None
 sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
 here = Path(__file__).parent
 (out/'candidate.json').write_text(json.dumps(dict(
-    mode=a.mode, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__, patch=patch, tile=plugin.TILE,
+    mode=a.mode, score_fp32=a.score_fp32, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__, patch=patch, tile=plugin.TILE,
     template_sha256={p.name: sha(p) for p in sorted((bundle/'templates').glob('*.onnx'))},
     engine_sha256={p.name: sha(p) for p in sorted(out.glob('*.engine')) if not p.name.startswith('op_')},
     kernel_sha256=sha(here/'kernels.py'), plugin_sha256=sha(here/'plugin.py'),

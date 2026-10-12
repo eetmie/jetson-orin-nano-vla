@@ -29,7 +29,9 @@ p.add_argument('--out',type=Path,required=True)
 p.add_argument('--base-cache',type=Path,help='cache whose other engines are kept (verified if it is a candidate)')
 p.add_argument('--bundle',type=Path,default=Path.home()/'bundles/smolvla-base-split')
 p.add_argument('--accumulate', choices=['fp32', 'auto'], default='fp32', help='as bench trt-split --accumulate')
+p.add_argument('--score-fp32', action='store_true', help='FP32 attention scores instead of the graph\'s FP16 roundings')
 a=p.parse_args()
+plugin.SCORE_FP32=a.score_fp32
 source=a.bundle.expanduser().resolve()/'smolvlm_vision.onnx'
 base=Path.home()/'.cache/jetson-orin-nano-vla/smolvla-base-trt'
 base_manifest=None
@@ -327,7 +329,7 @@ plan=builder.build_serialized_network(net,config)
 assert plan is not None, 'candidate engine build failed'
 (a.out/'vision.engine').write_bytes(plan)
 (a.out/'timing.cache').write_bytes(config.get_timing_cache().serialize())
-manifest=dict(mode=a.mode,accumulate=a.accumulate,fp32_accumulated_matmuls=accumulated,build_s=time.time()-started,tensorrt=trt.__version__,
+manifest=dict(mode=a.mode,accumulate=a.accumulate,score_fp32=a.score_fp32,fp32_accumulated_matmuls=accumulated,build_s=time.time()-started,tensorrt=trt.__version__,
               source_onnx_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
               engine_sha256=hashlib.sha256(bytes(plan)).hexdigest(),patches=patches,
               kernel_sha256=hashlib.sha256((Path(__file__).parent/'aot_kernel.py').read_bytes()).hexdigest(),

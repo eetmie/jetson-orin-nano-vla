@@ -134,6 +134,8 @@ def compile_masked(inp: trtp.TensorDesc, mask: trtp.TensorDesc, outputs: Tuple[t
 # HALF 0.3535 (= 0.353515625), the exported Q and K scale; build_vision.py checks it.
 VISION_SCALE = 0.353515625
 NATIVE_TILE = dict(BLOCK_M=128, BLOCK_N=64, num_warps=4, num_stages=3)  # swept on the board
+# FP32 Q K^T * scale instead of the graph's FP16 roundings (build_vision.py --score-fp32).
+SCORE_FP32 = False
 
 
 @trtp.register('nano_vla::vision_attention_flat')
@@ -181,7 +183,7 @@ def compile_attention_native(q: trtp.TensorDesc, k: trtp.TensorDesc, v: trtp.Ten
     tile = NATIVE_TILE
     src=triton.compiler.ASTSource(attention_native_aot,
         signature={'Q':'*fp16','K':'*fp16','V':'*fp16','O':'*fp16'},
-        constexprs={'N_CTX':seq,'H':heads,'SCALE':VISION_SCALE,'BLOCK_M':tile['BLOCK_M'],
+        constexprs={'N_CTX':seq,'H':heads,'SCALE':VISION_SCALE,'SCORE_FP32':SCORE_FP32,'BLOCK_M':tile['BLOCK_M'],
                     'BLOCK_N':tile['BLOCK_N'],'D':dim},
         attrs={(i,): [['tt.divisibility',16]] for i in range(4)})
     compiled=compile_sm87(src,options={'num_warps':tile['num_warps'],'num_stages':tile['num_stages']})
@@ -216,7 +218,7 @@ def compile_attention_qkv(qkv: trtp.TensorDesc, outputs: Tuple[trtp.TensorDesc],
     tile = NATIVE_TILE
     src=triton.compiler.ASTSource(attention_qkv_aot,
         signature={'QKV':'*fp16','O':'*fp16'},
-        constexprs={'N_CTX':seq,'H':heads,'SCALE':VISION_SCALE,'BLOCK_M':tile['BLOCK_M'],
+        constexprs={'N_CTX':seq,'H':heads,'SCALE':VISION_SCALE,'SCORE_FP32':SCORE_FP32,'BLOCK_M':tile['BLOCK_M'],
                     'BLOCK_N':tile['BLOCK_N'],'D':dim},
         attrs={(i,): [['tt.divisibility',16]] for i in range(2)})
     compiled=compile_sm87(src,options={'num_warps':tile['num_warps'],'num_stages':tile['num_stages']})

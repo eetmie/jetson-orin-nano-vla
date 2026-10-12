@@ -4,6 +4,7 @@ import tensorrt as trt
 import tensorrt.plugin as trtp
 
 HEADS, DIM, SCALE = 8, 256, 0.0625
+SCORE_FP32 = False      # FP32 q·k * SCALE (build_templates.py --score-fp32)
 N_Q, N_KV = 10, 531                 # compact bundle: 10 action rows, 521 prefix + 10 keys
 # Swept on the board; must stay within the 48 KiB of shared memory a kernel gets without
 # an opt-in, which TensorRT's AOT launcher does not do (2 stages needed 78 KiB and failed).
@@ -34,7 +35,7 @@ def compile_attention(q: trtp.TensorDesc, k: trtp.TensorDesc, v: trtp.TensorDesc
     from kernels import mqa_attention_aot
     src = triton.compiler.ASTSource(mqa_attention_aot,
         signature={'Q': '*fp16', 'K': '*fp16', 'V': '*fp16', 'Mask': '*fp32', 'O': '*fp16'},
-        constexprs={'N_Q': N_Q, 'N_KV': N_KV, 'H': HEADS, 'D': DIM, 'SCALE': SCALE,
+        constexprs={'N_Q': N_Q, 'N_KV': N_KV, 'H': HEADS, 'D': DIM, 'SCALE': SCALE, 'SCORE_FP32': SCORE_FP32,
                     'BLOCK_M': TILE['BLOCK_M'], 'BLOCK_N': TILE['BLOCK_N']},
         attrs={(i,): [['tt.divisibility', 16]] for i in range(5)})
     k_ = compile_sm87(src, options={'num_warps': TILE['num_warps'], 'num_stages': TILE['num_stages']})

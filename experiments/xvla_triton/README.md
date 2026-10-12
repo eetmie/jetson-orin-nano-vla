@@ -94,3 +94,12 @@ For the vision engines on top of a denoiser cache:
 the last-block change. `profile_candidate.py` traces a verified cache under Nsight;
 `bench_attention.py` is the standalone kernel check. [Runs, manifests, trace and
 summary](../../results/xvla-triton-20261010T1410Z/summary.json).
+
+## FP32 attention scores (2026-10-12)
+
+`build_denoise.py --score-fp32` computes Q·Kᵀ·scale in FP32 instead of the graph's FP16
+pre-scaling and score rounding (the GR00T finding). 300 s on the same native engines:
+342.92 → 342.31 ms (a fresh end-to-end setup measured 344.92: build-to-build variance
+of the other engines is about ±2 ms); RAM unchanged in alternating loads. Against
+seven stock FP32 references (fixture plus `export/xvla/reference.py --seed 1..6`) the
+chunk error drops (max 0.0444 → 0.0417 %, mean −4 %). Selected by `vla_setup`.

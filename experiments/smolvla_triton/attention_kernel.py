@@ -48,21 +48,30 @@ def attention_aot(Q, Kt, V, Mask, n_ctx, O,
 
 @triton.jit
 def _attend_native(Q, K, V, O, IN_STRIDE: tl.constexpr, OUT_STRIDE: tl.constexpr, N_CTX: tl.constexpr,
-                   SCALE: tl.constexpr, BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, D: tl.constexpr):
+                   SCALE: tl.constexpr, BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, D: tl.constexpr,
+                   SCORE_FP32: tl.constexpr = False):
     head = tl.program_id(1)
     rows = tl.program_id(0)*BLOCK_M + tl.arange(0, BLOCK_M)
     dims = tl.arange(0, D)
     keys = tl.arange(0, BLOCK_N)
     base = head*D
-    q = (tl.load(Q+base+rows[:, None]*IN_STRIDE+dims[None, :])*SCALE).to(tl.float16)
+    if SCORE_FP32:
+        q = tl.load(Q+base+rows[:, None]*IN_STRIDE+dims[None, :])
+    else:
+        q = (tl.load(Q+base+rows[:, None]*IN_STRIDE+dims[None, :])*SCALE).to(tl.float16)
     maximum = tl.full((BLOCK_M,), float('-inf'), tl.float32)
     denominator = tl.zeros((BLOCK_M,), tl.float32)
     accum = tl.zeros((BLOCK_M, D), tl.float32)
     bad = tl.full((BLOCK_M,), False, tl.int1)
     for start in range(0, N_CTX, BLOCK_N):
         cols = start+keys
-        kt = (tl.load(K+base+cols[None, :]*IN_STRIDE+dims[:, None])*SCALE).to(tl.float16)
-        score = tl.dot(q, kt).to(tl.float16).to(tl.float32)
+        if SCORE_FP32:
+            # Q K^T * SCALE^2 in FP32: no FP16 rounding of the scaled operands or the score.
+            kt = tl.load(K+base+cols[None, :]*IN_STRIDE+dims[:, None])
+            score = tl.dot(q, kt)*(SCALE*SCALE)
+        else:
+            kt = (tl.load(K+base+cols[None, :]*IN_STRIDE+dims[:, None])*SCALE).to(tl.float16)
+            score = tl.dot(q, kt).to(tl.float16).to(tl.float32)
         bad = bad | (tl.sum(((score!=score)|(score==float('inf'))).to(tl.int32), 1)>0)
         next_max = tl.maximum(maximum, tl.max(score, 1))
         shift = tl.where(next_max==float('-inf'), 0.0, next_max)
@@ -80,7 +89,8 @@ def _attend_native(Q, K, V, O, IN_STRIDE: tl.constexpr, OUT_STRIDE: tl.constexpr
 
 @triton.jit
 def attention_native_aot(Q, K, V, O, N_CTX: tl.constexpr, H: tl.constexpr, SCALE: tl.constexpr,
-                         BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, D: tl.constexpr):
+                         BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, D: tl.constexpr,
+                         SCORE_FP32: tl.constexpr = False):
     """attention_aot without the transposes, the mask and the bounds checks.
 
     Q/K/V/O stay in the projection's [1,S,H,D] layout (row stride H*D). The exported
@@ -88,11 +98,12 @@ def attention_native_aot(Q, K, V, O, N_CTX: tl.constexpr, H: tl.constexpr, SCALE
     exact FP32 product to HALF once. The vision mask is a constant all-true tensor
     (adding its zeros is exact), so it is not read. Same arithmetic as attention_aot.
     """
-    _attend_native(Q, K, V, O, H*D, H*D, N_CTX, SCALE, BLOCK_M, BLOCK_N, D)
+    _attend_native(Q, K, V, O, H*D, H*D, N_CTX, SCALE, BLOCK_M, BLOCK_N, D, SCORE_FP32)
 
 
 @triton.jit
 def attention_qkv_aot(QKV, O, N_CTX: tl.constexpr, H: tl.constexpr, SCALE: tl.constexpr,
-                      BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, D: tl.constexpr):
+                      BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, D: tl.constexpr,
+                         SCORE_FP32: tl.constexpr = False):
     """attention_native_aot reading Q, K and V from one fused [1,S,3*H*D] projection."""
-    _attend_native(QKV, QKV+H*D, QKV+2*H*D, O, 3*H*D, H*D, N_CTX, SCALE, BLOCK_M, BLOCK_N, D)
+    _attend_native(QKV, QKV+H*D, QKV+2*H*D, O, 3*H*D, H*D, N_CTX, SCALE, BLOCK_M, BLOCK_N, D, SCORE_FP32)

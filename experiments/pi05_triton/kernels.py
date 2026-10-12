@@ -14,8 +14,9 @@ import triton.language as tl
 @triton.jit
 def mqa_attention_aot(Q, K, V, Mask, O, N_Q: tl.constexpr, N_KV: tl.constexpr, H: tl.constexpr,
                       D: tl.constexpr, SCALE: tl.constexpr, BLOCK_M: tl.constexpr,
-                      BLOCK_N: tl.constexpr):
+                      BLOCK_N: tl.constexpr, SCORE_FP32: tl.constexpr = False):
     # Q [H, N_Q, D] HALF; K, V [N_KV, D] HALF; Mask [N_Q, N_KV] FP32; O [N_Q, H*D] HALF.
+    # SCORE_FP32 keeps q·k * SCALE in FP32 instead of the graph's HALF(q·k).
     head = tl.program_id(1)
     rows = tl.program_id(0)*BLOCK_M + tl.arange(0, BLOCK_M)
     dims = tl.arange(0, D)
@@ -28,7 +29,10 @@ def mqa_attention_aot(Q, K, V, Mask, O, N_Q: tl.constexpr, N_KV: tl.constexpr, H
         cols = start + keys
         inside = cols < N_KV
         kt = tl.load(K + cols[None, :]*D + dims[:, None], mask=inside[None, :], other=0)
-        s = (tl.dot(q, kt).to(tl.float16).to(tl.float32)*SCALE).to(tl.float16).to(tl.float32)
+        if SCORE_FP32:
+            s = tl.dot(q, kt)*SCALE
+        else:
+            s = (tl.dot(q, kt).to(tl.float16).to(tl.float32)*SCALE).to(tl.float16).to(tl.float32)
         logit = s + tl.load(Mask + rows[:, None]*N_KV + cols[None, :],
                             mask=valid[:, None] & inside[None, :], other=0)
         logit = tl.where(inside[None, :], logit, float('-inf'))
@@ -40,7 +44,10 @@ def mqa_attention_aot(Q, K, V, Mask, O, N_Q: tl.constexpr, N_KV: tl.constexpr, H
         cols = start + keys
         inside = cols < N_KV
         kt = tl.load(K + cols[None, :]*D + dims[:, None], mask=inside[None, :], other=0)
-        s = (tl.dot(q, kt).to(tl.float16).to(tl.float32)*SCALE).to(tl.float16).to(tl.float32)
+        if SCORE_FP32:
+            s = tl.dot(q, kt)*SCALE
+        else:
+            s = (tl.dot(q, kt).to(tl.float16).to(tl.float32)*SCALE).to(tl.float16).to(tl.float32)
         logit = s + tl.load(Mask + rows[:, None]*N_KV + cols[None, :],
                             mask=valid[:, None] & inside[None, :], other=0)
         logit = tl.where(inside[None, :], logit, float('-inf'))

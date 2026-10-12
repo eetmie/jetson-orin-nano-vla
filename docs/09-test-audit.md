@@ -23,13 +23,13 @@ python3 -m unittest discover -s tests -v
 | `test_env_memory.py` | 1 | Framework versions are recorded without importing unused frameworks. |
 | `test_smolvla_candidate_cache.py` | 4 | Changed engine/source, unsafe manifest names and legacy vision-manifest compatibility. Synthetic files. |
 | `test_usage_setup.py` | 12 | Missing or changed weights, incomplete manifest coverage, unsafe paths, unsupported bundles, overwrite refusal, interpreter symlinks, isolated environment creation and pinned export command planning. Hub downloads are stubbed. |
-| `test_model_setup.py` | 10 | Selected cache chains for all six models, retained failure logs, manifest coverage, trained EVO1/GR00T identity, pinned fetch and matching Transformers download/cache revisions. No GPU inference. |
+| `test_model_setup.py` | 11 | Selected cache chains for all six models, retained failure logs, manifest coverage, trained EVO1/GR00T identity, pinned fetch and matching Transformers download/cache revisions. No GPU inference. |
 | `test_groot_candidate_cache.py` | 7 | Changed graph/engine/timestep constants, metadata/embeddings/external weights, missing or foreign engines, bundle identity, stale native build keys and accumulation mismatch. Synthetic files. |
 | `test_pi05_artifacts.py` | 14 | Trained-content identity, generation/size/SHA enforcement, strict HTTP ranges, transient retries, verified resume, overwrite refusal and model-flag conversion selection. Synthetic artifacts and network substitutes. |
 | `test_http_download.py` | 3 | Interrupted range recovery, chunk hash rechecks and repair, pin/size identity and unsafe state refusal. Synthetic HTTP responses. |
 | `test_hub_download.py` | 8 | Full SHA enforcement, Hub metadata identity, LFS/Git-blob checksums, credential boundaries, standard cached blob links, safe paths and preservation of changed files. Network substitutes. |
 
-The original 41 checks are retained; the expanded suite has **97 checks**.
+The original 41 checks are retained; the expanded suite has **98 checks**.
 Fast regression tests do not prove installer completeness or GPU compatibility.
 The hardware/export checks below supply that evidence.
 
@@ -184,7 +184,8 @@ attention. With FP32 scores, vision, causal LLM and DiT replacements together be
 native engines against seven stock FP32 references per model (bundle fixture plus
 `reference*.py --seed 1..6`, scored on the embodiment's used action dims). That stock
 comparison, not drift from a native control, is now the acceptance check for GR00T
-kernels ([evidence](../results/groot-triton-20261012/)). 97 regression checks pass.
+kernels ([evidence](../results/groot-triton-20261012/)). The same check selected the
+other models' changes ([evidence](../results/models-20261012/)). 98 regression checks pass.
 
 ## Which experiment tests are active
 

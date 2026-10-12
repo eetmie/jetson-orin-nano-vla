@@ -82,6 +82,14 @@ class ModelSetupTests(unittest.TestCase):
                 self.assertIn("fp32", final)
                 self.assertTrue(all(str(work) in str(c) for _, c in stages))
 
+    def test_fp32_attention_scores_only_where_selected(self):
+        expect = {'xvla-base': ('denoise', True), 'pi05-libero': ('attention', True),
+                  'smolvla-base': ('vision', False), 'evo1-libero': ('step', False)}
+        for model, (stage, wanted) in expect.items():
+            stages = dict(vla_setup.plan(model, self.root / 'bundle', self.root / model,
+                                         Path('/runtime/python'), Path('/builder/python'), 10))
+            self.assertEqual('--score-fp32' in stages[stage], wanted, model)
+
     def test_groot_selected_recipe_uses_all_attention_and_baseline_needs_no_compiler(self):
         for model in ('groot-n16-base', 'groot-n17-base'):
             work = self.root / model

@@ -81,6 +81,27 @@ def strip_fp16_roundtrips(m: onnx.ModelProto) -> int:
         for i, x in enumerate(n.input):
             if x in rename:
                 n.input[i] = rename[x]
+    # The same round trip in front of a graph output (keep_io_types' output Cast after an
+    # FP32-kept node, e.g. a final norm): the FP32 producer writes the output directly.
+    for o in m.graph.output:
+        n = prod.get(o.name)
+        if n is None or n.op_type != "Cast" or to(n) != F32:
+            continue
+        p = prod.get(n.input[0])
+        if p is None or p.op_type != "Cast" or to(p) != F16 or types.get(p.input[0]) != F32:
+            continue
+        q = prod.get(p.input[0])
+        if q is None:
+            continue
+        src = p.input[0]
+        q.output[list(q.output).index(src)] = o.name
+        for k in m.graph.node:
+            if k is not n:
+                for i, x in enumerate(k.input):
+                    if x == src:
+                        k.input[i] = o.name
+        n.output[0] = n.output[0] + "_unused"
+        rename[o.name] = src
     while True:                      # drop nodes nothing reads any more
         used = {x for n in m.graph.node for x in n.input} | outputs
         keep = [n for n in m.graph.node if any(o in used for o in n.output)]
@@ -151,8 +172,24 @@ def main() -> None:
     ap.add_argument("--half-io", metavar="REGEX",
                     help="graph inputs/outputs whose whole name matches stay FP16 at the "
                          "boundary (e.g. a KV cache passed between two engines)")
+    ap.add_argument("--outputs-only", action="store_true",
+                    help="graphs are already mixed: only remove FP32->FP16->FP32 round trips "
+                         "(including those in front of graph outputs)")
     a = ap.parse_args()
     sizes = {}
+    if a.outputs_only:
+        for g in a.graphs:
+            path = a.bundle / g
+            m = onnx.load(str(path))
+            n = strip_fp16_roundtrips(m)
+            onnx.checker.check_model(m)
+            tmp = path.with_name(path.name + ".tmp")
+            onnx.save(m, str(tmp))
+            tmp.replace(path)
+            print(f"  {g:30s} {n} round trips removed")
+        if (a.bundle / MANIFEST_NAME).exists():
+            write_manifest(a.bundle)
+        return
     for g in a.graphs:
         src = a.bundle / g
         data = src.with_name(src.name + ".data")

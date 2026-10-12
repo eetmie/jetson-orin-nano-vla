@@ -30,7 +30,9 @@ p.add_argument('--base-cache', type=Path, default=Path.home()/'.cache/jetson-ori
 p.add_argument('--out', type=Path, required=True)
 p.add_argument('--opt-level', type=int, default=2)
 p.add_argument('--accumulate', choices=['fp32', 'auto'], default='fp32', help='as bench trt-split --accumulate')
+p.add_argument('--score-fp32', action='store_true', help="FP32 attention scores instead of the graph's FP16 roundings")
 a = p.parse_args()
+plugin.SCORE_FP32 = a.score_fp32
 bundle, base, out = (x.expanduser().resolve() for x in (a.bundle, a.base_cache, a.out))
 meta = json.loads((bundle/'bundle.json').read_text())
 denoise = [g['name'] for g in meta['graphs'] if g['name'].startswith('denoise')]
@@ -241,7 +243,7 @@ def build(name, actions):
 
 patches = {n: build(n, a.mode == 'actions' and n == denoise[-1]) for n in denoise}
 here = Path(__file__).parent
-manifest = dict(mode=a.mode, accumulate=a.accumulate, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__,
+manifest = dict(mode=a.mode, accumulate=a.accumulate, score_fp32=a.score_fp32, bundle=str(bundle), base_cache=str(base), tensorrt=trt.__version__,
                 opt_level=a.opt_level, tile=plugin.TILE, scale=plugin.SCALE, patches=patches,
                 kernel_sha256=sha256(here/'kernels.py'), plugin_sha256=sha256(here/'plugin.py'),
                 precision='HALF Q/K scaling and score rounding, FP32 online softmax and accumulation, '

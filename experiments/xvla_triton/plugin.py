@@ -6,6 +6,7 @@ import tensorrt.plugin as trtp
 SCALE = 0.353515625            # HALF sqrt(1/sqrt(64)); build_denoise.py checks the graph's value
 SEQ, HEADS, DIM, ACTIONS = 262, 16, 64, 30
 TILE = dict(BLOCK_M=64, BLOCK_N=64, num_warps=4, num_stages=2)   # swept on the board
+SCORE_FP32 = False             # FP32 Q K^T * scale (build_denoise.py --score-fp32)
 
 
 def _compile(n_q, rows_input=False):
@@ -15,7 +16,8 @@ def _compile(n_q, rows_input=False):
     signature = {'QKV': '*fp16', 'ROWS': '*fp16', 'O': '*fp16'} if rows_input else {'QKV': '*fp16', 'O': '*fp16'}
     src = triton.compiler.ASTSource(xvla_attention_rows_aot if rows_input else xvla_attention_aot,
         signature=signature,
-        constexprs={'N_Q': n_q, 'N_KV': SEQ, 'H': HEADS, 'SCALE': SCALE, 'BLOCK_M': TILE['BLOCK_M'],
+        constexprs={'N_Q': n_q, 'N_KV': SEQ, 'H': HEADS, 'SCALE': SCALE, 'SCORE_FP32': SCORE_FP32,
+                    'BLOCK_M': TILE['BLOCK_M'],
                     'BLOCK_N': TILE['BLOCK_N'], 'D': DIM},
         attrs={(i,): [['tt.divisibility', 16]] for i in range(len(signature))})
     k = compile_sm87(src, options={'num_warps': TILE['num_warps'], 'num_stages': TILE['num_stages']})

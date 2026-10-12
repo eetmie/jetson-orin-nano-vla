@@ -22,20 +22,20 @@ These measure inference cost, not robot-task quality.
 
 | model / runtime | views | p50 | p95 | rate | RAM in use |
 |---|---:|---:|---:|---:|---:|
-| **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 105.11 ms | 105.91 ms | 9.51 Hz | 1.60 GB |
+| **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 104.60 ms | 105.73 ms | 9.55 Hz | 1.65 GB |
 | EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
-| **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 351.42 ms | 352.66 ms | 2.85 Hz | 2.53 GB |
+| **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 333.37 ms | 335.03 ms | 3.00 Hz | 2.62 GB |
 | X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
 | X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 342.08 ms | 342.94 ms | 2.92 Hz | 2.78 GB |
+| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 342.31 ms | 343.15 ms | 2.92 Hz | 2.93 GB |
 | **GR00T N1.7 3B** TensorRT + AOT Triton, mixed FP16 | 3 (×2 frames) | 272.39 ms | 273.77 ms | 3.67 Hz | 5.72 GB |
 | **GR00T N1.6 3B** TensorRT + AOT Triton, mixed FP16 | 3 | 272.49 ms | 273.47 ms | 3.67 Hz | 5.30 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
-| **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 440.13 ms | 440.52 ms | 2.27 Hz | 6.28 GB |
+| **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 436.30 ms | 438.01 ms | 2.29 Hz | 6.30 GB |
 
 `RAM in use` is whole-system usage during inference. Bold rows are 300-second runs
 with FP32 accumulation ([all-model evidence](results/all-models-20261010/fp32-accumulate/),
-[GR00T follow-up](results/groot-triton-20261012/)).
+[GR00T](results/groot-triton-20261012/), [other models](results/models-20261012/)).
 The PyTorch and ORT rows use a second board with the same JetPack and clocks, which
 runs X-VLA and EVO1 a few percent faster. π0.5's padded-prefix row is an earlier run.
 See the [optimization playbook](docs/07-optimization-playbook.md) for kernel choices
