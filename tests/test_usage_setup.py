@@ -3,10 +3,12 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -141,6 +143,48 @@ class UsageSetupTests(unittest.TestCase):
             create_env([str(target)])
         self.assertIn("install JetPack's Python bindings", output.getvalue())
         self.assertFalse(target.exists())
+
+    def test_native_environment_isolated_with_and_without_pip(self):
+        package = self.root / "system packages" / "tensorrt"
+        package.mkdir(parents=True)
+        (package / "__init__.py").write_text("")
+        (package / "tensorrt.so").write_bytes(b"fake binding, never imported")
+        spec = SimpleNamespace(origin=str(package / "__init__.py"))
+        for without_pip in (False, True):
+            with self.subTest(without_pip=without_pip):
+                target = self.root / f"native env {without_pip}"
+                args = [str(target)] + (["--without-pip"] if without_pip else [])
+                with patch("bench.tools.trt_env.importlib.util.find_spec", return_value=spec), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(create_env(args), 0)
+                output = subprocess.check_output([str(target / "bin/python"), "-c",
+                    "import importlib.util, json, sysconfig; "
+                    "print(json.dumps({'pip': importlib.util.find_spec('pip') is not None, "
+                    "'purelib': sysconfig.get_path('purelib')}))"], text=True)
+                state = json.loads(output)
+                self.assertEqual(state["pip"], not without_pip)
+                link = Path(state["purelib"]) / "tensorrt"
+                self.assertTrue(link.is_symlink())
+                self.assertEqual(link.resolve(), package.resolve())
+                self.assertIn("include-system-site-packages = false", (target / "pyvenv.cfg").read_text())
+
+    def test_native_installer_preflight_does_not_create_environment(self):
+        installer = Path(__file__).resolve().parents[1] / "scripts/native_env.sh"
+        fake_uv = self.root / "wrong uv"
+        fake_uv.write_text("#!/bin/sh\necho 'uv 0.0.0'\n")
+        fake_uv.chmod(0o755)
+        for manager, uv_bin, expected in (
+                ("unknown", str(fake_uv), "VLA_ENV_MANAGER must be pip or uv"),
+                ("uv", str(self.root / "absent uv"), "is required"),
+                ("uv", str(fake_uv), "expected uv")):
+            with self.subTest(manager=manager, uv_bin=uv_bin):
+                target = self.root / "must stay absent"
+                result = subprocess.run(["bash", str(installer), "runtime", str(target)],
+                    cwd=installer.parents[1], capture_output=True, text=True,
+                    env={**os.environ, "VLA_ENV_MANAGER": manager, "UV_BIN": uv_bin})
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(expected, result.stderr)
+                self.assertFalse(target.exists())
 
 
 if __name__ == "__main__":

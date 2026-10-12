@@ -11,6 +11,8 @@ import venv
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("venv", type=Path)
+    parser.add_argument("--without-pip", action="store_true",
+                        help="omit pip when packages will be managed externally with uv")
     args = parser.parse_args(argv)
     root = Path(os.path.abspath(args.venv.expanduser()))
     if root.exists():
@@ -21,7 +23,7 @@ def main(argv=None):
     package = Path(spec.origin).resolve().parent
     if not (package / "tensorrt.so").is_file():
         parser.error(f"expected JetPack TensorRT bindings at {package}; this recipe targets the JetPack layout")
-    venv.EnvBuilder(with_pip=True, system_site_packages=False).create(root)
+    venv.EnvBuilder(with_pip=not args.without_pip, system_site_packages=False).create(root)
     purelib = Path(subprocess.check_output([str(root / "bin/python"), "-c",
         "import sysconfig; print(sysconfig.get_path('purelib'))"], text=True).strip())
     (purelib / "tensorrt").symlink_to(package, target_is_directory=True)

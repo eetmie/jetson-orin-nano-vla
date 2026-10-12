@@ -8,6 +8,65 @@ TensorRT package. Neither needs Torch. The reference/ORT environments below
 remain available for optional comparisons; their constraints capture the existing
 board environments and have not received the same fresh-install validation.
 
+## Experimental uv setup for native environments
+
+The native setup scripts default to the tested pip workflow. Set
+`VLA_ENV_MANAGER=uv` to test the uv installer in fresh environment directories:
+
+```bash
+# Install the exact tool version recorded in .uv-version, once:
+curl -LsSf https://astral.sh/uv/0.13.0/install.sh | sh
+
+# In the repository root, on the Jetson:
+VLA_ENV_MANAGER=uv scripts/12_env_trt.sh .venv-trt-uv
+VLA_ENV_MANAGER=uv scripts/14_env_triton.sh .venv-triton-uv
+
+python3 -m bench.tools.vla_setup --model smolvla-base \
+  --bundle "$HOME/vla-bundles/smolvla-base" --work-dir "$HOME/vla-runs/uv-smoke" \
+  --runtime-python .venv-trt-uv/bin/python --build-python .venv-triton-uv/bin/python \
+  --duration-s 10
+```
+
+Open a new shell if `uv` is not yet on PATH, or set `UV_BIN` to its absolute path.
+The scripts check the pinned uv version before creating an environment. They
+refuse existing environment directories, use `/usr/bin/python3` from JetPack,
+and link only the system TensorRT bindings. `VLA_SYSTEM_PYTHON` can select another
+JetPack system interpreter explicitly; do not select a downloaded Python.
+
+uv installs the complete role-specific dependency closure from
+`requirements/trt-uv.lock.txt` or `requirements/triton-build-uv.lock.txt`, enforcing
+SHA-256 hashes and requiring wheels. It does not resolve newer package versions
+or compile Python dependencies on the board. The uv environments contain no pip;
+use `uv pip check --python PATH/bin/python` to inspect them. Runtime and compiler
+doctors run after installation, including an SM87 compilation probe for the builder.
+Launch inference with the environment's Python; uv is needed only for setup.
+
+The locks target Python 3.12 on Linux aarch64 and preserve the existing version
+constraints. TensorRT/CUDA remain JetPack dependencies outside the Python locks.
+Generate updated locks deliberately with the version from `.uv-version`:
+
+```bash
+uv --no-config pip compile requirements/trt.txt \
+  --python-version 3.12 --python-platform aarch64-unknown-linux-gnu \
+  --only-binary :all: --generate-hashes --no-annotate \
+  --output-file requirements/trt-uv.lock.txt
+uv --no-config pip compile requirements/triton-build.txt \
+  --python-version 3.12 --python-platform aarch64-unknown-linux-gnu \
+  --only-binary :all: --generate-hashes --no-annotate \
+  --output-file requirements/triton-build-uv.lock.txt
+```
+
+Use a cache on the same filesystem as the environments so uv can hardlink shared
+package files. `UV_CACHE_DIR` selects a separate experiment cache if desired.
+Keep verified engine caches, bundles, and results while comparing installers.
+Unused venvs consume disk space; they do not consume inference RAM.
+
+The [2026-10-12 experiment](09-test-audit.md#uv-native-environment-experiment--2026-10-12)
+checks repeated installation, all-model doctors and a fresh SmolVLA build/inference
+smoke test. uv remains opt-in; reference environments and exporters still use pip.
+
+## Optional reference and ORT environments
+
 | venv | backend | brings |
 |---|---|---|
 | `.venv-torch` | `torch` (SmolVLA) | lerobot **0.5.1**, JetPack-matched torch |

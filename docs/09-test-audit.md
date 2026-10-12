@@ -211,3 +211,39 @@ has not been performed. The optional PyTorch/ORT comparison environments have
 captured dependency locks but have not been freshly installed in this round.
 Robot-task success, live camera capture and robot control are outside these
 synthetic benchmarking checks.
+
+## uv native environment experiment — 2026-10-12
+
+Branch `experiment/uv-native-environments` adds an opt-in installer to the native
+runtime/compiler scripts. uv 0.13.0 installs separate SHA-256-checked dependency
+locks into pip-free environments created with JetPack's `/usr/bin/python3`.
+Only the system TensorRT package is linked; other system Python packages remain
+excluded. The existing pip installer remains the default.
+
+Validation uses a separate source snapshot and fresh environments at
+`~/vla-uv-experiment-20261012` on the existing Orin Nano. A checksum-verified PyPI
+wheel supplies the standalone uv tool. The runtime contains exactly 31 locked
+packages; the compiler contains those packages plus Triton. A second runtime
+installation produces the same package versions. A fresh pip control runtime
+also installs the same versions, with pip 24.0 added. Shared NumPy files use the
+same inode across the uv environments, confirming cache hardlink reuse. Both
+dependency locks regenerate identically with the pinned tool.
+
+Runtime import/CUDA doctors pass for all seven models. Compiler doctors pass for
+all six optimized recipes, including actual SM87 PTX compilation. The regression
+suite passes on both the development host and the Jetson uv runtime: 103 tests,
+one skipped because ONNX is not installed. The added setup tests exercise real
+venv creation with/without pip and refusal of invalid installer/tool selections
+before environment creation.
+
+A fresh SmolVLA setup passes all six stages: runtime doctor, compiler doctor,
+ordinary engine build/fixture check, AOT vision build, AOT expert build, and a
+10-second optimized inference smoke test with fixture parity. Existing bundles
+provide the verified inputs; no historical engine cache is inherited.
+
+[The evidence summary](../results/uv-native-20261012/summary.json) records source
+hashes, tool provenance and validation scope. The directory also preserves
+installation logs, exact installed package reports, all-model doctors, regression
+logs and SmolVLA stage results. This establishes environment reproducibility and
+functional compatibility on the existing OS; it is not an installer performance
+comparison, a sustained inference measurement, or a fresh OS installation.
