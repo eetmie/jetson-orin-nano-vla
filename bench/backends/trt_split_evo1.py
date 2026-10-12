@@ -1,6 +1,6 @@
 """EVO1 split bundles on the TensorRT runtime (no ONNX Runtime).
 
-Same graphs and host loop as `ort-split`, with every graph an engine and the token
+Every graph is an engine and the token
 embedding memory-mapped. The bundle must come from export/export.sh, which ships
 `embed_tokens.npy` and the native-LeRobot fixture the engines are checked against at
 load; the run fails closed if they disagree.
@@ -41,7 +41,7 @@ class TrtSplitEvo1Backend(Backend):
         self.bundle = Bundle(self.bundle_dir)
         if not (self.bundle.b.get("fixture") or {}).get("file"):
             raise ValueError(f"{self.bundle_dir} carries no reference fixture: export it "
-                             "with export/export.sh (Hugging Face bundles run on ort-split)")
+                             "with ./export.sh")
         self.built = prebuild_engines(self.bundle, self.cache_dir)
         self.engines = Engines(self.bundle, self.cache_dir)
         self.fixture_parity = validate_fixture(self.bundle, self.engines)

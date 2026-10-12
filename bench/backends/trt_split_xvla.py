@@ -1,6 +1,6 @@
 """X-VLA split bundles on the TensorRT runtime (no ONNX Runtime).
 
-Same graphs and host loop as `ort-split`, with each weight held once. The bundle must
+Each weight is held once. The bundle must
 carry the exporter's stock-PyTorch fixture: the engines are checked against it at load
 and the run fails closed if they disagree.
 """
@@ -41,7 +41,7 @@ class TrtSplitXVLABackend(Backend):
         self.bundle = Bundle(self.bundle_dir)
         if not (self.bundle.b.get("fixture") or {}).get("file"):
             raise ValueError(f"{self.bundle_dir} carries no reference fixture: export it "
-                             "with export/export.sh (Hugging Face bundles run on ort-split)")
+                             "with ./export.sh")
         self.built = prebuild_engines(self.bundle, self.cache_dir)
         self.engines = Engines(self.bundle, self.cache_dir)
         self.fixture_parity = validate_fixture(self.bundle, self.engines)

@@ -1,7 +1,8 @@
 """Lab row-softmax adapted to TensorRT's input/scalar/output kernel ABI.
 
-Algorithm adapted from vendor/lab_softmax.py. MIT Copyright (c) 2026 Jeremy
-Gracey; retain vendor/LICENSE.triton-kernel-lab. Accumulation stays FP32.
+Algorithm adapted from triton-kernel-lab's row softmax
+(github.com/JeremyGracey-AI/triton-kernel-lab). MIT Copyright (c) 2026 Jeremy Gracey;
+retain vendor/LICENSE.triton-kernel-lab. Accumulation stays FP32.
 """
 import triton
 import triton.language as tl

@@ -1,149 +1,84 @@
 # jetson-orin-nano-vla
 
-Recipes and measurements for running VLA models on an **8 GB Jetson Orin Nano Super**:
-five public base checkpoints and the trained EVO1 LIBERO and π0.5 LIBERO checkpoints,
-all on a pure TensorRT runtime (`bench trt-split`).
+Seven vision-language-action models on an **8 GB Jetson Orin Nano Super**, running on
+TensorRT with ahead-of-time compiled Triton kernels. Export a checkpoint on your PC,
+copy the bundle to the Jetson, run one command.
 
-**Tested on JetPack 7.2.1 (L4T R39.2.1).**
+| model | checkpoint | cameras | p50 | rate | RAM in use |
+|---|---|---:|---:|---:|---:|
+| SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | 2 | 104.60 ms | 9.55 Hz | 1.65 GB |
+| EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | 2 | 333.37 ms | 3.00 Hz | 2.62 GB |
+| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | 3 | 342.31 ms | 2.92 Hz | 2.93 GB |
+| GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) | 3 (×2 frames) | 272.39 ms | 3.67 Hz | 5.72 GB |
+| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | 3 | 272.49 ms | 3.67 Hz | 5.30 GB |
+| π0.5 LIBERO 3.3B | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` | 2 | 436.30 ms | 2.29 Hz | 6.30 GB |
+| π0.5 base 3.3B | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) | 3 | 642.05 ms | 1.56 Hz | 6.13 GB |
 
-| model | upstream checkpoint |
-|---|---|
-| SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) |
-| EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) |
-| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) |
-| GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) |
-| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) |
-| π0.5 LIBERO 3.3B (openpi) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` |
-| π0.5 base 3.3B (LeRobot) | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) |
+JetPack 7.2.1, MAXN_SUPER with `jetson_clocks`, 300-second runs on synthetic
+observations, default denoising steps. RAM is whole-board usage during inference.
+These measure inference cost, not task success. Every run first checks its actions
+against the stock PyTorch policy's output stored in the bundle (cosine ≥ 0.99999,
+within 0.27 % of the action range; π0.5 base 0.63 %) and refuses to benchmark otherwise.
 
-## Measured fit
+## Use
 
-Pinned MAXN_SUPER clocks, deterministic synthetic observations, default denoising steps.
-These measure inference cost, not robot-task quality.
-
-| model / runtime | views | p50 | p95 | rate | RAM in use |
-|---|---:|---:|---:|---:|---:|
-| **SmolVLA** TensorRT + AOT Triton, mixed FP16, lean runtime | 2 | 104.60 ms | 105.73 ms | 9.55 Hz | 1.65 GB |
-| EVO1 LIBERO split, ORT mixed FP16 | 2 | 414.67 ms | 424.72 ms | 2.41 Hz | 6.00 GB |
-| **EVO1 LIBERO** TensorRT + AOT Triton, mixed FP16 | 2 | 333.37 ms | 335.03 ms | 3.00 Hz | 2.62 GB |
-| X-VLA PyTorch FP32 | 3 | 2313.50 ms | 2320.89 ms | 0.43 Hz | 5.45 GB |
-| X-VLA split, ORT FP16 | 3 | 391.55 ms | 407.33 ms | 2.55 Hz | 5.39 GB |
-| **X-VLA** TensorRT + AOT Triton, mixed FP16 | 3 | 342.31 ms | 343.15 ms | 2.92 Hz | 2.93 GB |
-| **GR00T N1.7 3B** TensorRT + AOT Triton, mixed FP16 | 3 (×2 frames) | 272.39 ms | 273.77 ms | 3.67 Hz | 5.72 GB |
-| **GR00T N1.6 3B** TensorRT + AOT Triton, mixed FP16 | 3 | 272.49 ms | 273.47 ms | 3.67 Hz | 5.30 GB |
-| π0.5 LIBERO (openpi) split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
-| **π0.5 LIBERO (openpi)** TensorRT + AOT Triton FP16, compact prefix | 2 | 436.30 ms | 438.01 ms | 2.29 Hz | 6.30 GB |
-| **π0.5 base (LeRobot)** pure TensorRT FP16, FP32 language residual, chunk 50 | 3 | 642.05 ms | 643.08 ms | 1.56 Hz | 6.13 GB |
-
-`RAM in use` is whole-system usage during inference. Bold rows are 300-second runs
-with FP32 accumulation ([all-model evidence](results/all-models-20261010/fp32-accumulate/),
-[GR00T](results/groot-triton-20261012/), [other models](results/models-20261012/),
-[π0.5 base](results/pi05-base-20261012/)).
-The PyTorch and ORT rows use a second board with the same JetPack and clocks, which
-runs X-VLA and EVO1 a few percent faster. π0.5's padded-prefix row is an earlier run.
-A [fresh second-board clean install](docs/09-test-audit.md#fresh-second-board-clean-install--2026-10-12)
-passes new downloads, exports, native/AOT builds, parity checks and five-minute
-benchmarks for all seven checkpoints using the pinned uv environments.
-
-See the [optimization playbook](docs/07-optimization-playbook.md) for kernel choices
-and speed, RAM and precision tradeoffs.
-
-## What every run logs
-
-Each run writes one JSON to [`results/`](results/), and `python -m bench report` turns
-them into [the results page](docs/RESULTS.md). Besides the latency distribution, a run
-records:
-
-- per-stage timings, and the first call after load;
-- whole-board RAM and swap, process RSS, CPU and GPU load;
-- power per rail and energy per inference;
-- temperatures, and drift over a 5-minute sustained run;
-- the clocks the board actually ran at (every CPU core, GPU, memory) next to the ones it
-  was set to, plus over-current and thermal throttle events;
-- action parity against the stock PyTorch policy;
-- the board state: JetPack, power mode, package versions, repo commit.
-
-[The profile](docs/06-profile.md) adds an Nsight Systems trace of every model: where each
-stage's time goes and whether it is compute- or bandwidth-bound.
-
-## Parity
-
-Every pure TensorRT model reproduces the stock PyTorch FP32 actions to **cosine 0.99999
-or better, within 0.27 % of the action range over the whole action chunk**. π0.5 is
-checked the same way against its FP16 PyTorch conversion, which itself sits at cosine
-0.99998 from the original mixed-precision policy. π0.5 base is checked against the stock
-LeRobot FP32 policy within its measured FP16 noise floor: cosine 0.999992 or better,
-within 0.63 % of the range ([why](results/pi05-base-20261012/)).
-
-Each bundle carries the stock policy's output for seeded inputs and noise, and loading
-refuses to run if the engines miss it. Per-model values are in
-[the results](docs/RESULTS.md#parity); `python -m bench parity` compares any two runs.
-
-## Run it
-
-Export on a Linux Python 3.12 machine with enough memory for the stock policy, copy
-each whole bundle to the Orin, then build and benchmark there. The
-[all-model workflow](docs/10-all-model-setup.md) provides all six export commands,
-dedicated runtime/compiler environments and pinned model, source and dependency
-versions.
+**On the PC** (Linux, [uv](https://docs.astral.sh/uv/), enough RAM for the FP32 policy):
 
 ```bash
-# on the export machine
-export/setup.sh smolvla
-export/export.sh lerobot/smolvla_base ~/vla-bundles/smolvla-base \
-    --views 2 --hoist-cross-kv
-
-# on a fresh Orin with SSH and Tailscale connected
-sudo scripts/01_initial_setup.sh --apply --disable-docker --reboot-if-needed
-# reconnect after any reboot, then verify
-sudo scripts/01_initial_setup.sh --verify --disable-docker
-scripts/12_env_trt.sh
-scripts/14_env_triton.sh
-python3 -m bench.tools.vla_setup --model smolvla-base \
-    --bundle ~/vla-bundles/smolvla-base --work-dir ~/vla-runs/smolvla-new
-
-# With all six bundles in subdirectories named by model key:
-python3 -m bench.tools.vla_setup --model all --bundles-dir ~/vla-bundles \
-    --work-dir ~/vla-runs/all-new --keep-going
+git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-vla
+./export.sh smolvla                                   # base checkpoint -> bundles/smolvla
+./export.sh smolvla path/to/pretrained_model bundles/my-smolvla --task "pick up the cube"
+scp -r bundles/smolvla jetson:
 ```
 
-Environment and work directories must be new. The workflow verifies bundles and
-action parity, builds engines and runs models serially for 300 seconds each.
-Use `--duration-s 10` for a smoke test. Inference needs neither Torch nor Triton.
-See the [test audit](docs/09-test-audit.md) for validation coverage and the
-[export guide](export/README.md) for fine-tuned LeRobot checkpoints.
+Models: `smolvla`, `xvla`, `evo1`, `groot-n16`, `groot-n17`, `pi05-base`, `pi05-libero`.
+The first export of each family builds its pinned environment. `pi05-libero` runs in
+openpi's Docker container and needs the NVIDIA container toolkit. GR00T N1.7 and π0.5
+base read gated tokenizers (`nvidia/Cosmos-Reason2-2B`, `google/paligemma-3b-pt-224`):
+accept their terms and `hf auth login` first. More options: [export/README.md](export/README.md).
 
-## Documentation
+**On the Jetson** (Orin Nano Super, JetPack 7.2.1, uv):
 
-- [Host setup](docs/01-host-setup.md)
-- [Python environments](docs/02-environments.md)
-- [Benchmark all six models](docs/10-all-model-setup.md)
-- [Optimized SmolVLA setup](docs/08-smolvla-setup.md)
-- [Test audit and clean-install coverage](docs/09-test-audit.md)
-- [Model and runtime contracts](docs/03-backends.md)
-- [Metric definitions](docs/04-metrics.md)
-- [Benchmark runbook](docs/05-runbook.md)
-- [Profile: where the time goes](docs/06-profile.md)
-- [Optimization playbook](docs/07-optimization-playbook.md)
-- [Measured results](docs/RESULTS.md)
+```bash
+git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-vla
+./run.sh ~/smolvla
+```
+
+The first run builds the engines for that bundle (5-15 minutes) and caches them in
+`~/.cache/jetson-orin-nano-vla`; later runs start in seconds. Set the power mode
+yourself for comparable numbers: `sudo nvpmodel -m 2 && sudo jetson_clocks`.
+
+| option | |
+|---|---|
+| `--duration-s N` | benchmark length, default 300 |
+| `--baseline` | plain TensorRT engines, without the Triton kernels |
+| `--rebuild` | discard this bundle's cached engines |
+
+Each run writes one JSON with the latency distribution and per-stage timings, RAM,
+CPU/GPU load, power per rail, temperatures, the clocks the board actually ran at,
+throttle events, parity against the stock policy, and package versions.
+
+## Layout
+
+```
+export.sh, export/   PC: checkpoint -> ONNX bundle with the stock policy's reference actions
+run.sh, bench/       Jetson: TensorRT runtimes per model, bench/aot/ Triton kernels, the benchmark
+results/             the runs behind the table
+```
+
+How the speed was found, and what did not work: [docs/optimization.md](docs/optimization.md).
 
 ## Thanks
 
-Big thanks to the teams behind [LeRobot and SmolVLA](https://github.com/huggingface/lerobot),
+To the teams behind [LeRobot and SmolVLA](https://github.com/huggingface/lerobot),
 [X-VLA](https://thu-air-dream.github.io/X-VLA/), [EVO-1](https://github.com/MINT-SJTU/Evo-1),
-[NVIDIA Isaac GR00T](https://github.com/NVIDIA/Isaac-GR00T), and
-[Physical Intelligence's openpi](https://github.com/Physical-Intelligence/openpi) for
-sharing their models and code. Thanks also to [FlashRT](https://github.com/flashrt-project/FlashRT)
-for deployment and optimization ideas, and to Jeremy Gracey's
-[triton-kernel-lab](https://github.com/JeremyGracey-AI/triton-kernel-lab) for the
-Orin Nano softmax examples used in the [initial Triton experiments](experiments/smolvla_triton/).
+[NVIDIA Isaac GR00T](https://github.com/NVIDIA/Isaac-GR00T) and
+[openpi](https://github.com/Physical-Intelligence/openpi) for sharing their models and code;
+to [FlashRT](https://github.com/flashrt-project/FlashRT) for optimization ideas; and to
+Jeremy Gracey's [triton-kernel-lab](https://github.com/JeremyGracey-AI/triton-kernel-lab)
+for the Orin Nano softmax the SmolVLA kernel started from.
 
-## Scope
+## License
 
-Inference cost and parity on the board. No training, fine-tuning, robot control or
-camera capture. TensorRT engines are built on the Jetson and never copied between
-machines; the ONNX bundles are the portable artifacts.
-
-Repository code is MIT. Model weights and derived exports keep their upstream licenses
-(GR00T N1.6: NVIDIA One-Way Noncommercial License; N1.7: NVIDIA License with a
-non-commercial use limitation); consult each model card before redistribution.
+Code: MIT. Weights and exported bundles keep their upstream licenses (GR00T N1.6: NVIDIA
+One-Way Noncommercial License; N1.7: NVIDIA License with a non-commercial use limitation).

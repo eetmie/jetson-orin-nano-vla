@@ -1,13 +1,13 @@
 # pi0.5 from LeRobot
 
-`export/export.sh` exports a LeRobot `pi05` checkpoint, [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base)
-or a fine-tune of it, into the same split bundle layout as [`pi05-libero`](../pi05/README.md):
-seven refittable layer templates plus the K/V-only last language layer, each layer's own
-FP16 weights, and fixtures. It runs in `.venv-xvla` (LeRobot 0.6.1) on a CUDA machine.
+`./export.sh pi05-base [checkpoint] [out-dir]` exports [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base)
+or a fine-tune of it into the same layout as [`pi05-libero`](../pi05/README.md): seven
+refittable layer templates plus the K/V-only last language layer, each layer's FP16
+weights, and fixtures. It runs in `.venv-xvla` (LeRobot 0.6.1) on a CUDA machine.
 
 ```bash
-export/export.sh lerobot/pi05_base ~/bundles/pi05-base-split
-export/export.sh path/to/pretrained_model ~/bundles/my-pi05 --views 2 --task "dig sand"
+./export.sh pi05-base
+./export.sh pi05-base path/to/pretrained_model bundles/my-pi05 --views 2 --task "dig sand"
 ```
 
 The tokenizer, [`google/paligemma-3b-pt-224`](https://huggingface.co/google/paligemma-3b-pt-224),
