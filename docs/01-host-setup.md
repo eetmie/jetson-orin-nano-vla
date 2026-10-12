@@ -6,10 +6,41 @@ TensorRT 10.16.2. The 7.2 line is the first 7.x release to cover the whole Orin 
 Orin Nano dev kit no longer ships an SD-card image — flash with the USB ISO installer
 or SDK Manager.
 
+For a fresh official image with SSH and Tailscale already connected:
+
 ```bash
-scripts/00_host_prep.sh            # set it
-scripts/00_host_prep.sh --verify   # check it, any time you doubt a number
+scripts/01_initial_setup.sh --inspect
+sudo scripts/01_initial_setup.sh --apply --disable-docker --reboot-if-needed
+# Reconnect after reboot; USB phone tethering may need manual re-enabling.
+sudo scripts/01_initial_setup.sh --verify --disable-docker
 ```
+
+This recipe is restricted to the tested L4T R39.2.1 Orin Nano Super platform.
+It checks native Python/TensorRT/CUDA first, selects headless boot, creates a
+4 GiB swapfile safely, enables SSH/Tailscale/fan services and installs the clock
+service. `--hostname NAME` is optional. Inspection is the default; apply and
+verification require sudo. An existing running Docker container prevents
+`--disable-docker` from stopping its services. Repeating apply keeps the same
+configuration; environment installers still require new directories.
+
+`--disable-docker` also disables `nvidia-cdi-refresh.service` and its path unit.
+The container device scanner can access the GPU before `nvpmodel` sets its power
+masks, leaving the saved mode name correct but its actual masks incorrect. This
+[reported R39.2 boot race](https://forums.developer.nvidia.com/t/jetson-r39-2-package-ships-stale-nvidia-cdi-refresh-service/377209)
+matches the fresh-board journal captured during this test. Native inference does
+not use CDI. If retaining containers, order their CDI initialization after a
+successful boot power initialization rather than assuming disabling the desktop
+alone resolves the race. Verification checks both masks (TPC 240, FBP 2), every
+CPU core, GPU/EMC clocks, swap, and NVIDIA's boot power service result.
+
+Passwordless sudo is useful for automated provisioning and was already enabled
+on the test image. Console auto-login is unnecessary: SSH, Tailscale, networking
+and clock pinning are system services. A login prompt on a headless console is
+normal. Network connectivity must work without a desktop session; campus TLS
+interception and a phone tether that resets on reboot are separate constraints.
+
+`scripts/00_host_prep.sh` remains the earlier interactive power helper; use the
+initial setup recipe for full host provisioning.
 
 ## Power mode: MAXN_SUPER, clocks pinned
 
@@ -72,6 +103,11 @@ systemctl status jetson-perf.service      # believe this, not the absence of an 
 
 A warm reboot may not clear an ACR failure — power-cycle the board.
 
+On the fresh second board in the 2026-10-12 install test, one authorized warm
+reboot did restore the missing GPU and CUDA access. Treat power cycling as the
+fallback when a warm reboot fails, rather than assuming every ACR failure has
+the same recovery path.
+
 ## Swap — 4 GB, and build on a freshly booted headless board
 
 The 8 GB is unified memory: model weights, TensorRT build scratch, the desktop if you are
@@ -80,11 +116,10 @@ repo is cold-building X-VLA's twelve FP16 engines, and it decides the swap size.
 
 **Raise the stock 2 GB swapfile to 4 GB. Do not bother going higher.**
 
-```bash
-sudo swapoff /swapfile && sudo rm /swapfile
-sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
-sudo mkswap /swapfile && sudo swapon /swapfile     # /etc/fstab already points at it
-```
+The initial setup recipe above prepares a replacement file before taking the old
+swap offline, checks RAM headroom, uses mode 600 and preserves `/etc/fstab` before
+updating its swap entry. It refuses to resize swap while active pages cannot fit
+back into available RAM with a 512 MiB margin.
 
 JetPack ships 2 GB via `nvfb-swapfile.service` (`fallocate -l 2G`, first boot only, so it
 does not recreate the file if you replace it).

@@ -1,164 +1,108 @@
 # 5. Benchmark runbook
 
 Run one model process at a time because CPU and GPU share the same 8 GB memory pool.
+The default observations are deterministic and in memory; no camera or robot is
+needed. These measurements test inference cost and action parity, not robot-task
+success.
 
-## 1. Prepare the board
+## 1. Prepare and verify the board
 
-```bash
-scripts/00_host_prep.sh
-scripts/00_host_prep.sh --verify
-```
-
-The expected state is MAXN_SUPER with pinned CPU, GPU, and EMC clocks, working swap,
-and a persistent TensorRT engine cache.
-
-## 2. Build the environments
-
-For SmolVLA:
+On a fresh matching JetPack image, with SSH and Tailscale connected:
 
 ```bash
-scripts/10_env_torch.sh
-scripts/11_env_ort.sh
+scripts/01_initial_setup.sh --inspect
+sudo scripts/01_initial_setup.sh --apply --disable-docker --reboot-if-needed
+# Reconnect after reboot, then check the actual state:
+sudo scripts/01_initial_setup.sh --verify --disable-docker
 ```
 
-For X-VLA:
+The [host recipe](01-host-setup.md) checks headless boot, MAXN_SUPER GPU power
+masks, all CPU/GPU/EMC clocks, 4 GiB swap and required services. Console auto-login
+is unnecessary. A USB phone tether may need re-enabling after reboot.
+
+## 2. Create the native environments
 
 ```bash
-scripts/13_env_torch_xvla.sh
-scripts/11_env_ort.sh
+scripts/12_env_trt.sh
+scripts/14_env_triton.sh
+.venv-trt/bin/python -m bench selftest --seconds 4
 ```
 
-EVO1 needs only the ONNX environment:
+pip remains the default installer. For the pinned uv experiment, install the
+documented uv version and prefix both setup commands with `VLA_ENV_MANAGER=uv`;
+see [environments](02-environments.md). Environment directories must be new.
+The inference environment excludes Torch and Triton; the separate compiler
+environment serializes Triton kernels into TensorRT engines.
+
+## 3. Export and copy complete bundles
+
+Run the [public export recipes](10-all-model-setup.md) on the export machine.
+Copy each entire bundle, including external weights, tokenizers, fixtures and
+`MANIFEST.sha256`, to a stable directory on the board. Use model-key subdirectory
+names for the all-model command. TensorRT engines are built on the board rather
+than copied from another machine.
+
+EVO1 LIBERO's public recipe uses its trained action head. The older
+`evo1-bootstrap` experiment is a separate nondeployable policy with random action
+weights and must not be substituted for the trained checkpoint.
+
+## 4. Build, validate and benchmark
 
 ```bash
-scripts/11_env_ort.sh
+python3 -m bench.tools.vla_setup --model smolvla-base \
+    --bundle ~/vla-bundles/smolvla-base --work-dir ~/vla-runs/smolvla-new
+
+# All six README workflow models, run serially:
+python3 -m bench.tools.vla_setup --model all --bundles-dir ~/vla-bundles \
+    --work-dir ~/vla-runs/all-new --keep-going
+
+# The optional seventh model:
+python3 -m bench.tools.vla_setup --model pi05-base \
+    --bundle ~/vla-bundles/pi05-base --work-dir ~/vla-runs/pi05-base-new
 ```
 
-Verify the measurement plumbing before trusting a result:
+Work directories must be new. Setup checks bundle checksums, GPU access and
+stock-policy action fixtures, builds fresh native/AOT engines and runs each
+final benchmark for 300 seconds. `--duration-s 10` is a functional smoke test.
+Retain `setup.json`, stage logs, doctor reports, parity and benchmark JSONs;
+`--model all` also writes `matrix.json`. A failed stage is recorded and causes
+nonzero exit even when `--keep-going` tests remaining models.
+
+If a heavy cold build fails from GPU allocation pressure, preserve the failed
+logs, reboot to an idle headless board, verify the host and retry in a new work
+directory. Four GiB swap is the tested configuration; see the measured
+[build-memory limits](01-host-setup.md#swap--4-gb-and-build-on-a-freshly-booted-headless-board).
+
+## Optional comparison runtimes
+
+`scripts/run_all.sh` retains the PyTorch and ORT comparison recipes. Those use
+`scripts/10_env_torch.sh`, `scripts/13_env_torch_xvla.sh` and
+`scripts/11_env_ort.sh` where applicable, plus their matching checkpoints.
+See [comparison runtimes](10-all-model-setup.md#comparison-runtimes).
+For explicit native runs, use `.venv-trt/bin/python -m bench trt-split` with the
+exported bundle; the selected setup recipes above also apply their AOT kernels.
+Keep the stock model's denoising step count so the embedded action fixture remains
+comparable.
+
+## Preserve measurements
+
+Use unique output paths. Each benchmark records validity, latency, memory, power,
+thermals, clocks, stack versions and representative actions. To render a results
+directory:
 
 ```bash
-.venv-ort/bin/python -m bench selftest --seconds 4
+python3 -m bench report results --out docs/RESULTS.md
 ```
 
-## 3. Obtain one model
-
-For a public base:
-
-```bash
-hf auth login  # required only while eetmie/* is private
-scripts/fetch_models.sh smolvla-base
-# or:
-scripts/fetch_models.sh xvla-base
-```
-
-For EVO1, copy the complete companion Spark export to a stable directory such as
-`~/bundles/evo1-bootstrap-split`. Do not copy a TensorRT engine cache from another
-machine. The current bundle is nondeployable and has a random action head.
-
-## 4. Validate EVO1 before a long run
-
-```bash
-.venv-ort/bin/python scripts/check_evo1_fixture.py \
-    --bundle ~/bundles/evo1-bootstrap-split \
-    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-trt
-```
-
-The command verifies the entire manifest, builds/loads each engine serially, compares
-the eleven-graph outputs to the native LeRobot 0.6.1 fixture, and exits nonzero below
-the cosine threshold. `bench ort-split` repeats the same gate during load, so it cannot
-record an apparently fast result after a parity failure.
-
-## 5. Run the complete recipe
-
-```bash
-MODEL=smolvla-base scripts/run_all.sh
-MODEL=xvla-base scripts/run_all.sh
-MODEL=evo1-libero \
-    BUNDLE=~/bundles/evo1-libero-split \
-    scripts/run_all.sh
-MODEL=evo1-bootstrap \
-    BUNDLE=~/bundles/evo1-bootstrap-split \
-    scripts/run_all.sh
-MODEL=groot-n16-base \
-    BUNDLE=~/bundles/groot-n16-base-split \
-    scripts/run_all.sh
-MODEL=groot-n17-base \
-    BUNDLE=~/bundles/groot-n17-base-split \
-    scripts/run_all.sh
-```
-
-The public-base recipes record a PyTorch FP32 reference, the split ONNX FP16
-deployment, and a sustained thermal run. EVO1 and GR00T skip PyTorch because their
-reference is the fixture embedded in the bundle. A bundle from `export/export.sh` runs
-on `trt-split`, one fetched from Hugging Face on `ort-split`. Set `SUSTAINED=0` to skip the
-five-minute sustained pass.
-
-The default observation is deterministic and in memory, so no camera or robot hardware
-is needed. EVO1 synthetic observations use the policy's native uniform `[-1, 1]` flow
-noise; SmolVLA and X-VLA retain their normal noise.
-
-## 6. Run one backend
-
-```bash
-M=smolvla-base
-
-.venv-torch/bin/python -m bench torch \
-    --model "$M" --checkpoint ~/bundles/$M-torch \
-    --iters 30
-
-.venv-ort/bin/python -m bench ort-split \
-    --model "$M" --bundle ~/bundles/$M-split \
-    --views 2 --iters 100
-```
-
-For X-VLA, use `.venv-torch-xvla` and `--views 3`. A bundle from `export/export.sh`
-runs on the TensorRT runtime alone:
-
-```bash
-.venv-ort/bin/python -m bench trt-split \
-    --model "$M" --bundle ~/bundles/$M-split --iters 100
-```
-
-For EVO1 on ORT:
-
-```bash
-.venv-ort/bin/python -m bench ort-split \
-    --model evo1-bootstrap \
-    --bundle ~/bundles/evo1-bootstrap-split \
-    --cache-dir ~/.cache/jetson-orin-nano-vla/evo1-trt \
-    --views 1 --iters 100
-```
-
-Do not override EVO1's 32 flow steps for a retained comparison: a different step count
-does not match the embedded native action and fails the automatic parity gate.
-
-## 7. Generate the report
-
-```bash
-python -m bench report results --out docs/RESULTS.md
-```
-
-Every result JSON records validity, latency, memory, CPU, power, thermals, board state,
-runtime versions, and representative saved action chunks. EVO1 results also embed the
-native-fixture comparison and the nondeployable/random-head safety flags.
-
-## 8. Preserve remote measurements locally
-
-From the local repository, snapshot the Jetson's current results before reusing
-any remote output filename, and again after a testing session:
+For the existing reference-board deployment:
 
 ```bash
 python3 -m bench.tools.archive_remote_results
 ```
 
-The default source is `joel@192.168.8.230:~/jetson-orin-nano-vla/results/`.
-Each call creates a new UTC-stamped directory under `results/remote-snapshots/`,
-copies the entire results directory without overwriting earlier snapshots, and
-records file sizes, SHA-256 checksums, run labels and recorded run times in a
-manifest. A failed transfer is marked `INCOMPLETE`. Engines and bundles remain
-separate artifacts; measurements include their recorded hashes where available.
-
-Use unique `--label` and `--out` paths for new measurements. A snapshot preserves
-the files present when copied; it cannot recover an earlier remote file that was
-already overwritten without a backup. [Initial SmolVLA Triton tests](../experiments/smolvla_triton/)
-use separate candidates and reject reused measurement filenames.
+Its default source is `joel@192.168.8.230:~/jetson-orin-nano-vla/results/`.
+Each invocation creates a UTC-stamped local snapshot with sizes, SHA-256 hashes
+and recorded run times. Failed transfers are marked `INCOMPLETE`. For an isolated
+test on another board, archive that test's explicit run directory instead.
+Engines and bundles remain separate artifacts; snapshotting measurements cannot
+recover an earlier overwritten file.

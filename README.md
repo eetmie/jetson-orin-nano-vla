@@ -89,8 +89,10 @@ export/setup.sh smolvla
 export/export.sh lerobot/smolvla_base ~/vla-bundles/smolvla-base \
     --views 2 --hoist-cross-kv
 
-# on the Orin
-scripts/00_host_prep.sh
+# on a fresh Orin with SSH and Tailscale connected
+sudo scripts/01_initial_setup.sh --apply --disable-docker --reboot-if-needed
+# reconnect after any reboot, then verify
+sudo scripts/01_initial_setup.sh --verify --disable-docker
 scripts/12_env_trt.sh
 scripts/14_env_triton.sh
 python3 -m bench.tools.vla_setup --model smolvla-base \

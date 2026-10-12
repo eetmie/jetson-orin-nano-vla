@@ -14,14 +14,17 @@
 [Unit]
 Description=Orin Nano: MAXN_SUPER power mode + pinned clocks
 After=nvpmodel.service
-# The GPU devfreq node appears late; without this the unit can lose a race with the
-# nvgpu driver on a board that is otherwise perfectly healthy.
-After=multi-user.target
+After=systemd-modules-load.service
+# jetson-perf.sh waits up to 30 seconds for the GPU node to appear.
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+# nvpower emits asynchronous udev events whose GPU handler also runs nvpmodel.
+# Let those finish before pinning, so a late handler cannot reset CPU floors.
+ExecStartPre=/usr/bin/udevadm settle --timeout=30
 ExecStart=/usr/local/sbin/jetson-perf.sh
+TimeoutStartSec=90
 
 [Install]
 WantedBy=multi-user.target
