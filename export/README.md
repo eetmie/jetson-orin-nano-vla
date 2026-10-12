@@ -1,8 +1,8 @@
 # Export your own checkpoint
 
-Turns a LeRobot SmolVLA, X-VLA or EVO1 checkpoint (base or fine-tuned), or NVIDIA's
+Turns a LeRobot SmolVLA, X-VLA, EVO1 or pi0.5 checkpoint (base or fine-tuned), or NVIDIA's
 GR00T N1.6/N1.7 or the openpi pi0.5 LIBERO policy, into the split ONNX bundle the benchmark runs. **Run it on the machine you fine-tune on**, then copy the
-bundle to the Jetson:
+bundle to the Jetson ([LeRobot pi0.5 notes](pi05_lerobot/README.md)):
 
 ```
 fetch model -> (fine-tune) -> export/export.sh -> copy bundle -> benchmark on the Orin
@@ -15,7 +15,8 @@ device and are never copied.
 
 ## Setup
 
-Linux with Python 3.12. The LeRobot/GR00T exporters run on CPU; pi0.5 uses a pinned
+Linux with Python 3.12. The LeRobot/GR00T exporters run on CPU, except LeRobot pi0.5
+(CUDA, `.venv-xvla`); openpi pi0.5 LIBERO uses a pinned
 Docker container and needs NVIDIA GPU support. Follow the
 [all-model recipe](../docs/10-all-model-setup.md) for the six base checkpoints.
 

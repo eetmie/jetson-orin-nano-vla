@@ -39,6 +39,20 @@ Copy each **whole** bundle, including external ONNX weights, tokenizers,
 fixtures and `MANIFEST.sha256`, into one directory on the board. Its subdirectories
 must use the six model keys shown above. Engine files are built on the board.
 
+π0.5 base from LeRobot is a seventh, optional model outside `--model all`. It exports in
+`.venv-xvla` on a CUDA machine; its PaliGemma tokenizer is gated (accept the terms, then
+`export/.venv-xvla/bin/hf auth login`):
+
+```bash
+export/export.sh lerobot/pi05_base "$bundle_root/pi05-base"
+# on the Orin:
+python3 -m bench.tools.vla_setup --model pi05-base --bundle "$HOME/vla-bundles/pi05-base" \
+  --work-dir "$HOME/vla-runs/pi05-base"
+```
+
+It runs native engines in either mode: the Triton action attention selected for
+pi05-libero is slower at pi05-base's 50 action rows.
+
 ## Orin
 
 ```bash

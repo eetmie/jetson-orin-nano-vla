@@ -199,6 +199,27 @@ REGISTRY: dict[str, ModelSpec] = {
               "steps; actions mean something for LIBERO's embodiment only.",
         extras={"deployable": True, "source": "Physical-Intelligence/openpi pi05_libero"},
     ),
+    "pi05-base": ModelSpec(
+        key="pi05-base",
+        family="pi05",
+        label="pi0.5 base (LeRobot)",
+        params_m=3354.0,
+        # LeRobot's port of openpi's pi05_base, exported by export/pi05_lerobot from the
+        # LeRobot checkpoint (also a LeRobot fine-tune of it). Same layer templates as
+        # pi05-libero; the prompt carries the quantized state and is built per observation.
+        torch_repo="lerobot/pi05_base",
+        split_repo=None,
+        tokenizer="bundle",
+        task="pick up the red block",
+        chunk_size=50,
+        num_steps=10,
+        state_dim=32,
+        action_dim=32,
+        image_views=3,
+        notes="Base checkpoint without normalization statistics: state and actions are in "
+              "the model's normalized space. Three cameras, chunk 50, 10 Euler steps.",
+        extras={"deployable": True, "source": "lerobot/pi05_base", "requires_lerobot": "0.6.1"},
+    ),
     "evo1-bootstrap": ModelSpec(
         key="evo1-bootstrap",
         family="evo1",

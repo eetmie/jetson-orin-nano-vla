@@ -85,12 +85,19 @@ class TrtSplitPi05Backend(Backend):
 
     def infer(self, obs: Observation) -> InferResult:
         b = self.bundle
-        if len(obs.images) != int(b.b["valid_cameras"]):
-            raise ValueError(f"pi0.5 LIBERO takes {b.b['valid_cameras']} cameras (base and "
+        cams = int(b.b["valid_cameras"])
+        if b.lerobot:
+            # Fewer cameras than exported is the checkpoint's masked-slot case, which the
+            # compact layout skips exactly; more would exceed the prefix capacity.
+            if not 1 <= len(obs.images) <= cams:
+                raise ValueError(f"this pi0.5 bundle takes 1..{cams} cameras "
+                                 f"({', '.join(b.image_keys)}), got {len(obs.images)}")
+        elif len(obs.images) != cams:
+            raise ValueError(f"pi0.5 LIBERO takes {cams} cameras (base and "
                              f"wrist), got {len(obs.images)}")
         t0 = time.perf_counter()
         imgs = map_views(b.preprocess, obs.images)
-        ids, mask = b.tokens(obs.task)
+        ids, mask = b.tokens(obs.task, obs.state) if b.lerobot else b.tokens(obs.task)
         pre = (time.perf_counter() - t0) * 1000
         t = {}
         act = self.device.infer(imgs, ids, mask, obs.noise.astype(np.float32), timings=t)

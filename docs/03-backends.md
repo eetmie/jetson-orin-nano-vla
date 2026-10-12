@@ -264,6 +264,23 @@ slots) and compact (521: the two real cameras and the prompt's real tokens, the 
 camera never computed). Load checks every bundle fixture against its full-FP16 PyTorch
 trajectory: cosine >= 0.99999 and max |diff| <= 0.005 on the normalized chunk.
 
+## pi0.5 base contract (LeRobot)
+
+`trt-split --model pi05-base` runs a bundle from `export/export.sh lerobot/pi05_base`
+([notes](../export/pi05_lerobot/README.md)) on the same chain: 3 cameras (`base_0_rgb`,
+`left_wrist_0_rgb`, `right_wrist_0_rgb`; fewer is the masked-slot case, skipped exactly),
+32-dim state, chunk 50, 10 steps, a 912-token compact prefix. Every observation the host
+normalizes the state, assembles the prompt's tokens and uploads its embedding rows; masks
+and RoPE rows are re-uploaded only when the prompt length changes. The language residual
+stream is FP32 and the last language layer is K/V-only (eight template kinds).
+`pi05_base` has no normalization statistics, so state and actions are in the model's
+normalized space; a fine-tune's bundle carries its quantiles.
+
+Load gates every fixture against the stock LeRobot FP32 policy: cosine >= 0.99998, max
+|diff| <= 1 % of the chunk's range, and a mean error at most twice the FP16 split
+reference's. The FP16-reference gate pi05-libero uses is inside the noise of this model:
+changing only the vision precision moves the PyTorch chunk's max error by up to 0.006.
+
 ## Why split ONNX
 
 TensorRT temporarily materializes FP32 working copies while building an engine. A

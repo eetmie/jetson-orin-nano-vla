@@ -15,6 +15,9 @@ from bench.tools.smolvla_setup import validate_bundle as validate_smolvla
 
 ROOT = Path(__file__).resolve().parents[2]
 LISTED_MODELS = ("smolvla-base", "evo1-libero", "xvla-base", "groot-n17-base", "groot-n16-base", "pi05-libero")
+# Runnable one at a time (--model M --bundle B), not part of --model all.
+EXTRA_MODELS = ("pi05-base",)
+PI05_POLICIES = {"pi05-libero": "pi05_libero", "pi05-base": "pi05_lerobot"}
 
 
 def digest(path):
@@ -37,13 +40,13 @@ def validate_bundle(model, bundle, optimized=True):
         return validate_smolvla(bundle)
     meta = bundle / ("export_info.json" if model == "smolvla-base" else "bundle.json")
     info = json.loads(meta.read_text())
-    if model == "pi05-libero":
-        if info.get("policy") != "pi05_libero" or not info.get("complete"):
-            raise ValueError("pi05-libero requires a complete pi0.5 LIBERO bundle")
-        if optimized and info.get("prefix_tokens") != 521:
+    if model in PI05_POLICIES:
+        if info.get("policy") != PI05_POLICIES[model] or not info.get("complete"):
+            raise ValueError(f"{model} requires a complete {PI05_POLICIES[model]} pi0.5 bundle")
+        if optimized and model == "pi05-libero" and info.get("prefix_tokens") != 521:
             raise ValueError("selected pi0.5 attention recipe requires the compact 521-token prefix")
         for name in ("norm_stats.json", "embedding_fp16.npy", "rope_cos_fp16.npy", "rope_sin_fp16.npy",
-                     "conditioning_10step_fp16.npy"):
+                     info.get("conditioning", "conditioning_10step_fp16.npy")):
             checked_path(bundle, name)
         for kind in {c["kind"] for c in info["components"]}:
             checked_path(bundle, f"templates/{kind}.onnx")
@@ -95,7 +98,9 @@ def plan(model, bundle, work, runtime, builder, duration, accumulate="fp32", opt
                   "install_lean_tokenizer(); from bench.cli import main; raise SystemExit(main())"]
     stages = [("runtime-doctor", [str(runtime), "-m", "bench.tools.doctor", "--role", "runtime", "--model", model,
                                   "--out", str(work / "runtime-doctor.json")])]
-    use_plugins = optimized
+    # pi05-base runs native engines either way: the Triton action attention, tuned for
+    # pi05-libero's 10 action rows, measured slower at its 50 (141.7 vs 118.5 ms denoise).
+    use_plugins = optimized and model != "pi05-base"
     if use_plugins:
         stages.append(("build-doctor", [str(builder), "-m", "bench.tools.doctor", "--role", "build", "--model", model,
                                        "--out", str(work / "build-doctor.json")]))
@@ -156,7 +161,7 @@ def run_model(args, model, bundle, work):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=(*LISTED_MODELS, "all"), required=True)
+    parser.add_argument("--model", choices=(*LISTED_MODELS, *EXTRA_MODELS, "all"), required=True)
     parser.add_argument("--bundle", type=Path, help="one model's complete portable export")
     parser.add_argument("--bundles-dir", type=Path, help="all: directories named by model key")
     parser.add_argument("--work-dir", type=Path, required=True, help="new directory for logs, results and engines")

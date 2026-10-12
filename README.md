@@ -1,7 +1,7 @@
 # jetson-orin-nano-vla
 
 Recipes and measurements for running VLA models on an **8 GB Jetson Orin Nano Super**:
-four public base checkpoints and the trained EVO1 LIBERO and π0.5 LIBERO checkpoints,
+five public base checkpoints and the trained EVO1 LIBERO and π0.5 LIBERO checkpoints,
 all on a pure TensorRT runtime (`bench trt-split`).
 
 **Tested on JetPack 7.2.1 (L4T R39.2.1).**
@@ -14,6 +14,7 @@ all on a pure TensorRT runtime (`bench trt-split`).
 | GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) |
 | GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) |
 | π0.5 LIBERO 3.3B (prototype) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` |
+| π0.5 base 3.3B (LeRobot) | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) |
 
 ## Measured fit
 
@@ -32,10 +33,12 @@ These measure inference cost, not robot-task quality.
 | **GR00T N1.6 3B** TensorRT + AOT Triton, mixed FP16 | 3 | 272.49 ms | 273.47 ms | 3.67 Hz | 5.30 GB |
 | π0.5 LIBERO split, pure TensorRT FP16, padded prefix | 2 | 684.93 ms | 686.16 ms | 1.46 Hz | 6.34 GB |
 | **π0.5 LIBERO** TensorRT + AOT Triton FP16, compact prefix | 2 | 436.30 ms | 438.01 ms | 2.29 Hz | 6.30 GB |
+| **π0.5 base** pure TensorRT FP16, FP32 language residual, chunk 50 | 3 | 642.05 ms | 643.08 ms | 1.56 Hz | 6.13 GB |
 
 `RAM in use` is whole-system usage during inference. Bold rows are 300-second runs
 with FP32 accumulation ([all-model evidence](results/all-models-20261010/fp32-accumulate/),
-[GR00T](results/groot-triton-20261012/), [other models](results/models-20261012/)).
+[GR00T](results/groot-triton-20261012/), [other models](results/models-20261012/),
+[π0.5 base](results/pi05-base-20261012/)).
 The PyTorch and ORT rows use a second board with the same JetPack and clocks, which
 runs X-VLA and EVO1 a few percent faster. π0.5's padded-prefix row is an earlier run.
 See the [optimization playbook](docs/07-optimization-playbook.md) for kernel choices
@@ -64,7 +67,9 @@ stage's time goes and whether it is compute- or bandwidth-bound.
 Every pure TensorRT model reproduces the stock PyTorch FP32 actions to **cosine 0.99999
 or better, within 0.27 % of the action range over the whole action chunk**. π0.5 is
 checked the same way against its FP16 PyTorch conversion, which itself sits at cosine
-0.99998 from the original mixed-precision policy.
+0.99998 from the original mixed-precision policy. π0.5 base is checked against the stock
+LeRobot FP32 policy within its measured FP16 noise floor: cosine 0.999992 or better,
+within 0.63 % of the range ([why](results/pi05-base-20261012/)).
 
 Each bundle carries the stock policy's output for seeded inputs and noise, and loading
 refuses to run if the engines miss it. Per-model values are in

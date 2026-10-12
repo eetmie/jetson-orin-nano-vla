@@ -104,6 +104,16 @@ for the same reason in reverse: GEMM tile counts are equal at 291 and 320 rows.
   FP32 scores also helped X-VLA (max −6 %, mean −4 %) and π0.5 (−7 % against its FP16
   reference) and made both slightly faster, but made SmolVLA's vision kernel *worse*
   (+9 % mean over 7 refs). Measure per model; it is not a universal win.
+- Check a model's residual-stream peaks before trusting FP16 hidden states. π0.5 base's
+  language residual reaches ~6e3, where an FP16 step is 4; an FP32 residual stream (FP32
+  adds and norms, FP16 matmuls and K/V) halved its board error against stock at no
+  measurable cost ([π0.5 base](../results/pi05-base-20261012/)). A layer whose only reader
+  is another stage's K/V (π0.5's last language layer) can be exported K/V-only: −22 ms
+  and −213 MB there, and its unused MLP no longer overflows FP16.
+- Two FP16 computations of a deep, sensitive model can differ by more than a tight gate
+  against either one: π0.5 base's chunk moves by up to 0.006 when only the vision
+  precision changes. Gate such models against stock FP32 with bounds calibrated on that
+  floor, not against an FP16 reference.
 - Judge a replacement against stock FP32 over several inputs and on the embodiment's
   used action dims, not against "matches native TensorRT": the native control is not
   the truth. `reference*.py --seed N` makes extra stock references for GR00T;
@@ -119,4 +129,5 @@ for the same reason in reverse: GEMM tile counts are equal at 291 and 320 rows.
 | X-VLA | 383.7 → 342.3 ms: denoise attention, last block, LUT preprocessing, FP16 boundaries, token-layout depthwise convs in the vision tower ([experiment](../experiments/xvla_triton/)); FP32 attention scores (chunk error −22 % on the fixture, speed neutral) | the six stage-entrance convs (~1 ms); `vision_3`'s FP16 rounding of `image_features` is harmless (both readers cast to FP16 first). Window attention pads 14×14 to 24×24 with zero keys: model semantics, keep |
 | EVO1 | 360.3 → 333.4 ms: preprocessing, FP16 K/V cache, FP32-accumulating output head, Triton action-step cross-attention −19.8 ms ([experiment](../experiments/evo1_triton/)) | GEMM-bound vision (TensorRT's 1025-token MHA is already within 7 % of a Triton kernel); the language model takes a runtime causal mask, so #15 needs a mask check first |
 | GR00T N1.6 / N1.7 | 285.1 / 287.2 → 272.5 / 272.4 ms: K/V gathered to visible rows, FP32 Euler update, chain buffers ([results](../results/groot-kvg-20261012/)); Triton vision, causal LLM and DiT attention with FP32 scores ([results](../results/groot-triton-20261012/)) | N1.7 VL self-attention (~2 ms); SigLIP2's 72-channel tail |
-| π0.5 | 474 → 436.3 ms: preprocessing, Triton action-expert attention, FP32 scores −4.1 ms ([experiment](../experiments/pi05_triton/)) | prefill attention and the gated MLP: Triton kernels do not beat TensorRT there (D=256 attention 1.10 vs 1.0 ms; fused gate/up/GELU 9.86 vs 9.32 ms per layer) |
+| π0.5 | 474 → 436.3 ms: preprocessing, Triton action-expert attention, FP32 scores −4.1 ms ([experiment](../experiments/pi05_triton/)) | prefill attention and the gated MLP: Triton kernels do not beat TensorRT there (D=256 attention 1.10 vs 1.0 ms; fused gate/up/GELU 9.86 vs 9.32 ms per layer); the K/V-only last language layer from π0.5 base (needs the openpi exporter) |
+| π0.5 base (LeRobot) | 642.1 ms (300 s): FP32 language residual (accuracy, free), K/V-only last language layer (language stage 442.5 → 420.4 ms, −213 MB) ([results](../results/pi05-base-20261012/)) | the Triton action attention is slower at 50 action rows (141.7 vs 118.5 ms denoise): retune its tile or keep native; prefix length is the cost driver (912 tokens) |

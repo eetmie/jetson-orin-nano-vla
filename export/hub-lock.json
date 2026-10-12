@@ -9,5 +9,7 @@
   "nvidia/Cosmos-Reason2-2B": "9ce19a195e423419c349abfc86fd07178b230561",
   "facebook/bart-large": "cb48c1365bd826bd521f650dc2e0940aee54720c",
   "eetmie/smolvla-base-onnx": "7bba85bbae592b5312516bede592f74ad4b15c6d",
-  "eetmie/xvla-base-onnx": "70804a10297b8c9a328a66572b306102711f1d42"
+  "eetmie/xvla-base-onnx": "70804a10297b8c9a328a66572b306102711f1d42",
+  "lerobot/pi05_base": "22c30e5b34f9e7ab738b1b34fc2fc5ecfe2d28f0",
+  "google/paligemma-3b-pt-224": "35e4f46485b4d07967e7e9935bc3786aad50687c"
 }

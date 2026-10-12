@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Export a SmolVLA, X-VLA or EVO1 checkpoint to the split ONNX bundle the benchmark runs.
+# Export a SmolVLA, X-VLA, EVO1 or LeRobot pi0.5 checkpoint to the split ONNX bundle the benchmark runs.
 # Run it where you fine-tune, then copy the bundle to the Jetson.
 #
 #   export/export.sh <checkpoint dir | HF id> <out dir> [--views N] [--task "..."]... [--fps N]
@@ -158,6 +158,17 @@ case "$FAMILY" in
     "$V/bin/python" -m vla_common.fp16_mixed --bundle "$OUT" --graphs $GRAPHS \
         --half-io 'key_mask|(key|value)_[0-9]+'
     ;;
+  pi05)
+    # A LeRobot π0.5 checkpoint (lerobot/pi05_base or a fine-tune), LeRobot 0.6.1: the X-VLA
+    # venv. Its tokenizer, google/paligemma-3b-pt-224, is gated: accept its terms first.
+    # export/export.sh pi05-libero is openpi's LIBERO policy, a separate exporter.
+    V=$(venv_for xvla)
+    export PYTHONPATH="$HERE:$HERE/pi05_lerobot"
+    TASK_ARGS=()
+    for t in "${TASKS[@]}"; do TASK_ARGS+=(--task "$t"); done
+    "$V/bin/python" -m vla_common.run_pinned "$HERE/pi05_lerobot/export_split.py" \
+        --checkpoint "$CKPT" --out "$OUT" --views "$VIEWS" "${TASK_ARGS[@]}"
+    ;;
   groot)
     # Not a LeRobot policy: NVIDIA's model code (export/setup.sh groot) loads it, the
     # stock model writes the parity fixture, then the split + mixed-FP16 pass runs.
@@ -198,7 +209,7 @@ case "$FAMILY" in
         --names 'kv_[0-9]+|mod_[0-9]+|mod_out|state_features|ds_[0-9]+'
     rm -f "$FIXTURE"
     ;;
-  *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, evo1, GR00T N1.6, N1.7)"; exit 1 ;;
+  *) echo "unsupported policy type '$FAMILY' (supported: smolvla, xvla, evo1, pi05, GR00T N1.6, N1.7)"; exit 1 ;;
 esac
 
 ( cd "$OUT" && sha256sum --quiet -c MANIFEST.sha256 ) && echo ">> manifest OK"

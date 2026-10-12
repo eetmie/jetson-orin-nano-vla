@@ -29,6 +29,9 @@ a = p.parse_args()
 plugin.SCORE_FP32 = a.score_fp32
 bundle, base, out = (x.expanduser().resolve() for x in (a.bundle, a.base_cache, a.out))
 meta = json.loads((bundle/'bundle.json').read_text())
+# Action rows and keys from the bundle: LIBERO compact 10 and 521+10, LeRobot base 50 and 912+50.
+plugin.N_Q = int(meta['action_horizon'])
+plugin.N_KV = int(meta['prefix_tokens']) + plugin.N_Q
 out.mkdir(parents=True, exist_ok=False)
 for path in base.iterdir():
     if path.suffix in ('.engine', '.sha256') and not path.name.startswith('action.'):

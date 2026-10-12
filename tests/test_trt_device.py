@@ -337,6 +337,34 @@ class PreprocessExactnessTests(unittest.TestCase):
             ref = (taps * w.reshape(shape)).sum(axis=axis + 1)
             np.testing.assert_array_equal(_resize_axis(x, n_out, axis), ref)
 
+    def test_pi05_lerobot_state_bins_and_quantiles(self):
+        from bench.vendor.pi05_trt import _quantiles, state_bins
+        np.testing.assert_array_equal(state_bins(np.float32([-1.5, -1.0, 0.0, 0.9921875, 2.0])),
+                                      [-1, 0, 128, 255, 255])
+        stats = {"q01": [0.0, 2.0, 5.0], "q99": [10.0, 4.0, 5.0]}   # last: zero span -> eps
+        x = np.float32([5.0, 2.0, 5.0])
+        n = _quantiles(x, stats, np.float32(1e-8), inverse=False)
+        np.testing.assert_array_equal(n, np.float32([0.0, -1.0, -1.0]))
+        np.testing.assert_allclose(_quantiles(n, stats, np.float32(1e-8), inverse=True), x, atol=1e-6)
+        np.testing.assert_array_equal(_quantiles(x, None, np.float32(1e-8), inverse=False), x)
+
+    def test_pi05_lerobot_state_prompt_pieces(self):
+        from bench.vendor.pi05_trt import state_prompt
+        pieces = {str(d): 100 + d for d in range(10)}
+        ids = state_prompt([2, 7], [-1, 0, 255, 42], sep=9, neg=8, pieces=pieces, tail=[5, 6])
+        self.assertEqual(ids, [2, 7, 8, 101, 9, 100, 9, 102, 105, 105, 9, 104, 102, 5, 6])
+
+    def test_pi05_lerobot_resize_pads_centered(self):
+        from bench.vendor.pi05_trt import resize_with_pad_torch
+        img = np.ones((480, 640, 3), np.float32)
+        out = resize_with_pad_torch(img, 224, 224)
+        self.assertEqual(out.shape, (224, 224, 3))
+        np.testing.assert_array_equal(out[:28], 0.0)       # 480x640 -> 168x224, 28 rows each side
+        np.testing.assert_array_equal(out[196:], 0.0)
+        np.testing.assert_array_equal(out[28:196], 1.0)
+        same = np.random.default_rng(3).random((224, 224, 3), dtype=np.float32)
+        np.testing.assert_array_equal(resize_with_pad_torch(same, 224, 224), same)
+
 
 class ChainOutputTests(unittest.TestCase):
     def test_chained_outputs_alternate_between_two_buffers(self):
