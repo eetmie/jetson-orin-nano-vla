@@ -831,13 +831,9 @@ def main() -> None:
     print(f"\n{len(graphs)} graphs, {total / 1e6:.1f}M params total")
     print(f"largest engine: {max(g['params'] for g in graphs) * 4 / 1e9:.2f} GB fp32")
     print(f"wrote {args.out_dir / 'bundle.json'}")
-    if not tasks:
-        print("!! no task strings — run_inference will refuse to start without --task.")
-    else:
+    if tasks:
         print(f"   tasks: {tasks}")
-    if not fps:
-        print("!! no fps — run_inference will refuse to start without --fps.")
-    else:
+    if fps:
         print(f"   fps:   {fps}")
     if missing:
         print("skipping MANIFEST.sha256 — the bundle is incomplete "

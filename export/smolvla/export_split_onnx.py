@@ -384,7 +384,7 @@ def main() -> None:
                          "inputs by name is unaffected (export.sh also keeps the cache FP16).")
     ap.add_argument("--state-blind", action="store_true",
                     help="camera-only checkpoint: the state input is dead but still wired "
-                         "in, and MUST be fed zeros. run_inference reads this flag.")
+                         "in, and MUST be fed zeros.")
     args = ap.parse_args()
 
     patch_smolvla_for_legacy_onnx_export()
@@ -506,13 +506,9 @@ def main() -> None:
         print(f"Saved stats.json -> {len(stats)} features, "
               f"{len(usable)}/2 the runtime can use ({', '.join(usable) or 'none'})")
         if len(usable) < 2:
-            print("!! stats.json carries NO usable normalization for this robot.\n"
-                  "   The runtime falls back to IDENTITY normalization.\n"
-                  "   Expected for base weights; never ship this to a robot.")
+            print("   no state/action normalization (expected for base weights)")
     else:
-        print("!! NO stats.json — the checkpoint carries no normalizer safetensors.\n"
-              "   The bundle will load with IDENTITY normalization and drive wrong.\n"
-              "   Fine for a base-weight latency benchmark; never ship it to a robot.")
+        print("   no stats.json: the checkpoint carries no normalizer (expected for base weights)")
 
     ds_fps, ds_tasks = _dataset_meta(ckpt_dir) if ckpt_dir else (None, [])
     fps = args.fps or ds_fps
@@ -564,18 +560,11 @@ def main() -> None:
     print(f"Saved export_info.json -> fps={fps} tasks={tasks!r} "
           f"state_dim={state_dim_real} action_dim={action_dim_real} chunk={chunk}")
 
-    if fps is None:
-        print("!! fps is null — run_inference will fall back to a guess. Pass --fps.")
-    if not tasks:
-        print("!! tasks is empty — run_inference will refuse to start without --task.")
-    elif len(tasks) > 1:
+    if len(tasks) > 1:
         print(f"   multi-task bundle: {len(tasks)} tasks, the first is {tasks[0]!r}.")
 
     n = write_manifest(out)
-    print(f"Saved MANIFEST.sha256 -> {n} files "
-          f"(verify on the Orin with: cd <bundle> && sha256sum -c MANIFEST.sha256)")
-
-    print(f"\nDONE — 9 split graphs in {out}/  (deploy bundle; FP32 gold stays the monolith)")
+    print(f"Saved MANIFEST.sha256 -> {n} files")
 
 
 if __name__ == "__main__":

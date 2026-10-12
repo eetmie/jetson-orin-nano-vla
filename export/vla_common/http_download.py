@@ -140,7 +140,8 @@ def transfer(url, item, partial, workers=32, *, open_url=urlopen, range_bytes=RA
                     state['completed'][str(start)] = sha
                     completed += size
                     save_state()
-                    print(f"  received {completed}/{item['size']} bytes", flush=True)
+                    if completed == item['size'] or completed * 10 // item['size'] > (completed - size) * 10 // item['size']:
+                        print(f"  {completed * 100 // item['size']} %", flush=True)
             except BaseException as exc:
                 error = exc
                 for future in futures:
