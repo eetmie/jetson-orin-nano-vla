@@ -16,12 +16,13 @@ This repo is for benchmarking only. It measures how fast the models run on the b
 | [π0.5 LIBERO 3.3B](results/pi05-libero.json) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` | 2 | 438.47 ms | 2.28 Hz | 6.39 GB |
 | [π0.5 base 3.3B](results/pi05-base.json) | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) | 3 | 643.39 ms | 1.55 Hz | 6.18 GB |
 
-JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running (though headless recommended!). 300-second runs on
-synthetic observations with default denoising steps from bundles exported and run with
-the two commands below. RAM is whole-board usage during inference. Every run first checks its actions against the stock
-policy's output stored in the bundle and refuses to benchmark otherwise: cosine ≥ 0.99999
+JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running (though headless recommended!). 300-second runs,
+synthetic observations with default denoising steps and views. RAM is whole-board usage during inference. Every run first checks its actions against the stock
+policy's output stored in the bundle: cosine ≥ 0.99999
 and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch conversion;
 π0.5 base 0.63 % against stock FP32).
+
+Exported models are generally mostly FP16, some smaller bits stay FP32 for accuracy.
 
 ## Use
 
@@ -66,6 +67,8 @@ and to boot without the desktop. It changes nothing else.
 Each run writes one JSON with the latency distribution and per-stage timings, RAM,
 CPU/GPU load, power per rail, temperatures, the clocks the board actually ran at,
 throttle events, parity against the stock policy, and package versions.
+
+Note that cached models take quite bit of space once you start collecting them!
 
 ## Layout
 
