@@ -4,6 +4,8 @@ A collection of vision-language-action (VLA) models on an **8 GB Jetson Orin Nan
 TensorRT with ahead-of-time compiled Triton kernels. Export a checkpoint on your PC as a split ONNX bundle,
 copy the bundle to the Jetson and run the model.
 
+This repo is for benchmarking only. It measures how fast the models run on the board, and it does not provide the code to drive a robot with them. Use this as a base for your own projects.
+
 | model | checkpoint | cameras | p50 | rate | RAM in use |
 |---|---|---:|---:|---:|---:|
 | [SmolVLA 450M](results/smolvla-base.json) | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | 2 | 107.55 ms | 9.30 Hz | 1.78 GB |
@@ -16,8 +18,7 @@ copy the bundle to the Jetson and run the model.
 
 JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running (though headless recommended!). 300-second runs on
 synthetic observations with default denoising steps from bundles exported and run with
-the two commands below. RAM is whole-board usage during inference. These measure
-inference cost, not task success. Every run first checks its actions against the stock
+the two commands below. RAM is whole-board usage during inference. Every run first checks its actions against the stock
 policy's output stored in the bundle and refuses to benchmark otherwise: cosine ≥ 0.99999
 and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch conversion;
 π0.5 base 0.63 % against stock FP32).
