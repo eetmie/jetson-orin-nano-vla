@@ -24,36 +24,37 @@ and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch con
 
 ## Use
 
-**On the PC** (Linux, [uv](https://docs.astral.sh/uv/), enough RAM for the FP32 policy):
+Both machines need [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+**1. Export** on your PC (Linux, enough RAM for the FP32 policy):
 
 ```bash
 git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-vla
-./export.sh smolvla                                   # base checkpoint -> bundles/smolvla
-./export.sh smolvla path/to/pretrained_model bundles/my-smolvla --task "pick up the cube"
-scp -r bundles/smolvla jetson:
+./export.sh smolvla                              # base checkpoint -> bundles/smolvla
+./export.sh smolvla path/to/pretrained_model     # or your own fine-tune
 ```
 
 Models: `smolvla`, `xvla`, `evo1`, `groot-n16`, `groot-n17`, `pi05-base`, `pi05-libero`.
-The first export of each family builds its pinned environment. `pi05-libero` runs in
-openpi's Docker container and needs the NVIDIA container toolkit. GR00T N1.7 and π0.5
-base read gated tokenizers (`nvidia/Cosmos-Reason2-2B`, `google/paligemma-3b-pt-224`):
-accept their terms and `hf auth login` first. More options: [export/README.md](export/README.md).
+The first export of each model sets up its environment and downloads the checkpoint.
+`pi05-libero` needs Docker with the NVIDIA container toolkit. GR00T N1.7 and π0.5 base use
+gated tokenizers: accept their terms on Hugging Face and `hf auth login` first.
+More options: [export/README.md](export/README.md).
 
-**On the Jetson** (Orin Nano Super, JetPack 7.2.1, uv):
+**2. Copy** the bundle folder to the Jetson.
+
+**3. Run** on the Jetson (Orin Nano Super, JetPack 7.2.1):
 
 ```bash
 git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-vla
 ./run.sh ~/smolvla
 ```
 
-The first run builds the engines for that bundle (5-15 minutes) and caches them in
-`~/.cache/jetson-orin-nano-vla`; later runs start in seconds.
+The first run builds the engines for that bundle (5-15 minutes) and caches them; later
+runs start in seconds. For numbers comparable to the table, run `./tune-board.sh` first:
+it sets MAXN_SUPER and pins the clocks, then offers to keep them pinned at every boot
+and to boot without the desktop. It changes nothing else.
 
-For numbers comparable to the table, `./tune-board.sh` sets MAXN_SUPER and pins the
-clocks, then offers to keep them pinned at every boot and to boot without the desktop.
-It changes nothing else.
-
-| option | |
+| `run.sh` option | |
 |---|---|
 | `--duration-s N` | benchmark length, default 300 |
 | `--baseline` | plain TensorRT engines, without the Triton kernels |
