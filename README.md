@@ -14,8 +14,8 @@ copy the bundle to the Jetson, run one command.
 | [π0.5 LIBERO 3.3B](results/pi05-libero.json) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` | 2 | 438.47 ms | 2.28 Hz | 6.39 GB |
 | [π0.5 base 3.3B](results/pi05-base.json) | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) | 3 | 643.39 ms | 1.55 Hz | 6.18 GB |
 
-JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running; 300-second runs on
-synthetic observations with default denoising steps, from bundles exported and run with
+JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running (though headless recommended!). 300-second runs on
+synthetic observations with default denoising steps from bundles exported and run with
 the two commands below. RAM is whole-board usage during inference. These measure
 inference cost, not task success. Every run first checks its actions against the stock
 policy's output stored in the bundle and refuses to benchmark otherwise: cosine ≥ 0.99999
@@ -42,7 +42,7 @@ More options: [export/README.md](export/README.md).
 
 **2. Copy** the bundle folder to the Jetson.
 
-**3. Run** on the Jetson (Orin Nano Super, JetPack 7.2.1):
+**3. Run** on the Jetson:
 
 ```bash
 git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-vla
@@ -72,7 +72,7 @@ run.sh, bench/       Jetson: TensorRT runtimes per model, bench/aot/ Triton kern
 results/             the runs behind the table
 ```
 
-How the speed was found, and what did not work: [docs/optimization.md](docs/optimization.md).
+How the speed was found, and what did not work: [docs/optimization.md](docs/optimization.md). There is still plenty to tune, good enough for my use!
 
 ## Thanks
 
