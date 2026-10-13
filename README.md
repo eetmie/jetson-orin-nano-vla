@@ -1,8 +1,8 @@
 # jetson-orin-nano-vla
 
-Seven vision-language-action models on an **8 GB Jetson Orin Nano Super**, running on
-TensorRT with ahead-of-time compiled Triton kernels. Export a checkpoint on your PC,
-copy the bundle to the Jetson, run one command.
+A collection of vision-language-action (VLA) models on an **8 GB Jetson Orin Nano Super**, running on
+TensorRT with ahead-of-time compiled Triton kernels. Export a checkpoint on your PC as a split ONNX bundle,
+copy the bundle to the Jetson and run the model.
 
 | model | checkpoint | cameras | p50 | rate | RAM in use |
 |---|---|---:|---:|---:|---:|
@@ -25,6 +25,8 @@ and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch con
 ## Use
 
 Both machines need [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+Most of the models are too big to build as a single "monolithic" TensorRT engine on 8 GB, so here the export splits each policy into several ONNX graphs (vision, language, denoise, ...). The Jetson builds them into engines one piece at a time. At run time `bench/backends/` and `bench/vendor/trt_device.py` chain the engines together on the GPU and replay the chain as one CUDA graph. The export itself runs on a PC because it needs the whole FP32 policy in memory, though I have not tested to export directly on the Jetson. Might work with small mods, but will prob take a long time haha.
 
 **1. Export** on your PC (Linux, enough RAM for the FP32 policy):
 
