@@ -183,7 +183,7 @@ def power_mode_note() -> None:
     except (OSError, subprocess.SubprocessError):
         return
     if "MAXN_SUPER" not in mode:
-        print("note: the published numbers use MAXN_SUPER with jetson_clocks; this board is in "
+        print("note: the published numbers use MAXN_SUPER with pinned clocks (./tune-board.sh); this board is in "
               + (mode.splitlines()[0].split(":")[-1].strip() if mode else "an unknown mode"))
 
 

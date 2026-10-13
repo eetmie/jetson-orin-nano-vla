@@ -45,8 +45,10 @@ git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-
 ```
 
 The first run builds the engines for that bundle (5-15 minutes) and caches them in
-`~/.cache/jetson-orin-nano-vla`; later runs start in seconds. Set the power mode
-yourself for comparable numbers: `sudo nvpmodel -m 2 && sudo jetson_clocks`.
+`~/.cache/jetson-orin-nano-vla`; later runs start in seconds.
+
+For numbers comparable to the table, `./tune-board.sh` sets MAXN_SUPER, pins the clocks
+(again after every reboot) and offers to boot without the desktop. It changes nothing else.
 
 | option | |
 |---|---|
