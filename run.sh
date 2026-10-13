@@ -2,6 +2,8 @@
 # Jetson: build, verify and benchmark an exported bundle.   ./run.sh <bundle> [--help]
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")" && pwd)
+# uv's installer puts it in ~/.local/bin, which a shell opened before the install lacks.
+command -v uv >/dev/null || PATH="$HOME/.local/bin:$PATH"
 command -v uv >/dev/null || { echo "uv is missing: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2; exit 1; }
 if [[ -d "$ROOT/.venv/lib/python3.12/site-packages/triton" ]]; then   # installed
     uv sync --project "$ROOT" --frozen --quiet

@@ -5,6 +5,8 @@
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 FAMS=("$@"); [[ ${#FAMS[@]} -gt 0 ]] || { echo "usage: export/setup.sh smolvla|xvla|groot|groot17"; exit 2; }
+# uv's installer puts it in ~/.local/bin, which a shell opened before the install lacks.
+command -v uv >/dev/null || PATH="$HOME/.local/bin:$PATH"
 command -v uv >/dev/null || { echo "uv is missing: curl -LsSf https://astral.sh/uv/install.sh | sh"; exit 1; }
 declare -A GROOT_REF=(
   [groot]=5dc80c4afd726b34faad1d8f7e007a13b34e4c88     # NVIDIA/Isaac-GR00T n1.6.1-release
