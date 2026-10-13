@@ -6,19 +6,21 @@ copy the bundle to the Jetson, run one command.
 
 | model | checkpoint | cameras | p50 | rate | RAM in use |
 |---|---|---:|---:|---:|---:|
-| SmolVLA 450M | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | 2 | 104.60 ms | 9.55 Hz | 1.65 GB |
-| EVO1 775M LIBERO | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | 2 | 333.37 ms | 3.00 Hz | 2.62 GB |
-| X-VLA 0.9B | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | 3 | 342.31 ms | 2.92 Hz | 2.93 GB |
-| GR00T N1.7 3B | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) | 3 (×2 frames) | 272.39 ms | 3.67 Hz | 5.72 GB |
-| GR00T N1.6 3B | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | 3 | 272.49 ms | 3.67 Hz | 5.30 GB |
-| π0.5 LIBERO 3.3B | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` | 2 | 436.30 ms | 2.29 Hz | 6.30 GB |
-| π0.5 base 3.3B | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) | 3 | 642.05 ms | 1.56 Hz | 6.13 GB |
+| [SmolVLA 450M](results/smolvla-base.json) | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | 2 | 107.55 ms | 9.30 Hz | 1.78 GB |
+| [EVO1 775M LIBERO](results/evo1-libero.json) | [`zuoxingdong/evo1_libero`](https://huggingface.co/zuoxingdong/evo1_libero) | 2 | 332.77 ms | 3.00 Hz | 2.76 GB |
+| [X-VLA 0.9B](results/xvla-base.json) | [`lerobot/xvla-base`](https://huggingface.co/lerobot/xvla-base) | 3 | 342.59 ms | 2.92 Hz | 3.04 GB |
+| [GR00T N1.7 3B](results/groot-n17-base.json) | [`nvidia/GR00T-N1.7-3B`](https://huggingface.co/nvidia/GR00T-N1.7-3B) | 3 (×2 frames) | 273.70 ms | 3.66 Hz | 5.78 GB |
+| [GR00T N1.6 3B](results/groot-n16-base.json) | [`nvidia/GR00T-N1.6-3B`](https://huggingface.co/nvidia/GR00T-N1.6-3B) | 3 | 273.19 ms | 3.66 Hz | 5.33 GB |
+| [π0.5 LIBERO 3.3B](results/pi05-libero.json) | [openpi](https://github.com/Physical-Intelligence/openpi) `pi05_libero` | 2 | 438.47 ms | 2.28 Hz | 6.39 GB |
+| [π0.5 base 3.3B](results/pi05-base.json) | [`lerobot/pi05_base`](https://huggingface.co/lerobot/pi05_base) | 3 | 643.39 ms | 1.55 Hz | 6.18 GB |
 
-JetPack 7.2.1, MAXN_SUPER with `jetson_clocks`, 300-second runs on synthetic
-observations, default denoising steps. RAM is whole-board usage during inference.
-These measure inference cost, not task success. Every run first checks its actions
-against the stock PyTorch policy's output stored in the bundle (cosine ≥ 0.99999,
-within 0.27 % of the action range; π0.5 base 0.63 %) and refuses to benchmark otherwise.
+JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running; 300-second runs on
+synthetic observations with default denoising steps, from bundles exported and run with
+the two commands below. RAM is whole-board usage during inference. These measure
+inference cost, not task success. Every run first checks its actions against the stock
+policy's output stored in the bundle and refuses to benchmark otherwise: cosine ≥ 0.99999
+and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch conversion;
+π0.5 base 0.63 % against stock FP32).
 
 ## Use
 

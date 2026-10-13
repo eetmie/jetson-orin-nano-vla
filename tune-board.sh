@@ -41,7 +41,7 @@ UNIT
 fi
 
 if [[ -t 0 && "$(systemctl get-default)" == graphical.target ]]; then
-    read -rp "Disable the desktop at boot? Frees about 0.4 GB of RAM (recommended) [y/N] " answer
+    read -rp "Disable the desktop at boot? Frees about 0.1 GB of RAM (recommended) [y/N] " answer
     if [[ "$answer" == [yY]* ]]; then
         sudo systemctl set-default multi-user.target
         echo "Headless from the next reboot. Undo: sudo systemctl set-default graphical.target"
