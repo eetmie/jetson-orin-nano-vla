@@ -24,6 +24,11 @@ and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch con
 
 Exported models are generally mostly FP16, some smaller bits stay FP32 for accuracy.
 
+**Custom checkpoint support is experimental.** A one-camera SmolVLA export and a
+two-camera OpenPI π0.5 fine-tune passed stock-policy parity and 10-second benchmark
+runs on the Orin Nano. Other custom checkpoints and shapes have not been widely
+tested. The table above reports separate 300-second runs of the base checkpoints.
+
 ## Use
 
 Both machines need [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`
