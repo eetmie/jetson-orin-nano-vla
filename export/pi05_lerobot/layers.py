@@ -41,8 +41,9 @@ class VisionBlock(nn.Module):
         self.layer = layer
 
     def forward(self, hidden):
-        # transformers 5 returns the tensor itself, not a tuple: no [0] here.
-        return self.layer(hidden, attention_mask=None)
+        # The pinned LeRobot and OpenPI environments use different Transformers versions.
+        result = self.layer(hidden, attention_mask=None)
+        return result[0] if isinstance(result, tuple) else result
 
 
 class VisionTail(nn.Module):

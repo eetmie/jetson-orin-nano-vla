@@ -34,11 +34,17 @@ Most of the models are too big to build as a single "monolithic" TensorRT engine
 
 ```bash
 git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-vla
-./export.sh smolvla                              # base checkpoint -> bundles/smolvla
-./export.sh smolvla path/to/pretrained_model     # or your own fine-tune
+./export.sh https://huggingface.co/your-name/your-model
+./export.sh path/to/checkpoints/020000/pretrained_model --out bundles/my-model
+./export.sh path/to/pretrained_model --inspect   # metadata only; no weights loaded
+./export.sh smolvla                              # pinned base checkpoint -> bundles/smolvla
 ```
 
 Models: `smolvla`, `xvla`, `evo1`, `groot-n16`, `groot-n17`, `pi05-base`, `pi05-libero`.
+Checkpoint URLs, Hub IDs and local paths automatically select SmolVLA, X-VLA, EVO1 or
+LeRobot/OpenPI π0.5. The host PC discovers the cameras, state/action dimensions and chunk
+length; the Jetson reads those settings from the exported bundle. Custom OpenPI policies
+need their training configuration and observation mapping: [instructions](export/README.md#openpi-checkpoints).
 The first export of each model sets up its environment and downloads the checkpoint.
 `pi05-libero` needs Docker with the NVIDIA container toolkit. GR00T N1.7 and π0.5 base use
 gated tokenizers: accept their terms on Hugging Face and `hf auth login` first.
@@ -67,6 +73,8 @@ and to boot without the desktop. It changes nothing else.
 Each run writes one JSON with the latency distribution and per-stage timings, RAM,
 CPU/GPU load, power per rail, temperatures, the clocks the board actually ran at,
 throttle events, parity against the stock policy, and package versions.
+Custom shapes use compatible AOT kernels when available and otherwise select native
+TensorRT automatically. The result records the custom checkpoint and its dimensions.
 
 Note that cached models take quite bit of space once you start collecting them!
 

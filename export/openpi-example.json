@@ -1,0 +1,18 @@
+{
+  "framework": "openpi",
+  "family": "pi05",
+  "openpi_config": "pi05_my_robot",
+  "image_keys": ["base_0_rgb", "left_wrist_0_rgb"],
+  "raw_image_keys": ["observation/image", "observation/wrist_image"],
+  "state_key": "observation/state",
+  "state_dim": 6,
+  "action_dim": 7,
+  "max_state_dim": 32,
+  "max_action_dim": 32,
+  "chunk_size": 50,
+  "num_steps": 10,
+  "discrete_state_input": true,
+  "output_transform": "slice",
+  "tasks": ["pick up the object and place it in the box"],
+  "fps": 30
+}

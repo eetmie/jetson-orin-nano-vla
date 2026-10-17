@@ -41,10 +41,14 @@ NATIVE_ONLY = {"pi05-base"}
 
 
 def detect_model(bundle: Path) -> str:
+    from .model_contract import load as load_contract
+    contract = load_contract(bundle)
+    if contract:
+        return contract["profile"]
     if (bundle / "export_info.json").is_file():
         return "smolvla-base"
     info = json.loads((bundle / "bundle.json").read_text())
-    if info.get("policy") == "pi05_libero":
+    if info.get("policy") in ("pi05_libero", "pi05_openpi"):
         return "pi05-libero"
     if info.get("policy") == "pi05_lerobot":
         return "pi05-base"
@@ -129,12 +133,16 @@ def cache_dir(model: str, bundle: Path, mode: str) -> Path:
 
 
 def plan(model: str, bundle: Path, cache: Path, optimized: bool, duration: float, out: Path):
+    from .model_contract import load as load_contract
+    contract = load_contract(bundle)
     spec = models.get(model)
+    label = contract["name"] if contract else model
+    lean_tokenizer = spec.family == "smolvla" and (contract or {}).get("runtime", {}).get("lean_tokenizer", True)
     py = sys.executable
     common = ["trt-split", "--model", model, "--bundle", str(bundle), "--chain", "graph",
-              "--views", str(spec.image_views), "--accumulate", "fp32"]
+              "--accumulate", "fp32"]
     entry = [py, "-m", "bench"]
-    if spec.family == "smolvla":
+    if lean_tokenizer:
         # The saved Rust tokenizer, without importing Transformers.
         entry = [py, "-c", "from bench.aot.smolvla.runtime_memory import install_lean_tokenizer; "
                  "install_lean_tokenizer(); from bench.cli import main; raise SystemExit(main())"]
@@ -155,9 +163,9 @@ def plan(model: str, bundle: Path, cache: Path, optimized: bool, duration: float
             base = dest
         entry = [py, f"bench/aot/{spec.family}/run_candidate.py"]
         if spec.family == "smolvla":
-            flags = ["--lean-tokenizer", "--trim-host-heap"]
+            flags = ["--trim-host-heap"] + (["--lean-tokenizer"] if lean_tokenizer else [])
     bench = [*entry, *common, "--cache-dir", str(base), *flags, "--warmup", "10", "--idle-s", "3",
-             "--duration-s", str(duration), "--label", f"{model}.{'aot' if optimized else 'trt'}",
+             "--duration-s", str(duration), "--label", f"{label}.{'aot' if optimized else 'trt'}",
              "--out", str(out)]
     return stages, bench
 
@@ -222,7 +230,15 @@ def main(argv=None) -> int:
 
     model = args.model or detect_model(bundle)
     optimized = not args.baseline
-    print(f"{model}: {bundle}")
+    from .model_contract import aot_unavailable, export_info, load as load_contract
+    contract = load_contract(bundle)
+    if contract and contract["profile"] != model:
+        p.error("--model disagrees with the model specification saved on the host PC")
+    reason = aot_unavailable(contract, export_info(bundle))
+    if optimized and reason:
+        print(f"native TensorRT selected: {reason}")
+        optimized = False
+    print(f"{contract['name'] if contract else model}: {bundle}")
     validate_bundle(model, bundle, optimized)
     power_mode_note()
 

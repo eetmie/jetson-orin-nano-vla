@@ -12,6 +12,8 @@ def patch_selector(source):
 
 
 def main():
+    from openpi_model import register_configs
+    register_configs()
     import torch
     # Seed the unused language-output projection for repeatable file contents.
     torch.manual_seed(0)

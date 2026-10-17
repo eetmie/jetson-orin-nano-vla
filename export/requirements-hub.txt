@@ -1,0 +1,2 @@
+# Metadata inspection only; model export dependencies live in the family environments.
+huggingface_hub==1.33.0

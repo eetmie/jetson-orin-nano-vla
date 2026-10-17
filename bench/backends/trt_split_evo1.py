@@ -26,10 +26,11 @@ class TrtSplitEvo1Backend(Backend):
     name = "trt-split-evo1"
     noise_injected = True
 
-    def __init__(self, bundle: Path, cache_dir: str, chain: str = "host") -> None:
+    def __init__(self, bundle: Path, cache_dir: str, chain: str = "host", action_dim: int | None = None) -> None:
         self.bundle_dir = Path(bundle)
         self.cache_dir = cache_dir
         self.chain = chain
+        self.action_dim = action_dim
         self.device = None
         self.bundle = None
         self.engines = None
@@ -140,4 +141,5 @@ class TrtSplitEvo1Backend(Backend):
         total = t.pop("total", None)
         timings = {"total": pre + (total if total is not None else sum(t.values())),
                    "preprocess": pre, **t}
-        return InferResult(np.asarray(action[0]), timings)
+        chunk = np.asarray(action[0])
+        return InferResult(chunk[:, :self.action_dim] if self.action_dim is not None else chunk, timings)

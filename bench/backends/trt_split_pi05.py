@@ -86,7 +86,7 @@ class TrtSplitPi05Backend(Backend):
     def infer(self, obs: Observation) -> InferResult:
         b = self.bundle
         cams = int(b.b["valid_cameras"])
-        if b.lerobot:
+        if b.structured:
             # Fewer cameras than exported is the checkpoint's masked-slot case, which the
             # compact layout skips exactly; more would exceed the prefix capacity.
             if not 1 <= len(obs.images) <= cams:
@@ -97,7 +97,7 @@ class TrtSplitPi05Backend(Backend):
                              f"wrist), got {len(obs.images)}")
         t0 = time.perf_counter()
         imgs = map_views(b.preprocess, obs.images)
-        ids, mask = b.tokens(obs.task, obs.state) if b.lerobot else b.tokens(obs.task)
+        ids, mask = b.tokens(obs.task, obs.state)
         pre = (time.perf_counter() - t0) * 1000
         t = {}
         act = self.device.infer(imgs, ids, mask, obs.noise.astype(np.float32), timings=t)

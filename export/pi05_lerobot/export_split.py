@@ -133,7 +133,13 @@ def main() -> None:
     ap.add_argument("--task", action="append", default=None)
     ap.add_argument("--fixtures", type=int, default=3)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--openpi-spec", type=Path, help="resolved specification from the host inspector")
     a = ap.parse_args()
+    if a.openpi_spec:
+        from openpi_provider import export as export_openpi
+        export_openpi(a, export_loaded)
+        return
+
 
     from lerobot.configs.policies import PreTrainedConfig
     from lerobot.configs.types import FeatureType
@@ -229,6 +235,35 @@ def main() -> None:
         print(f"stock fixture {i}: {task!r}, {len(ids)} prompt tokens, bins {bins.min()}..{bins.max()}",
               flush=True)
 
+    metadata = {
+        "policy": "pi05_lerobot", "prompt_mode": "state", "schedule": "lerobot",
+        "image_keys": keys, "valid_cameras": views, "state_dim": state_dim,
+        "action_horizon": horizon, "action_dim": width, "robot_action_dim": robot_dim, "num_steps": steps,
+        "prefix_tokens": capacity, "prompt_capacity": text_capacity,
+        "min_period": cfg.min_period, "max_period": cfg.max_period,
+        "normalization": {"mode": "QUANTILES", "implementation": "lerobot", "state": state_stats,
+                          "state_eps": eps, "action": action_stats, "action_eps": eps_out},
+        "image_preprocess": "LeRobot: uint8/255, bilinear without antialias, centered padding, x*2-1",
+        "tokenizer": {"name": tok_step.tokenizer_name, "max_length": tok_step.max_length,
+                      "sep": prompt.sep, "neg": prompt.neg, "pieces": prompt.pieces, "tail": prompt.tail,
+                      "assembly_checked_prompts": checked},
+        "tasks": {t: {"head": h} for t, h in heads.items()},
+    }
+    export_loaded(a, model, fixtures, metadata, create_sinusoidal_pos_embedding,
+                  lambda x: unnormalize(x[:, :robot_dim], action_stats, eps_out))
+
+
+def export_loaded(a, model, fixtures, metadata, sinusoidal, postprocess):
+    """Shared split/template export; each framework supplies its own stock-policy fixtures."""
+    from vla_common.bundle import write_manifest
+    from vla_common.bundle.provenance import package_versions
+
+    out = a.out.resolve()
+    ckpt = str(a.checkpoint.resolve())
+    keys, views = metadata["image_keys"], metadata["valid_cameras"]
+    state_dim, robot_dim = metadata["state_dim"], metadata["robot_action_dim"]
+    horizon, width, steps = metadata["action_horizon"], metadata["action_dim"], metadata["num_steps"]
+    capacity, text_capacity = metadata["prefix_tokens"], metadata["prompt_capacity"]
     # ── FP16 split model ─────────────────────────────────────────────────────
     core = model.paligemma_with_expert.paligemma.model
     language, vision = core.language_model, core.vision_tower.vision_model
@@ -254,14 +289,23 @@ def main() -> None:
     n_vision, n_lang, n_action = len(vision_blocks), len(language.layers), len(action_blocks)
     expert_width = model.action_in_proj.out_features
 
-    # AdaRMS modulation for LeRobot's schedule: time = 1 + step*dt, in Python floats.
+    # Keep each framework's FP32 timestep schedule and rounding order.
     dt = -1.0 / steps
-    times = torch.tensor([1.0 + s * dt for s in range(steps)], dtype=torch.float32, device="cuda")
+    if metadata.get("schedule") == "openpi":
+        time = torch.tensor(1.0, dtype=torch.float32, device="cuda")
+        step_dt = torch.tensor(dt, dtype=torch.float32, device="cuda")
+        times = []
+        for _ in range(steps):
+            times.append(time.clone())
+            time += step_dt
+        times = torch.stack(times)
+    else:
+        times = torch.tensor([1.0 + s * dt for s in range(steps)], dtype=torch.float32, device="cuda")
     sites = [(expert.layers[i], norm) for i in range(n_action)
              for norm in ("input_layernorm", "post_attention_layernorm")]
 
     def condition(t):
-        emb = create_sinusoidal_pos_embedding(t, expert_width, cfg.min_period, cfg.max_period,
+        emb = sinusoidal(t, expert_width, metadata.get("min_period", 4e-3), metadata.get("max_period", 4.0),
                                               device=t.device).float().half()
         return F.silu(model.time_mlp_out(F.silu(model.time_mlp_in(emb))))
 
@@ -361,7 +405,7 @@ def main() -> None:
         peaks = [x if np.isfinite(x) else "inf" for x in ranges]
         if i == 0:
             assert np.array_equal(fp16, split_run(fx, live=True)), "cached and live AdaRMS modulation differ"
-        robot = unnormalize(fp16[0, :, :robot_dim], action_stats, eps_out)
+        robot = postprocess(fp16[0])
         c = {"fixture": i, "task": fx["task"], "prompt_tokens": int(len(fx["tokens"])),
              "language_output_max_abs_fp16": peaks,
              "fp16_vs_stock_fp32": metric(fp16, fx["stock_actions"]),
@@ -408,15 +452,13 @@ def main() -> None:
     np.save(out / "rope_sin_fp16.npy", array(rope_sin[0]))
     conditioning = f"conditioning_{steps}step_fp16.npy"
     np.save(out / conditioning, array(styles))
-    (out / "norm_stats.json").write_text(json.dumps(
-        {"mode": "QUANTILES", "state": state_stats, "state_eps": eps,
-         "action": action_stats, "action_eps": eps_out}, indent=2) + "\n")
+    (out / "norm_stats.json").write_text(json.dumps(metadata["normalization"], indent=2) + "\n")
     weights = a.checkpoint.resolve() / "model.safetensors"
     snapshot = a.checkpoint.resolve() / ".vla-hub-snapshot.json"
     bundle = {
-        "schema": "pi05-split/1", "policy": "pi05_lerobot", "complete": True, "layout": "compact",
+        "schema": "pi05-split/1", **{k: v for k, v in metadata.items() if k != "normalization"}, "complete": True, "layout": "compact",
         "source": {"checkpoint": json.loads(snapshot.read_text()) if snapshot.exists() else ckpt,
-                   "model_sha256": sha(weights), "packages": package_versions(("lerobot", "torch", "transformers"))},
+                   "model_sha256": sha(weights), "packages": package_versions(("lerobot", "openpi", "torch", "transformers"))},
         "image_keys": keys, "image_slots": views, "valid_cameras": views,
         "prefix_tokens": capacity, "prompt_capacity": text_capacity,
         "action_horizon": horizon, "action_dim": width, "robot_action_dim": robot_dim,
@@ -425,12 +467,6 @@ def main() -> None:
         "dtype": "FP16 weights and hidden states, FP32 language residual stream, "
                  "FP32 normalization/accumulation/Euler",
         "language_residual": "float32",
-        "image_preprocess": "LeRobot: uint8/255, bilinear (align_corners=False, no antialias) to fit "
-                            "224x224, clamp [0,1], centered zero padding, x*2-1",
-        "tokenizer": {"name": tok_step.tokenizer_name, "max_length": tok_step.max_length,
-                      "sep": prompt.sep, "neg": prompt.neg, "pieces": prompt.pieces, "tail": prompt.tail,
-                      "assembly_checked_prompts": checked},
-        "tasks": {t: {"head": h} for t, h in heads.items()},
         "reference_comparisons": comparisons,
         "embedding_sha256": sha(out / "embedding_fp16.npy"),
         "components": components,

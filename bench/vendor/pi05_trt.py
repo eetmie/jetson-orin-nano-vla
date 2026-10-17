@@ -58,6 +58,8 @@ class Bundle:
         # pi05_lerobot: a LeRobot checkpoint (export/pi05_lerobot). Its prompt carries the
         # quantized state, so it is assembled per observation from the bundle's pieces.
         self.lerobot = b["policy"] == "pi05_lerobot"
+        self.structured = b["policy"] in ("pi05_lerobot", "pi05_openpi")
+        self.dynamic_prompt = b.get("prompt_mode", "state" if self.lerobot else "static") == "state"
         self.components = b["components"]
         self.names = [c["label"] for c in self.components]
         self.kinds = list(dict.fromkeys(c["kind"] for c in self.components))
@@ -73,13 +75,16 @@ class Bundle:
         self.kinds_by_label = {c["label"]: c["kind"] for c in self.components}
         self.n_action = sum(c["kind"] == "action" for c in self.components)
         stats = json.loads((self.root / "norm_stats.json").read_text())
-        if self.lerobot:
+        if self.structured:
             self.robot_dim, self.state_dim = int(b["robot_action_dim"]), int(b["state_dim"])
-            self.state_stats, self.state_eps = stats["state"], np.float32(stats["state_eps"])
-            self.action_stats, self.action_eps = stats["action"], np.float32(stats["action_eps"])
-            tok = b["tokenizer"]
-            self.sep, self.neg = int(tok["sep"]), int(tok["neg"])
-            self.pieces, self.tail = tok["pieces"], list(tok["tail"])
+            self.normalization_mode = stats.get("mode", "QUANTILES")
+            self.normalization_implementation = stats.get("implementation", "lerobot")
+            self.state_stats, self.state_eps = stats["state"], float(stats["state_eps"])
+            self.action_stats, self.action_eps = stats["action"], float(stats["action_eps"])
+            if self.dynamic_prompt:
+                tok = b["tokenizer"]
+                self.sep, self.neg = int(tok["sep"]), int(tok["neg"])
+                self.pieces, self.tail = tok["pieces"], list(tok["tail"])
         else:
             stats = stats["norm_stats"]["actions"]
             self.q01, self.q99 = np.asarray(stats["q01"]), np.asarray(stats["q99"])
@@ -101,7 +106,7 @@ class Bundle:
         """(ids [1,n], mask [1,n]) of the prompt. LIBERO: the exporter tokenized it (n=200,
         padded). LeRobot: `Task: T, State: <bins>;\\nAction: ` from the task's exported
         token head and one piece per character of each state bin (n = real tokens)."""
-        if self.lerobot:
+        if self.dynamic_prompt:
             if task not in self.tasks:
                 raise ValueError(f"no token head for {task!r} in this bundle (it has "
                                  f"{sorted(self.tasks)}); re-export with --task")
@@ -133,18 +138,21 @@ class Bundle:
         return np.ascontiguousarray(x.transpose(2, 0, 1)[None]).astype(np.float16)
 
     def normalize_state(self, state: np.ndarray) -> np.ndarray:
-        """LeRobot QUANTILES in its FP32 operation order (identity without stats)."""
-        return _quantiles(state, self.state_stats, self.state_eps, inverse=False)
+        from .pi05_numeric import transform
+        return transform(state, self.state_stats, mode=self.normalization_mode,
+                         implementation=self.normalization_implementation, eps=self.state_eps)
 
     def unnormalize(self, actions: np.ndarray) -> np.ndarray:
         """[horizon, 32] normalized -> robot units: LIBERO's first 7 dims, or the LeRobot
         checkpoint's action dims through its postprocessor's quantiles."""
-        if self.lerobot:
-            return _quantiles(actions[:, :self.robot_dim], self.action_stats, self.action_eps, inverse=True)
+        if self.structured:
+            from .pi05_numeric import transform
+            return transform(actions[:, :self.robot_dim], self.action_stats, mode=self.normalization_mode,
+                             implementation=self.normalization_implementation, eps=self.action_eps, inverse=True)
         return ((actions[:, :7] + 1) / 2) * (self.q99 - self.q01 + 1e-6) + self.q01
 
 
-POLICIES = ("pi05_libero", "pi05_lerobot")
+POLICIES = ("pi05_libero", "pi05_lerobot", "pi05_openpi")
 _STATE_EDGES = np.linspace(-1, 1, 256 + 1)[:-1]
 
 
@@ -584,7 +592,7 @@ def validate_fixtures(bundle: Bundle, device: Pi05Device) -> dict:
     """Engines vs the exporter's full-FP16 PyTorch outputs (and the original mixed
     BF16/FP32 policy) for every fixture in the bundle, plus the host preprocessing
     against openpi's processed images. Gated on the full FP16 chunk."""
-    if bundle.lerobot:
+    if bundle.structured:
         return _validate_lerobot(bundle, device)
     reports, ok = [], True
     for path in sorted((bundle.root / "fixtures").glob("fixture_*.npz")):

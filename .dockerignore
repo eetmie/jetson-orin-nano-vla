@@ -1,0 +1,7 @@
+# The exporter mounts source and checkpoints at runtime. Send only dependency locks.
+**
+!export/
+!export/pi05/
+!export/pi05/Dockerfile
+!export/pi05/requirements.txt
+!export/pi05/constraints.txt

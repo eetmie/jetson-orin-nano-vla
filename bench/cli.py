@@ -12,6 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from . import models
+from .model_contract import load as load_contract
 from .backends.base import artifact_manifest, load_export_info
 from .obs import make_obs
 from .parity import attach_comparison_signature
@@ -23,13 +24,12 @@ DEFAULT_CACHE = str(Path.home() / ".cache" / "jetson-orin-nano-vla" / "trt")
 # ── shared arguments ─────────────────────────────────────────────────────────
 
 def _add_model(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--model", required=True, choices=sorted(models.REGISTRY),
-                   help="model profile to benchmark; explicit artifact paths may override "
-                        "its download locations")
+    p.add_argument("--model", choices=sorted(models.REGISTRY),
+                   help="runtime profile (default: read the exported bundle)")
     p.add_argument("--task", default=None,
                    help="instruction (default: the model's)")
     p.add_argument("--views", type=int, default=None,
-                   help="number of camera views (default: the base bundle contract)")
+                   help="number of camera views (default: the exported bundle contract)")
 
 
 def _add_common(p: argparse.ArgumentParser) -> None:
@@ -59,33 +59,45 @@ class Resolved:
     """Model defaults merged with whatever the command line overrode."""
 
     def __init__(self, args, bundle: Path | None = None):
+        contract = load_contract(bundle) if bundle else None
+        if args.model is None:
+            if bundle is None:
+                raise ValueError("pass --bundle or --model")
+            from .run import detect_model
+            args.model = contract["profile"] if contract else detect_model(bundle)
         spec = models.get(args.model)
         info = load_export_info(bundle) if bundle else {}
+        if contract and contract["profile"] != args.model:
+            raise ValueError("--model disagrees with the model specification saved on the host PC")
 
         self.spec = spec
         self.info = info
+        self.contract = contract
+        self.model_name = contract["name"] if contract else args.model
         self.family = spec.family
-        self.task = args.task or info.get("task") or spec.task
+        tasks = info.get("tasks") or []
+        self.task = args.task or (contract["tasks"][0] if contract else None) or info.get("task") or next(iter(tasks), None) or spec.task
         if not self.task:
             sys.exit(
                 "no task string. Pass --task or use the base model default. "
                 "The policy conditions on the language embedding, so the wrong "
                 "phrasing is a silently out-of-distribution run.")
 
-        self.fps = info.get("fps") or 30
-        self.chunk_size = info.get("chunk_size") or spec.chunk_size or 50
-        self.state_dim = spec.state_dim or 6
-        self.action_dim = spec.action_dim
-        self.views = args.views if args.views is not None else spec.image_views
-        self.cam_slots = spec.cam_slots
+        self.fps = (contract or {}).get("fps") or info.get("fps") or 30
+        self.chunk_size = (contract or {}).get("chunk_size") or info.get("chunk_size") or info.get("action_horizon") or spec.chunk_size or 50
+        self.state_dim = (contract or {}).get("state_dim") or info.get("real_state_dim") or info.get("state_dim") or spec.state_dim
+        self.action_dim = (contract or {}).get("action_dim") or info.get("robot_action_dim") or info.get("action_dim_real") or spec.action_dim
+        default_views = (contract or {}).get("views") or info.get("valid_cameras") or info.get("valid_views") or info.get("n_cam_slots") or spec.image_views
+        self.views = args.views if args.views is not None else default_views
+        self.cam_slots = (contract or {}).get("camera_slots") or info.get("n_cam_slots") or info.get("image_slots") or spec.cam_slots
         self.tokenizer = spec.tokenizer
-        self.noise_width = spec.action_dim or int(info.get("max_action_dim", 32))
-        self.noise_distribution = spec.noise_distribution
+        self.noise_width = (contract or {}).get("max_action_dim") or info.get("max_action_dim") or info.get("action_dim") or spec.action_dim or 32
+        self.noise_distribution = (contract or {}).get("noise_distribution") or spec.noise_distribution
 
     def label(self, args, backend_name: str) -> str:
         if args.label:
             return args.label
-        model = args.model
+        model = self.model_name
         return f"{backend_name}.{model}"
 
 
@@ -125,9 +137,13 @@ def _finish(args, backend, r: Resolved) -> int:
         duration_s=args.duration_s, save_chunks=args.save_chunks, fps=r.fps,
         monitor_kind=None if args.monitor == "auto" else args.monitor,
         label=label, notes=args.notes, obs_ring_size=args.obs_ring_size)
-    result["model"] = {"key": args.model, "family": r.family, "task": r.task,
+    result["model"] = {"key": r.model_name, "profile": args.model, "family": r.family, "task": r.task,
                        "views": r.views, "cam_slots": r.cam_slots,
                        "state_dim": r.state_dim, "action_dim": r.action_dim}
+    if r.contract:
+        result["model"]["source"] = r.contract["source"]
+        result["model"]["framework"] = r.contract["framework"]
+        result["model"]["max_action_dim"] = r.noise_width
     paths = backend.artifact_paths()
     if paths:
         result["artifacts"] = artifact_manifest(paths)
@@ -176,7 +192,8 @@ def trt_backend(args, r: Resolved, bundle: Path):
     if r.family == "evo1":
         from .backends.trt_split_evo1 import TrtSplitEvo1Backend
         return TrtSplitEvo1Backend(bundle, cache_dir=cache,
-                                   chain=getattr(args, "chain", "graph"))
+                                   chain=getattr(args, "chain", "graph"),
+                                   action_dim=r.action_dim if r.contract else None)
     if r.family == "pi05":
         from .backends.trt_split_pi05 import TrtSplitPi05Backend
         return TrtSplitPi05Backend(bundle, cache_dir=cache,

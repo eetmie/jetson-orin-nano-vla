@@ -1,5 +1,10 @@
 # π0.5 LIBERO (openpi)
 
+For your own OpenPI checkpoint, use `./export.sh CHECKPOINT` with its observation recipe
+and training configuration; see [custom OpenPI export](../README.md#openpi-checkpoints).
+That path shares the refittable template exporter with LeRobot and records your own
+weights and stock-policy fixtures. The command below retains the locked public recipe.
+
 `./export.sh pi05-libero [converted-checkpoint] [out-dir]` builds openpi's pinned NGC
 container, downloads the pinned public GCS checkpoint, converts it to PyTorch and
 exports the compact FP16 bundle. Needs Docker with the NVIDIA container toolkit.
