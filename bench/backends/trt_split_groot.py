@@ -18,6 +18,20 @@ def _accumulate() -> str:
     return groot_trt.ACCUMULATE
 
 
+def _other(pixels, state, noise):
+    """An unrelated observation: mirrored images, negated state and noise."""
+    return np.ascontiguousarray(pixels[..., ::-1]), -state, -noise
+
+
+def _check_device(parity: dict, rep: dict, ok: dict) -> None:
+    """The device chain must pass the fixture and give it the same output after an
+    unrelated observation: its buffers persist across calls, so nothing may leak."""
+    if not rep["repeatable"]:
+        raise ValueError("device chain output changed after an unrelated observation")
+    if ok["cosine"] < parity["threshold"] or ok["max_pct_range"] > parity["max_pct_range_threshold"]:
+        raise ValueError(f"device chain fails the fixture: {ok}")
+
+
 class TrtSplitGrootBackend(Backend):
     name = "trt-split-groot"
     noise_injected = True
@@ -40,6 +54,9 @@ class TrtSplitGrootBackend(Backend):
         if self.n17:
             from ..vendor.groot17_trt import Bundle, FrameHistory, validate_fixture
             self.bundle = Bundle(self.bundle_dir)
+            if self.bundle.b["frames"] not in (1, 2):
+                raise ValueError(f"GR00T N1.7 bundles take one or two frames per view, "
+                                 f"got {self.bundle.b['frames']}")
             # The history slot looks back -delta_indices[0] frames of the camera stream.
             lag = -self.bundle.b["video_delta_indices"][0] / self.camera_fps
             self.history = FrameHistory(lag)
@@ -75,16 +92,17 @@ class TrtSplitGrootBackend(Backend):
         dev = self.device.infer(*args)
         rep = _cmp(dev, host)
         rep["identical"] = bool(np.array_equal(dev, host))
+        self.device.infer(*_other(*args))
+        rep["repeatable"] = bool(np.array_equal(self.device.infer(*args), dev))
         ok = _cmp(dev, r["action_pred"])
         self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok}
-        if ok["cosine"] < self.fixture_parity["threshold"] or \
-                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
-            raise ValueError(f"device chain fails the fixture: {ok}")
+        _check_device(self.fixture_parity, rep, ok)
 
     def _load_device17(self) -> None:
         """Fixture check through the device history: the fixture's earlier frame is fed
-        first, then its current frame one lag later, so the history slot must pick it."""
-        from ..vendor.groot17_trt import _unpatchify, encode_frames, infer
+        first, then its current frame one lag later, so the history slot must pick it.
+        A one-frame bundle has no history: its current frame is fed once."""
+        from ..vendor.groot17_trt import FrameHistory, _unpatchify, encode_frames, infer
         from ..vendor.groot_trt import _cmp
         from ..vendor.trt_device import Groot17Device
 
@@ -98,19 +116,24 @@ class TrtSplitGrootBackend(Backend):
         frames = [pix[i * v:(i + 1) * v] for i in range(b.b["frames"])]
         host = infer(b, self.engines.run, [encode_frames(b, self.engines.run, f)
                                            for f in frames], r["state"], r["noise"])
-        self.device.infer(frames[0], r["state"], r["noise"], 0.0)
-        dev, age = self.device.infer(frames[1], r["state"], r["noise"], lag)
+
+        def fixture():
+            self.device.history = FrameHistory(lag)
+            if len(frames) == 2:
+                self.device.infer(frames[0], r["state"], r["noise"], 0.0)
+            return self.device.infer(frames[-1], r["state"], r["noise"], lag)
+
+        dev, age = fixture()
         rep = _cmp(dev, host)
         rep["identical"] = bool(np.array_equal(dev, host))
+        self.device.infer(*_other(frames[-1], r["state"], r["noise"]), 2 * lag + 1.0)
+        rep["repeatable"] = bool(np.array_equal(fixture()[0], dev))
         ok = _cmp(dev, r["action_pred"])
         self.fixture_parity["device_chain"] = {"vs_host_chain": rep, "chunk": ok,
                                                "history_age_s": age}
         # Start the benchmark with an empty history, like the host chain.
-        from ..vendor.groot17_trt import FrameHistory
         self.device.history = FrameHistory(lag)
-        if ok["cosine"] < self.fixture_parity["threshold"] or \
-                ok["max_pct_range"] > self.fixture_parity["max_pct_range_threshold"]:
-            raise ValueError(f"device chain fails the fixture: {ok}")
+        _check_device(self.fixture_parity, rep, ok)
 
     def artifact_paths(self) -> dict[str, Path]:
         return {"bundle": self.bundle_dir}
@@ -153,7 +176,8 @@ class TrtSplitGrootBackend(Backend):
             m.update({
                 "frames_per_view": b["frames"],
                 "video_delta_indices": b["video_delta_indices"],
-                "history": (f"each call encodes the {b['views']} current frames; the "
+                "history": ("none: the current frame only" if b["frames"] == 1 else
+                            f"each call encodes the {b['views']} current frames; the "
                             f"history slot reuses the encode of the newest frame at least "
                             f"{self.history.lag_s:.2f} s old ({self.camera_fps:g} fps "
                             "camera assumed), the current frame itself until one exists"),
@@ -218,11 +242,15 @@ class TrtSplitGrootBackend(Backend):
                        "backbone": t["backbone"], "denoise": t["denoise"]}
             return InferResult(np.asarray(actions[0]), timings)
         now = encode_frames(self.bundle, self.engines.run, pv)
-        self.history.push(t0, now)
-        past, age = self.history.past(t0)
+        if self.bundle.b["frames"] == 1:
+            frames, age = [now], 0.0
+        else:
+            self.history.push(t0, now)
+            past, age = self.history.past(t0)
+            frames = [past, now]
         t2 = time.perf_counter()
         t = {}
-        actions = infer(self.bundle, self.engines.run, [past, now], state, obs.noise, timings=t)
+        actions = infer(self.bundle, self.engines.run, frames, state, obs.noise, timings=t)
         pre, vis = (t1 - t0) * 1000, (t2 - t1) * 1000
         self.history_ages_ms.append(age * 1000)
         timings = {"total": pre + vis + t["backbone"] + t["denoise"], "preprocess": pre,

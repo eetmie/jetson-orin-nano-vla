@@ -60,10 +60,43 @@ def export_info(bundle: Path) -> dict:
     return {}
 
 
+# The shapes bench/aot/groot/plugin.py compiles its kernels for; anything else fails inside
+# the AOT build. The prompt length matters only when the K/V rows were not gathered.
+GROOT_AOT = {
+    "groot-n1.6-split/": {"views": 3, "action_horizon": 50, "image_hw": [252, 252], "seq_len": 320},
+    "groot-n1.7-split/": {"views": 3, "action_horizon": 40, "image_hw": [256, 256], "seq_len": 448},
+}
+
+
+def _groot_aot_unavailable(info: dict) -> str | None:
+    schema = info.get("schema", "")
+    want = next((v for k, v in GROOT_AOT.items() if schema.startswith(k)), None)
+    if want is None:
+        return None
+    keys = ["views", "action_horizon", "image_hw"] + ([] if info.get("kv_rows") else ["seq_len"])
+    for key in keys:
+        if info.get(key) != want[key]:
+            return f"GR00T AOT kernels are built for {key} {want[key]}, this bundle has {info.get(key)}"
+    return None
+
+
+def display_name(model: str, info: dict, spec: dict | None = None) -> str:
+    """The model's name in labels and results: a custom GR00T checkpoint is named after its
+    directory, not after the base profile its runtime shares."""
+    if spec is not None:
+        return spec["name"]
+    checkpoint, base = info.get("checkpoint"), info.get("model")
+    if model.startswith("groot-") and checkpoint and base:
+        name = Path(checkpoint).name
+        if not name.startswith(base.replace("/", "--") + "--"):    # not the pinned Hub download
+            return f"{model.removesuffix('-base')}:{name}"
+    return model
+
+
 def aot_unavailable(spec: dict | None, info: dict) -> str | None:
     """Use only recipes whose fixed shapes the PC checked, before building engines."""
     if spec is None:
-        return None  # Legacy bundles keep their existing checks.
+        return _groot_aot_unavailable(info)  # Other legacy bundles keep their existing checks.
     aot = spec.get("aot", {})
     if not aot.get("supported", False):
         return aot.get("reason") or "no AOT recipe for this model's exported shapes"

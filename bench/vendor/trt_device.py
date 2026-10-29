@@ -804,6 +804,9 @@ class Groot17Device:
     depends on capture times alone, so the host picks it without waiting on the GPU.
     Graph B scatters both frames into the prompt and the DeepStack buffers and runs the
     LLM, conditioning and DiT. Same arithmetic as groot17_trt.infer.
+
+    A one-frame bundle (video_delta_indices [0]) has no history: graph B reads the
+    current encode directly and the ring is never used.
     """
 
     def __init__(self, bundle, engines, lag_s: float, graph: bool = False):
@@ -817,7 +820,8 @@ class Groot17Device:
         n_ds = b["deepstack"]
         self.now = [self.vision_out[-1]["vision_tokens"]] + [
             next(o[f"ds_{j}"] for o in self.vision_out if f"ds_{j}" in o) for j in range(n_ds)]
-        self.past = [DevBuf(x.shape, x.dtype) for x in self.now]
+        self.one_frame = b["frames"] == 1
+        self.past = [] if self.one_frame else [DevBuf(x.shape, x.dtype) for x in self.now]
         self.slots: list[list[DevBuf]] = []
         self.h0 = d.buf_for(bd.llm[0], "h")
         d.set_once(self.h0, bd.prompt_embeds)
@@ -841,10 +845,14 @@ class Groot17Device:
         d.set_once(self.text_bias, bd.text_bias)
         d.set_once(self.image_bias, bd.image_bias)
         c_last = self.cond_out[-1] if len(self.cond_out) > 1 else self.cond_out[0]
+        rtc_off = {}
+        for k in bd.rtc_off:
+            rtc_off[k] = d.buf_for(next(n for n in bd.dit if k in bd.graph[n]["inputs"]), k)
+            d.zero_once(rtc_off[k])
         self.dit = DitChain(d, bd, bd.consts, {
             "vl": c_last["vl_out" if len(self.cond_out) > 1 else "vl"],
             "state_features": self.cond_out[0]["state_features"],
-            "text_bias": self.text_bias, "image_bias": self.image_bias})
+            "text_bias": self.text_bias, "image_bias": self.image_bias, **rtc_off})
         d.sync()
         # One image per run, past frames first: run k is frame k // V, view k % V.
         # Per run and target: (target index, dst byte offset, frame, src byte offset, bytes).
@@ -876,7 +884,7 @@ class Groot17Device:
 
     def _rest(self) -> None:
         d, bd = self.d, self.b
-        frames = (self.past, self.now)
+        frames = (self.now,) if self.one_frame else (self.past, self.now)
         targets = [self.h0, *self.ds_full]
         for j, dst, frame, src, n in self.copies:
             d.d2d(targets[j], frames[frame][j], n, dst, src)
@@ -923,13 +931,15 @@ class Groot17Device:
             d.launch(self.graphs[0])
         else:
             self._vision()
-        s = self._slot()
-        for dst, src in zip(self.slots[s], self.now):
-            d.d2d(dst, src, src.nbytes)
-        self.history.push(t_capture, s)
-        past, age = self.history.past(t_capture)
-        for dst, src in zip(self.past, self.slots[past]):
-            d.d2d(dst, src, src.nbytes)
+        age = 0.0
+        if not self.one_frame:
+            s = self._slot()
+            for dst, src in zip(self.slots[s], self.now):
+                d.d2d(dst, src, src.nbytes)
+            self.history.push(t_capture, s)
+            past, age = self.history.past(t_capture)
+            for dst, src in zip(self.past, self.slots[past]):
+                d.d2d(dst, src, src.nbytes)
         if self.graphs:
             d.launch(self.graphs[1])
         else:

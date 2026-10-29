@@ -133,10 +133,10 @@ def cache_dir(model: str, bundle: Path, mode: str) -> Path:
 
 
 def plan(model: str, bundle: Path, cache: Path, optimized: bool, duration: float, out: Path):
-    from .model_contract import load as load_contract
+    from .model_contract import display_name, export_info, load as load_contract
     contract = load_contract(bundle)
     spec = models.get(model)
-    label = contract["name"] if contract else model
+    label = display_name(model, export_info(bundle), contract)
     lean_tokenizer = spec.family == "smolvla" and (contract or {}).get("runtime", {}).get("lean_tokenizer", True)
     py = sys.executable
     common = ["trt-split", "--model", model, "--bundle", str(bundle), "--chain", "graph",
@@ -230,7 +230,7 @@ def main(argv=None) -> int:
 
     model = args.model or detect_model(bundle)
     optimized = not args.baseline
-    from .model_contract import aot_unavailable, export_info, load as load_contract
+    from .model_contract import aot_unavailable, display_name, export_info, load as load_contract
     contract = load_contract(bundle)
     if contract and contract["profile"] != model:
         p.error("--model disagrees with the model specification saved on the host PC")
@@ -238,7 +238,7 @@ def main(argv=None) -> int:
     if optimized and reason:
         print(f"native TensorRT selected: {reason}")
         optimized = False
-    print(f"{contract['name'] if contract else model}: {bundle}")
+    print(f"{display_name(model, export_info(bundle), contract)}: {bundle}")
     validate_bundle(model, bundle, optimized)
     power_mode_note()
 

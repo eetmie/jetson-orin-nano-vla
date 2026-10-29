@@ -61,6 +61,12 @@ class Bundle:
         self._normalize = None      # (x/255 - mean)/std as a lookup table, built on first use
         # The prompt never changes within a bundle, so its embedded rows are gathered once.
         self.prompt_embeds = np.asarray(self.embed[ids], dtype=np.float32)[None]
+        # Training-time-RTC exports add rtc_mask/prefix to the DiT. All zero is the stock
+        # sampler, which the benchmark and the stock fixture run.
+        h, w = self.b["action_horizon"], self.b["action_dim"]
+        dit_inputs = {i for n in self.dit for i in self.graph[n]["inputs"]}
+        self.rtc_off = {k: np.zeros(s, np.float32) for k, s in
+                        (("rtc_mask", (1, h, 1)), ("prefix", (1, h, w))) if k in dit_inputs}
 
     def preprocess(self, image_u8: np.ndarray) -> np.ndarray:
         """One HxWx3 uint8 frame -> [3,256,256] float32, as the stock eval pipeline does it.
@@ -142,7 +148,7 @@ def infer(bundle: Bundle, run, frames: list[list[np.ndarray]], state: np.ndarray
     t1 = time.perf_counter()
     actions = denoise(bundle, run, {"vl": vl, "state_features": sf,
                                     "text_bias": bundle.text_bias,
-                                    "image_bias": bundle.image_bias}, noise)
+                                    "image_bias": bundle.image_bias, **bundle.rtc_off}, noise)
     t2 = time.perf_counter()
     t.update(backbone=(t1 - t0) * 1e3, denoise=(t2 - t1) * 1e3)
     return actions

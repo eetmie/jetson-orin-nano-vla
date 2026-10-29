@@ -12,7 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from . import models
-from .model_contract import load as load_contract
+from .model_contract import display_name, load as load_contract
 from .backends.base import artifact_manifest, load_export_info
 from .obs import make_obs
 from .parity import attach_comparison_signature
@@ -73,7 +73,7 @@ class Resolved:
         self.spec = spec
         self.info = info
         self.contract = contract
-        self.model_name = contract["name"] if contract else args.model
+        self.model_name = display_name(args.model, info, contract)
         self.family = spec.family
         tasks = info.get("tasks") or []
         self.task = args.task or (contract["tasks"][0] if contract else None) or info.get("task") or next(iter(tasks), None) or spec.task
@@ -87,7 +87,7 @@ class Resolved:
         self.chunk_size = (contract or {}).get("chunk_size") or info.get("chunk_size") or info.get("action_horizon") or spec.chunk_size or 50
         self.state_dim = (contract or {}).get("state_dim") or info.get("real_state_dim") or info.get("state_dim") or spec.state_dim
         self.action_dim = (contract or {}).get("action_dim") or info.get("robot_action_dim") or info.get("action_dim_real") or spec.action_dim
-        default_views = (contract or {}).get("views") or info.get("valid_cameras") or info.get("valid_views") or info.get("n_cam_slots") or spec.image_views
+        default_views = (contract or {}).get("views") or info.get("valid_cameras") or info.get("valid_views") or info.get("views") or info.get("n_cam_slots") or spec.image_views
         self.views = args.views if args.views is not None else default_views
         self.cam_slots = (contract or {}).get("camera_slots") or info.get("n_cam_slots") or info.get("image_slots") or spec.cam_slots
         self.tokenizer = spec.tokenizer
