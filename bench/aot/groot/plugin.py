@@ -43,7 +43,8 @@ def _register(shape, spec, two_pass):
         return q.like()
     @trtp.autotune(name)
     def tune(q:trtp.TensorDesc,k:trtp.TensorDesc,v:trtp.TensorDesc,bias:trtp.TensorDesc,outputs:Tuple[trtp.TensorDesc]):
-        formats='FP16, FP32, FP16, FP32, FP16' if spec['PACKED_KV'] and not spec.get('KV_HALF') else 'FP16, FP16, FP16, FP16, FP16'
+        kv='FP32' if spec['PACKED_KV'] and not spec.get('KV_HALF') else 'FP16'
+        formats=f"FP16, {kv}, FP16, {'FP32' if spec['HAS_BIAS'] else 'FP16'}, FP16"
         return [trtp.AutoTuneCombination(formats)]
     @trtp.aot_impl(name)
     def compile_kernel(q:trtp.TensorDesc,k:trtp.TensorDesc,v:trtp.TensorDesc,bias:trtp.TensorDesc,
@@ -54,7 +55,7 @@ def _register(shape, spec, two_pass):
         from kernels import attention_aot, attention72_aot
         signature={'Q':'*fp16','K':'*fp32' if spec['PACKED_KV'] and not spec.get('KV_HALF') else '*fp16',
                    'V':'*fp16','Bias':'*fp32' if spec['HAS_BIAS'] else '*fp16','O':'*fp16'}
-        src=triton.compiler.ASTSource(attention72_aot if shape=='n16_vision' else attention_aot,signature=signature,
+        src=triton.compiler.ASTSource(attention72_aot if spec['D']==72 else attention_aot,signature=signature,
             constexprs={**{k:v for k,v in spec.items() if k not in ('KV_HALF','EXACT')},'KD':triton.next_power_of_2(spec['D']),'TWO_PASS':two_pass},
             attrs={(i,):[['tt.divisibility',16]] for i in range(len(signature))})
         kernel=compile_sm87(src,options={'num_warps':4,'num_stages':2})
@@ -69,6 +70,19 @@ def _register(shape, spec, two_pass):
 for _shape,_spec in SPECS.items():
     _spec['V_PACKED']=_shape=='n17_vision'
     for _exact in [False,True]:_register(_shape,_spec,_exact)
+
+
+def register_variant(key, **shape):
+    """The base spec with another camera count (B) or prompt length (NK), as a custom
+    fine-tune exports it; the base shapes keep their names."""
+    if all(SPECS[key].get(k) == v for k, v in shape.items()):
+        return key
+    new = key + "".join(f"_{k}{v}" for k, v in shape.items())
+    if new not in SPECS:
+        SPECS[new] = {**SPECS[key], **shape}
+        for exact in [False, True]:
+            _register(new, SPECS[new], exact)
+    return new
 
 
 def register_causal(family, S, H, G, D, scale, strides, two_pass=True):

@@ -1,4 +1,4 @@
-"""CPU regressions for custom GR00T N1.7 bundles: one-frame history, AOT shape fallback,
+"""CPU regressions for custom GR00T N1.7 bundles: one-frame history, AOT shape checks,
 labels, camera count, zero RTC inputs and the device-chain repeat gate. Engine numerics
 still need the board."""
 from __future__ import annotations
@@ -112,12 +112,14 @@ class AotShapeTests(unittest.TestCase):
         self.assertIsNone(aot_unavailable(None, BASE17))
         self.assertIsNone(aot_unavailable(None, BASE16))
 
-    def test_custom_shapes_fall_back_with_a_reason(self):
-        self.assertIn("views 3", aot_unavailable(None, CUSTOM17))
-        self.assertIn("seq_len 448", aot_unavailable(None, {**BASE17, "seq_len": 256,
-                                                             "kv_rows": None}))
+    def test_camera_count_and_prompt_length_follow_the_bundle(self):
+        self.assertIsNone(aot_unavailable(None, CUSTOM17))      # board: rtc12 bundle, parity PASS
+
+    def test_other_shapes_fall_back_with_a_reason(self):
         self.assertIn("action_horizon 40",
                       aot_unavailable(None, {**BASE17, "action_horizon": 16}))
+        self.assertIn("image_hw [256, 256]",
+                      aot_unavailable(None, {**CUSTOM17, "image_hw": [224, 224]}))
 
     def test_other_legacy_bundles_are_untouched(self):
         self.assertIsNone(aot_unavailable(None, {"valid_views": 3}))

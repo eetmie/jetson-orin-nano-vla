@@ -60,11 +60,11 @@ def export_info(bundle: Path) -> dict:
     return {}
 
 
-# The shapes bench/aot/groot/plugin.py compiles its kernels for; anything else fails inside
-# the AOT build. The prompt length matters only when the K/V rows were not gathered.
+# The shapes bench/aot/groot/plugin.py still fixes; anything else fails inside the AOT build.
+# Camera count, prompt length and the K|V precision follow the bundle's graphs.
 GROOT_AOT = {
-    "groot-n1.6-split/": {"views": 3, "action_horizon": 50, "image_hw": [252, 252], "seq_len": 320},
-    "groot-n1.7-split/": {"views": 3, "action_horizon": 40, "image_hw": [256, 256], "seq_len": 448},
+    "groot-n1.6-split/": {"action_horizon": 50, "image_hw": [252, 252]},
+    "groot-n1.7-split/": {"action_horizon": 40, "image_hw": [256, 256]},
 }
 
 
@@ -73,8 +73,7 @@ def _groot_aot_unavailable(info: dict) -> str | None:
     want = next((v for k, v in GROOT_AOT.items() if schema.startswith(k)), None)
     if want is None:
         return None
-    keys = ["views", "action_horizon", "image_hw"] + ([] if info.get("kv_rows") else ["seq_len"])
-    for key in keys:
+    for key in want:
         if info.get(key) != want[key]:
             return f"GR00T AOT kernels are built for {key} {want[key]}, this bundle has {info.get(key)}"
     return None

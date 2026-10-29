@@ -192,6 +192,10 @@ def build_one(a):
         if a.mode=='llm':continue
         if gathered:key=plugin.register_gathered(family,int(k.shape[1]))
         else:key=family+('_vision' if is_vision else '_cross' if cross else '_self')
+        if is_vision:key=plugin.register_variant(key,B=int(mm.get_input(0).shape[0]))
+        elif cross and not gathered:
+            # custom exports may pack K|V in FP16 (KV_HALF), the base N1.7 graphs in FP32
+            key=plugin.register_variant(key,NK=int(k.shape[1]),**({'KV_HALF':True} if k.dtype==trt.float16 else {}))
         spec=plugin.SPECS[key];b,nq,nk,h,d=[spec[x] for x in ['B','NQ','NK','H','D']];w=h*d
         assert tuple(mm.get_input(0).shape)==(b,h,nq,d)
         assert tuple(mm.get_input(1).shape)==(b,h,d,nk)
