@@ -227,7 +227,9 @@ def _build_wrappers():
                 # string"). Shapes are static, so a constant mask is equivalent.
                 # AutoActionSpace has no grippers: it only pads real axes to the model
                 # width and trims them after inference, so the correct mask is all ones.
-                gripper_idx = list(getattr(action_space, "gripper_idx", ()))
+                # agibot_ee6d declares gripper_idx but its preprocess zeroes nothing.
+                gripper_idx = ([] if type(action_space).__name__ == "AGIBOTEE6DActionSpace"
+                               else list(getattr(action_space, "gripper_idx", ())))
                 amask = torch.ones(1, 1, dim_action)
                 amask[..., gripper_idx] = 0.0
                 self.register_buffer("action_mask", amask)
@@ -756,11 +758,19 @@ def main() -> None:
         "policy_splits": args.policy_splits,
     }
     meta_docs = [json.loads(path.read_text()) for path in metas]
+    # The graphs are traced from the loaded policy, whose num_image_views can exceed config.json's
+    # (XVLAPolicy recomputes it with empty_cameras on top of a saved empty_camera feature, e.g.
+    # lerobot/xvla-libero 3 -> 4). Use the count the graph families agree on; the runtime pads to it.
+    traced_views = {(m.get("identity") or {}).get("num_image_views") for m in meta_docs}
+    if len(traced_views) == 1 and isinstance(next(iter(traced_views)), int):
+        num_views = expected_graph_identity["num_image_views"] = next(iter(traced_views))
     for path, meta_doc in zip(metas, meta_docs, strict=True):
         if meta_doc.get("identity") != expected_graph_identity:
+            found = meta_doc.get("identity") or {}
+            diff = {k: (found.get(k), v) for k, v in expected_graph_identity.items() if found.get(k) != v}
             sys.exit(
-                f"{path} was exported for a different checkpoint or graph contract; "
-                "re-export that graph family before creating this bundle")
+                f"{path} was exported for a different checkpoint or graph contract "
+                f"(found, expected: {diff}); re-export that graph family before creating this bundle")
     graphs = [g for meta_doc in meta_docs for g in meta_doc["graphs"]]
     # size_mb from the file ON DISK, not from _meta. The scratch files record what the
     # exporter wrote; a bundle can legitimately be rebuilt over graphs that were rewritten
@@ -804,7 +814,7 @@ def main() -> None:
         "tokenizer": tokenizer_identity,
         "domain_id": args.domain_id,
         "valid_views": args.valid_views,
-        "num_image_views": cfg.get("num_image_views"),
+        "num_image_views": num_views,
         "lang_len": args.lang_len,
         "tokens_per_view": tokens_per_view,
         "chunk_size": cfg.get("chunk_size"),

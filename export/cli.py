@@ -88,7 +88,8 @@ def aot_recipe(spec: dict, info: dict) -> dict:
                      arch.get("vlm_model_name") == "HuggingFaceTB/SmolVLM2-500M-Video-Instruct" and
                      arch.get("image_resolution") == [512, 512] and
                      arch.get("expert_width_multiplier") == 0.75 and arch.get("num_vlm_layers") == 16 and
-                     arch.get("num_expert_layers") in (0, 16) and
+                     # LeRobot: num_expert_layers <= 0 means "as many as the VLM".
+                     (arch.get("num_expert_layers", 0) <= 0 or arch.get("num_expert_layers") == 16) and
                      (info.get("kv") or {}).get("cross") == "expert-projected")
     elif spec["family"] == "xvla":
         supported = (spec["views"] == 3 and spec["chunk_size"] == 30 and arch.get("hidden_size") == 1024 and
@@ -217,6 +218,42 @@ def main(argv=None):
             environment = ENVIRONMENTS[spec["family"]]
             if not (HERE / f".venv-{environment}/bin/python").is_file():
                 run([HERE / "setup.sh", environment])
+            view = out.with_name(out.name + ".config-compat")
+            for stale in (view, view.with_name(view.name + ".fields")):
+                shutil.rmtree(stale, ignore_errors=True)
+            compat = json.loads(subprocess.run(
+                [HERE / f".venv-{environment}/bin/python", HERE / "config_compat.py", checkpoint, view],
+                check=True, stdout=subprocess.PIPE, text=True).stdout.splitlines()[-1])
+            if compat["dropped"]:
+                print(f"NOTE: config.json fields unknown to the pinned LeRobot are ignored: {', '.join(compat['dropped'])}", flush=True)
+                spec["inspection"]["ignored_config_fields"] = compat["dropped"]
+            if compat.get("tokenizer"):
+                print(f"NOTE: tokenizer path {compat['tokenizer']['from']} does not exist here; "
+                      f"using the policy default {compat['tokenizer']['to']}", flush=True)
+                spec["inspection"]["tokenizer_fallback"] = compat["tokenizer"]
+            if compat.get("xvla_image_steps_added"):
+                print("NOTE: the saved X-VLA preprocessor lacks xvla_image_to_float/xvla_imagenet_normalize "
+                      "(an early LeRobot conversion); added as current LeRobot builds them", flush=True)
+                spec["inspection"]["xvla_image_steps_added"] = True
+            if compat["migrated"]:
+                print("NOTE: pre-processor checkpoint migrated with LeRobot's migrate_policy_normalization", flush=True)
+                spec["inspection"]["migrated_normalization"] = True
+            if view.is_dir():
+                checkpoint = view
+            dataset = compat.get("dataset") or {}
+            if "tasks" in spec["defaulted"] and dataset.get("tasks"):
+                spec["tasks"] = dataset["tasks"]
+                spec["defaulted"].remove("tasks")
+            if "fps" in spec["defaulted"] and dataset.get("fps"):
+                fps = dataset["fps"]  # LeRobot info.json may store 10.0
+                spec["fps"] = int(fps) if float(fps).is_integer() else fps
+                spec["defaulted"].remove("fps")
+            if dataset:
+                spec["training_dataset"] = dataset["source"]
+            if spec["defaulted"]:
+                print(f"NOTE: no training dataset metadata for {', '.join(spec['defaulted'])}; the bundle carries "
+                      f"synthetic benchmark values (task {spec['tasks'][0]!r}, fps {spec['fps']}): pass --task/--fps "
+                      "before driving a robot with it", flush=True)
             flags = ["--views", str(spec["views"])]
             if spec["family"] == "smolvla":
                 flags += ["--hoist-cross-kv"]
@@ -224,7 +261,10 @@ def main(argv=None):
                 flags += ["--fps", str(spec["fps"])]
             for task in spec["tasks"]:
                 flags += ["--task", task]
-            run([HERE / "export.sh", checkpoint, out, *flags])
+            try:
+                run([HERE / "export.sh", checkpoint, out, *flags])
+            finally:
+                shutil.rmtree(view, ignore_errors=True)
         finalize_bundle(out, spec)
         print(f"Bundle: {out}\nCopy it to the Jetson, then run: ./run.sh {out.name}")
         return 0

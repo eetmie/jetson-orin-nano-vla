@@ -129,6 +129,41 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "--openpi-config"):
             inspector.inspect_checkpoint(self.path)
 
+    def test_untyped_config_says_it_is_not_lerobot(self):
+        self.write({"model_type": "xvla"})  # e.g. an original custom_code release
+        with self.assertRaisesRegex(ValueError, "not a LeRobot checkpoint"):
+            inspector.inspect_checkpoint(self.path)
+
+    def test_smolvla_default_expert_depth_keeps_the_aot_recipe(self):
+        arch = {"vlm_model_name": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct", "image_resolution": [512, 512],
+                "expert_width_multiplier": 0.75, "num_vlm_layers": 16}
+        info = {"kv": {"cross": "expert-projected"}}
+        for depth, supported in ((-1, True), (0, True), (16, True), (8, False)):
+            spec = {"family": "smolvla", "views": 2, "chunk_size": 50,
+                    "architecture": {**arch, "num_expert_layers": depth}}
+            self.assertEqual(exporter.aot_recipe(spec, info)["supported"], supported, depth)
+
+    def test_empty_camera_placeholders_are_not_views(self):
+        cfg = config("smolvla", views=2)
+        cfg["input_features"]["observation.images.empty_camera_0"] = {"type": "VISUAL", "shape": [3, 480, 640]}
+        self.write(cfg)
+        self.assertEqual(inspector.inspect_checkpoint(self.path)["views"], 2)
+
+    def test_channels_last_image_shapes_are_accepted(self):
+        cfg = config("pi05", views=2)
+        for feature in cfg["input_features"].values():
+            if feature["type"] == "VISUAL":
+                feature["shape"] = [480, 640, 3]
+        self.write(cfg)
+        spec = inspector.inspect_checkpoint(self.path)
+        self.assertEqual(list(spec["image_shapes"].values()), [[3, 480, 640]] * 2)
+
+    def test_every_lerobot_xvla_action_mode_has_runtime_postprocess(self):
+        from bench.vendor.xvla_trt import GRIPPER_BY_MODE
+        self.assertEqual(GRIPPER_BY_MODE["auto"], ())
+        self.assertEqual(GRIPPER_BY_MODE["agibot_ee6d"], ())  # LeRobot applies no sigmoid there
+        self.assertEqual(GRIPPER_BY_MODE["ee6d"], (9, 19))
+
     def test_openpi_named_libero_recipe_and_custom_metadata(self):
         spec = inspector.inspect_checkpoint(self.path, openpi_config="pi05_libero")
         self.assertEqual((spec["framework"], spec["views"], spec["state_dim"], spec["action_dim"], spec["chunk_size"]),

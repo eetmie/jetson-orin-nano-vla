@@ -24,10 +24,13 @@ and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch con
 
 Exported models are generally mostly FP16, some smaller bits stay FP32 for accuracy.
 
-**Custom checkpoint support is experimental.** A one-camera SmolVLA export and a
-two-camera OpenPI π0.5 fine-tune passed stock-policy parity and 10-second benchmark
-runs on the Orin Nano. Other custom checkpoints and shapes have not been widely
-tested. The table above reports separate 300-second runs of the base checkpoints.
+**Custom checkpoint support is experimental.** Fine-tunes from the Hugging Face Hub
+passed stock-policy parity and 30-second runs on the Orin Nano (2026-11-09): SmolVLA with
+1-3 cameras, chunk 50 and 100, bf16 weights, older and newer LeRobot configs (87-191 ms);
+X-VLA in `auto` and `ee6d` action modes with 2-3 cameras (265-343 ms); EVO1 (347 ms). Shapes
+outside the base profiles run on native TensorRT, which is correct but slower than the AOT
+kernels. A two-camera OpenPI π0.5 fine-tune passed earlier. The table above reports separate
+300-second runs of the base checkpoints.
 
 ## Use
 

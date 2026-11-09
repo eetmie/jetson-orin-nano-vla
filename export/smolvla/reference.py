@@ -70,11 +70,20 @@ def main() -> None:
     model_state = policy.prepare_state(batch)
     tokens = batch["observation.language.tokens"]
     masks = batch["observation.language.attention_mask"]
+    # pad_language_to="longest" (LeRobot's default) gives the prompt's own length; the graphs
+    # take tokenizer_max_length. Masked pads change neither attention nor positions.
+    pad = int(cfg.tokenizer_max_length) - tokens.shape[1]
+    if pad > 0:
+        tokens = torch.nn.functional.pad(tokens, (0, pad))
+        masks = torch.nn.functional.pad(masks, (0, pad), value=0)
     noise = torch.from_numpy(rng.standard_normal(
         (1, cfg.chunk_size, cfg.max_action_dim)).astype(np.float32))
     with torch.no_grad():
         action = policy.model.sample_actions(images, img_masks, tokens, masks, model_state,
                                              noise=noise)
+    # prepare_images appends `empty_cameras` placeholders (masked out, no effect on the action);
+    # the bundle's graphs take only the real views.
+    images, img_masks = images[:views], img_masks[:views]
 
     table = policy.model.vlm_with_expert.vlm.model.text_model.get_input_embeddings().weight
     np.save(a.bundle / "embed_tokens.npy", table.detach().numpy().astype(np.float32))

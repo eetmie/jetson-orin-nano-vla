@@ -46,6 +46,7 @@ def main() -> None:
 
     cfg = PreTrainedConfig.from_pretrained(str(a.checkpoint))
     cfg.device = "cpu"
+    cfg.dtype = "float32"  # the graphs were traced in FP32, even for a bf16-trained checkpoint
     policy = XVLAPolicy.from_pretrained(str(a.checkpoint), config=cfg)
     policy.to("cpu").float().eval()
     pre, _ = make_pre_post_processors(
@@ -56,7 +57,12 @@ def main() -> None:
     keys = list(cfg.image_features)[:views]
     raw = [rng.integers(0, 256, (480, 640, 3), dtype=np.uint8) for _ in keys]
     state_dim = cfg.input_features["observation.state"].shape[0]
+    # A draw in physical units normalizes to ~N(0, 1) like real data; a plain N(0, 1) draw
+    # becomes ~1e8 on a constant (std 0) channel and overflows the FP16 graphs.
     state = rng.standard_normal(state_dim).astype(np.float32)
+    norm = ((bundle.get("processor_contract") or {}).get("state") or {}).get("normalization") or {}
+    if norm.get("mode") == "MEAN_STD" and "mean" in norm:
+        state = np.asarray(norm["mean"], np.float32) + np.asarray(norm["std"], np.float32) * state
     obs = {k: torch.from_numpy(im.transpose(2, 0, 1).copy()).float() for k, im in zip(keys, raw)}
     obs["observation.state"] = torch.from_numpy(state)
     obs["task"] = task
@@ -68,11 +74,24 @@ def main() -> None:
     inputs = policy._build_model_inputs(batch)
     real_randn = torch.randn
     torch.randn = lambda *s, **kw: x1.clone().to(kw.get("dtype") or x1.dtype)
+    # Keep the padded chunk the runtime produces. Every LeRobot action space applies its gripper
+    # sigmoid in place and only then trims to the real width, so `act` after postprocess is it.
+    trim, padded = model.action_space.postprocess, []
+
+    def keep_padded(act):
+        out = trim(act)
+        padded.append(act.clone())
+        return out
+    model.action_space.postprocess = keep_padded
     try:
         with torch.no_grad():
-            action = model.generate_actions(**inputs, steps=cfg.num_denoising_steps)
+            model.generate_actions(**inputs, steps=cfg.num_denoising_steps)
     finally:
         torch.randn = real_randn
+        model.action_space.postprocess = trim
+    action = padded[0]
+    if not torch.isfinite(action).all():
+        raise SystemExit("stock X-VLA produced non-finite actions for the fixture inputs")
 
     np.savez(
         a.bundle / FIXTURE,

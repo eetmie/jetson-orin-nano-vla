@@ -490,7 +490,8 @@ class XVLADevice:
         d.sync()
         action = self.action.host().copy()
         g = self.b.gripper
-        action[..., g] = 1.0 / (1.0 + np.exp(-action[..., g]))
+        if g:
+            action[..., g] = 1.0 / (1.0 + np.exp(-action[..., g]))
         if timings is not None:
             ev = self.ev
             timings.update(vision=d.elapsed_ms(ev[0], ev[1]), text=d.elapsed_ms(ev[1], ev[2]),
@@ -671,7 +672,7 @@ class SmolVLADevice:
         self.cat = []
         for step in range(bd.num_steps):
             tt = 1.0 + step * (-1.0 / bd.num_steps)
-            te = np.broadcast_to(sinusoidal_time_embedding(tt)[None, None, :], self.a.shape)
+            te = np.broadcast_to(sinusoidal_time_embedding(tt, self.a.shape[-1])[None, None, :], self.a.shape)
             buf = DevBuf(cat_spec, np.float32)
             host = np.zeros(cat_spec, np.float32)
             host[..., self.a.shape[-1]:] = te

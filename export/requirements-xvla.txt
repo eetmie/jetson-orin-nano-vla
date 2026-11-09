@@ -6,6 +6,7 @@ transformers==5.5.4
 onnx==1.22.0
 onnxscript==0.7.1
 onnxruntime==1.28.0  # its float16 converter does the mixed-FP16 pass; CPU build is enough
+pyarrow==26.0.0  # reads the training dataset's meta/tasks.parquet (config_compat.py)
 
 torch==2.11.0
 torchvision==0.26.0

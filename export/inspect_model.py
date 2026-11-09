@@ -176,6 +176,8 @@ def inspect_checkpoint(checkpoint: Path, *, source: Source | None = None, views:
             raise ValueError(f"unsupported LeRobot policy {family!r}; supported: {', '.join(FAMILIES)}")
         inputs = config.get("input_features") or {}
         cameras = {k: v for k, v in inputs.items() if v.get("type") == "VISUAL" or k.startswith("observation.images.")}
+        # `empty_cameras` placeholders: the policy fills them with masked images, so they are not views.
+        cameras = {k: v for k, v in cameras.items() if not re.fullmatch(r"observation\.images\.empty_camera_\d+", k)}
         state_dim = dimension(inputs, "observation.state")
         action_dim = dimension(config.get("output_features") or {}, "action")
         fields = {"state_dim": state_dim, "action_dim": action_dim,
@@ -192,13 +194,17 @@ def inspect_checkpoint(checkpoint: Path, *, source: Source | None = None, views:
             fields["max_action_dim"] = modes[action_mode]
         image_keys = list(cameras)
         shapes = {k: v.get("shape") for k, v in cameras.items()}
+        # Some LeRobot datasets record images channels-last; the policy sees them as [3, H, W].
+        shapes = {k: [s[2], s[0], s[1]] if isinstance(s, list) and len(s) == 3 and s[2] == 3 and s[0] != 3 else s
+                  for k, s in shapes.items()}
     elif framework == "openpi":
         family = recipe.get("family", "pi05")
         if family != "pi05":
             raise ValueError("the OpenPI exporter currently supports pi05 checkpoints")
         name = openpi_config or recipe.get("openpi_config")
         if not name:
-            raise ValueError("OpenPI needs --openpi-config NAME or export_config.json with openpi_config and observation settings")
+            raise ValueError("not a LeRobot checkpoint (config.json has no policy 'type'); an OpenPI checkpoint "
+                             "needs --openpi-config NAME or export_config.json with openpi_config and observation settings")
         # LIBERO is a named, fixed upstream recipe; custom recipes declare their observation contract.
         defaults = ({"state_dim": 8, "action_dim": 7, "max_state_dim": 32, "max_action_dim": 32,
                      "chunk_size": 10, "num_steps": 10,
@@ -241,6 +247,8 @@ def inspect_checkpoint(checkpoint: Path, *, source: Source | None = None, views:
         if (not isinstance(shape, list) or len(shape) != 3 or shape[0] != 3 or
                 any(not isinstance(d, int) or d <= 0 for d in shape)):
             raise ValueError(f"{key} must declare an RGB [3, height, width] image shape")
+    defaulted = [name for name, value in (("tasks", tasks or recipe.get("tasks")),
+                                          ("fps", fps if fps is not None else recipe.get("fps"))) if not value]
     if not tasks:
         tasks = recipe.get("tasks") or [DEFAULT_TASK]
     spec = {"schema": SCHEMA, "framework": framework, "family": family,
@@ -250,6 +258,7 @@ def inspect_checkpoint(checkpoint: Path, *, source: Source | None = None, views:
             "views": count, "camera_slots": count, **fields, "tasks": tasks,
             "fps": fps if fps is not None else recipe.get("fps", 30),
             "noise_distribution": "uniform" if family == "evo1" else "normal",
+            "defaulted": defaulted,  # synthetic benchmark values the exporter may replace from the training dataset
             "processors": {k: json_file(checkpoint / f"policy_{k}.json", {}) for k in ("preprocessor", "postprocessor")}}
     if framework == "openpi":
         spec["openpi"] = recipe

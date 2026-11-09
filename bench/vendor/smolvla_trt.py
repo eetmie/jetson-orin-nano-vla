@@ -115,7 +115,7 @@ class Policy:
         t0 = time.perf_counter()
         lang_emb, lang_mask = lang
         n_real, n_pad = len(img_embs), b.n_cam_slots - len(img_embs)
-        state_emb = self.one("state_proj", state).reshape(1, 1, VLM_DIM)
+        state_emb = self.one("state_proj", state).reshape(1, 1, -1)
         embs = np.concatenate(img_embs + [self.pad_cam] * n_pad + [lang_emb, state_emb],
                               axis=1).astype(np.float32)
         pad_masks = np.concatenate(
@@ -142,7 +142,7 @@ class Policy:
         for step in range(b.num_steps):
             tt = 1.0 + step * dt
             a = self.one("action_in", x_t)
-            te = np.broadcast_to(sinusoidal_time_embedding(tt)[None, None, :], a.shape)
+            te = np.broadcast_to(sinusoidal_time_embedding(tt, a.shape[-1])[None, None, :], a.shape)
             h = self.one("time_in", np.concatenate([a, te], axis=2).astype(np.float32))
             h = h * (1.0 / (1.0 + np.exp(-h)))                                # SiLU
             suf = self.one("time_out", h)

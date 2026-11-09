@@ -18,9 +18,9 @@ TensorRT engines are built on the Jetson; a bundle is portable ONNX.
 |---|---|---|
 | `--inspect` | | print the host's resolved model specification; only small Hub metadata files are fetched |
 | `--out DIR` | `bundles/<checkpoint>-<identity>`; aliases keep their old directory | must be new or empty |
-| `--task "..."` | `export_config.json` tasks, or a synthetic benchmark instruction | repeatable; GR00T bakes one |
+| `--task "..."` | `export_config.json` tasks, else the training dataset's tasks (`train_config.json`), else a synthetic benchmark instruction | repeatable; GR00T bakes one |
 | `--views N` | checkpoint's declared cameras (the base `smolvla` alias keeps 2) | baked into the graphs; must fit the checkpoint |
-| `--fps N` | `export_config.json` fps, or 30 | observation rate used for benchmark headroom |
+| `--fps N` | `export_config.json` fps, else the training dataset's fps, else 30 | observation rate used for benchmark headroom |
 | `--revision REV` | latest commit for a custom source; `hub-lock.json` for base aliases | branches/tags resolve once to an immutable SHA, used for every download |
 | `--subfolder DIR` | repository root | selects one checkpoint in a Hub repository; tree URLs also work |
 | `--embodiment E` | GR00T N1.6 `robocasa_panda_omron`, N1.7 `xdof_relative_eef_relative_joint` | the embodiment head sliced in; for N1.7 it also fixes the cameras and history frames |
@@ -30,6 +30,16 @@ The inspector runs on the host PC, reads configuration and safetensors headers w
 loading tensor data, and distinguishes real state/action dimensions from padded model
 widths. It supports full checkpoints for the implemented LeRobot families: SmolVLA,
 X-VLA, EVO1 and π0.5. Adapter-only checkpoints need merging into full weights first.
+
+Before export, `config_compat.py` adapts a LeRobot checkpoint to the pinned LeRobot in a
+temporary symlinked view (the source is never modified) and prints a NOTE for each change:
+config fields from newer releases are dropped, a tokenizer path that only existed on the
+training machine falls back to the policy's default tokenizer, early X-VLA conversions get
+the image steps current LeRobot adds, and pre-processor checkpoints (normalization inside
+the weights) are migrated with LeRobot's `migrate_policy_normalization`. It also reads the
+training dataset's tasks and fps from the local `root` or the Hub. Values the exporter had to
+invent are listed in `model_spec.json` `defaulted`; such a bundle benchmarks fine but should
+not drive a robot. `empty_cameras` placeholders are not counted as cameras.
 
 Each new bundle includes `model_spec.json` under its checksum manifest. The Jetson uses
 that file to generate observations and select the runtime; it never inspects the source

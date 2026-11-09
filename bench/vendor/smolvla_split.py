@@ -383,7 +383,7 @@ class SmolVLASplitPolicy:
         s = self.norm.normalize_state(np.asarray(state, dtype=np.float32).reshape(-1))
         s_pad = np.zeros((1, MAX_STATE_DIM), dtype=np.float32)
         s_pad[0, :s.shape[0]] = s
-        state_emb = self._run_single(self.state_proj, s_pad).reshape(1, 1, VLM_DIM)
+        state_emb = self._run_single(self.state_proj, s_pad).reshape(1, 1, -1)
 
         n_pad_cams = self.n_cam_slots - 1
         embs = np.concatenate(
@@ -443,7 +443,7 @@ class SmolVLASplitPolicy:
     def _denoise_step(self, x_t, t, full_att_2d, pos_ids, kv_feed) -> np.ndarray:
         action_emb = self._run_single(self.action_in, x_t)               # [1,50,720]
         time_emb = np.broadcast_to(
-            sinusoidal_time_embedding(t)[None, None, :], action_emb.shape)
+            sinusoidal_time_embedding(t, action_emb.shape[-1])[None, None, :], action_emb.shape)
         ate = np.concatenate([action_emb, time_emb], axis=2).astype(np.float32)
         ate = self._run_single(self.time_in, ate)
         ate = ate * (1.0 / (1.0 + np.exp(-ate)))                         # SiLU

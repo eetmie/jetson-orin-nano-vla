@@ -45,10 +45,12 @@ def _normalize_table() -> np.ndarray:
 
 NORMALIZE_LUT = _normalize_table()
 
-# BaseActionSpace.postprocess applies a sigmoid to these channels after the loop; the
-# pre-step zeroing is baked into denoise_0.
-GRIPPER_BY_MODE = {"ee6d": (9, 19), "agibot_ee6d": (9, 19), "joint": (6, 13),
-                   "so101_bimanual": (5, 11)}
+# Channels each LeRobot 0.6.1 action space's postprocess passes through a sigmoid; the
+# matching pre-step zeroing is baked into denoise_0. agibot_ee6d, franka_joint7 and auto
+# have none: their postprocess only trims the padded width, which callers do from
+# model_spec.json's action_dim.
+GRIPPER_BY_MODE = {"ee6d": (9, 19), "joint": (6, 13), "so101_bimanual": (5, 11),
+                   "agibot_ee6d": (), "franka_joint7": (), "auto": ()}
 
 
 def _chain(names: list[str], prefix: str) -> list[str]:
@@ -170,7 +172,8 @@ def infer(bundle: Bundle, run, pixel_values: np.ndarray, input_ids: np.ndarray,
         action = h
     action = action.copy()
     g = bundle.gripper
-    action[..., g] = 1.0 / (1.0 + np.exp(-action[..., g]))
+    if g:
+        action[..., g] = 1.0 / (1.0 + np.exp(-action[..., g]))
     t["denoise"] = (time.perf_counter() - t0) * 1e3
     return action
 

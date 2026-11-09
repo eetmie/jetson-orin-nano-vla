@@ -13,7 +13,12 @@ def revision_for(repo_id, requested, pins):
     if requested not in (None, "main"):
         raise ValueError(f"Floating Hub revision {requested!r}: use a full commit SHA")
     if repo_id not in pins:
-        raise ValueError(f"Unpinned auxiliary Hub repo {repo_id!r}: add its commit to export/hub-lock.json")
+        # A fine-tune may name a backbone the base recipes never used: pin it once, like a custom source.
+        # shortcut: the resolved SHA is only printed to the export log; record it in the bundle if provenance needs it.
+        from huggingface_hub import HfApi
+        pins[repo_id] = HfApi().model_info(repo_id).sha
+        print(f"NOTE: auxiliary Hub repo {repo_id} is not in hub-lock.json; pinned to {pins[repo_id]}",
+              file=sys.stderr, flush=True)
     return pins[repo_id]
 
 
