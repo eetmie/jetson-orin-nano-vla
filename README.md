@@ -18,19 +18,12 @@ This repo is for benchmarking only. It measures how fast the models run on the b
 
 JetPack 7.2.1, MAXN_SUPER with pinned clocks, desktop running (though headless recommended!). 300-second runs,
 synthetic observations with default denoising steps and views. RAM is whole-board usage during inference. Every run first checks its actions against the stock
-policy's output stored in the bundle: cosine ≥ 0.99999
-and within 0.13 % of the action range (π0.5 LIBERO against its FP16 PyTorch conversion;
-π0.5 base 0.63 % against stock FP32).
+policy's output stored in the bundle. Cosine ≥ 0.99999 on all runs.
 
-Exported models are generally mostly FP16, some smaller bits stay FP32 for accuracy.
+Exported models are generally mostly FP16 because that's what Orin Nano supports, some smaller bits stay FP32 (or BF16) for accuracy.
 
-**Custom checkpoint support is experimental.** Fine-tunes from the Hugging Face Hub
-passed stock-policy parity and 30-second runs on the Orin Nano (2026-11-09): SmolVLA with
-1-3 cameras, chunk 50 and 100, bf16 weights, older and newer LeRobot configs (87-191 ms);
-X-VLA in `auto` and `ee6d` action modes with 2-3 cameras (265-343 ms); EVO1 (347 ms). Shapes
-outside the base profiles run on native TensorRT, which is correct but slower than the AOT
-kernels. A two-camera OpenPI π0.5 fine-tune passed earlier. The table above reports separate
-300-second runs of the base checkpoints.
+**Custom checkpoint support is experimental.** ~20 Fine-tunes from the Hugging Face Hub
+passed stock-policy parity and 30-second runs on the Orin Nano. Triton patches are sadly only available for the base ones at the moment, though single-view SmolVLA still ran at almost 12hz. Pretty cool, and there's still room for improvement!
 
 ## Use
 
@@ -49,9 +42,8 @@ git clone https://github.com/eetmie/jetson-orin-nano-vla && cd jetson-orin-nano-
 ```
 
 Models: `smolvla`, `xvla`, `evo1`, `groot-n16`, `groot-n17`, `pi05-base`, `pi05-libero`.
-Checkpoint URLs, Hub IDs and local paths automatically select SmolVLA, X-VLA, EVO1 or
-LeRobot/OpenPI π0.5. The host PC discovers the cameras, state/action dimensions and chunk
-length; the Jetson reads those settings from the exported bundle. Custom OpenPI policies
+Checkpoint URLs, Hub IDs and local paths automatically select the corresponding model. The host PC discovers the cameras, state/action dimensions and chunk
+length, Jetson reads those settings from the exported bundle. Custom OpenPI policies
 need their training configuration and observation mapping: [instructions](export/README.md#openpi-checkpoints).
 The first export of each model sets up its environment and downloads the checkpoint.
 `pi05-libero` needs Docker with the NVIDIA container toolkit. GR00T N1.7 and π0.5 base use
