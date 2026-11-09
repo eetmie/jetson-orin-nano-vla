@@ -74,7 +74,8 @@ def main() -> None:
     # take tokenizer_max_length. Masked pads change neither attention nor positions.
     pad = int(cfg.tokenizer_max_length) - tokens.shape[1]
     if pad > 0:
-        tokens = torch.nn.functional.pad(tokens, (0, pad))
+        pad_id = next(step.input_tokenizer.pad_token_id for step in pre.steps if hasattr(step, "input_tokenizer"))
+        tokens = torch.nn.functional.pad(tokens, (0, pad), value=pad_id)
         masks = torch.nn.functional.pad(masks, (0, pad), value=0)
     noise = torch.from_numpy(rng.standard_normal(
         (1, cfg.chunk_size, cfg.max_action_dim)).astype(np.float32))

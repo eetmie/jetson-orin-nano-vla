@@ -622,8 +622,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint", type=Path, default=REPO / "models" / "xvla-base")
     ap.add_argument("--out-dir", type=Path, default=REPO / "exports" / "split")
-    ap.add_argument("--domain-id", type=int, default=0,
-                    help="baked into the action encoder/decoder and soft prompts")
+    ap.add_argument("--domain-id", type=int, default=None,
+                    help="baked into the action encoder/decoder and soft prompts "
+                         "(default: the checkpoint preprocessor's xvla_add_domain_id, else 0)")
     ap.add_argument("--views", "--valid-views", type=int, default=None, dest="valid_views",
                     help="how many camera views the bundle is sized for. (--valid-views is "
                          "the old name and still works.) Sets the static batch of the vision "
@@ -672,6 +673,12 @@ def main() -> None:
         return
 
     cfg = json.loads((args.checkpoint / "config.json").read_text())
+    if args.domain_id is None:
+        # Stock inference takes the domain from the preprocessor (lerobot/xvla-libero: 3); without
+        # that step LeRobot falls back to 0.
+        pre = json.loads((args.checkpoint / "policy_preprocessor.json").read_text())
+        args.domain_id = next((int(step["config"]["domain_id"]) for step in pre.get("steps", [])
+                               if step.get("registry_name") == "xvla_add_domain_id"), 0)
     processor_contract = build_processor_contract(args.checkpoint, cfg)
     processor_lang_len = int(processor_contract["tokenizer"]["max_length"])
     if args.lang_len is None:
