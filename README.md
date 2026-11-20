@@ -27,12 +27,12 @@ passed stock-policy parity and 30-second runs on the Orin Nano. Triton patches a
 
 ## World-action models
 
-Five-minute Orin Nano runs with two synthetic cameras and a fixed prompt. LaWAM fell below the VLA parity threshold. Cosmos3-Edge parity is untested. [Benchmark scripts](scripts/wam/)
+Mostly untested, experimental. [Benchmark scripts](scripts/wam/)
 
-| model | action chunk | denoising steps | p50 per chunk | chunks/s | mean board RAM |
-|---|---:|---:|---:|---:|---:|
-| [LaWAM LIBERO](results/lawam-libero-poc.json) | 8 × 7 | 10 | 216.45 ms | 4.60 | 4.27 GiB |
-| [Cosmos3-Edge LIBERO](results/cosmos3-edge-libero-poc.json) | 16 × 10 | 30 | 4097.78 ms | 0.24 | 3.77 GiB |
+| model | checkpoint | cameras | p50 | rate | RAM in use |
+|---|---|---:|---:|---:|---:|
+| [LaWAM LIBERO](results/lawam-libero-poc.json) | [`jialei02/lawam-libero-sft-lerobot`](https://huggingface.co/jialei02/lawam-libero-sft-lerobot) | 2 | 216.45 ms | 4.60 Hz | 4.27 GB |
+| [Cosmos3-Edge LIBERO](results/cosmos3-edge-libero-poc.json) | [`lerobot/Cosmos3-Edge-Policy-LIBERO`](https://huggingface.co/lerobot/Cosmos3-Edge-Policy-LIBERO) | 2 | 4097.78 ms | 0.24 Hz | 3.77 GB |
 
 ## Use
 
