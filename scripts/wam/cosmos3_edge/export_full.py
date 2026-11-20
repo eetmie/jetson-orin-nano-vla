@@ -44,11 +44,15 @@ class GenBlock(nn.Module):
         q = q * self.cos + rotate_half(q) * self.sin
         k = k * self.cos + rotate_half(k) * self.sin
         v = self.v(h).reshape(1, -1, 8, 128).transpose(1, 2)
-        k = torch.cat((self.uk, k), dim=2).repeat_interleave(2, dim=1)
-        v = torch.cat((self.uv, v), dim=2).repeat_interleave(2, dim=1)
+        k = torch.cat((self.uk, k), dim=2)
+        v = torch.cat((self.uv, v), dim=2)
+        # Grouped-query attention without repeating K/V: query heads 2j and 2j+1 share
+        # K/V head j, so they ride along the sequence axis of a single 8-head attention.
+        n = q.shape[2]
+        q = q.reshape(1, 8, 2 * n, 128)
         # Keep softmax reductions in float32 on both architectures.
         s = F.scaled_dot_product_attention(q.float(), k.float(), v.float()).to(h.dtype)
-        x = x + self.out(s.transpose(1, 2).reshape(1, -1, 2048))
+        x = x + self.out(s.reshape(1, 16, n, 128).transpose(1, 2).reshape(1, -1, 2048))
         return x + self.mlp(self.norm2(x))
 
 
@@ -167,8 +171,15 @@ def main():
     export("vae", vae, (pixels,), ["canvas"], ["condition"])
     if args.only_vae:
         return
+    # The actions' temporal positions start at the plan's frame offset, as in generate().
+    plan = policy.model.build_sequence_plan(grid, 16)
     pos = n.get_rope_index(
-        ids, grid, torch.tensor([0.2], device="cuda"), 16, attention_mask=mask
+        ids,
+        grid,
+        torch.tensor([0.2], device="cuda"),
+        16,
+        action_start_frame_offset=plan.action_start_frame_offset,
+        attention_mask=mask,
     )
     u = ll.embed_tokens(ids)
     g = torch.zeros(1, nt + 16, 2048, dtype=u.dtype, device="cuda")
@@ -183,7 +194,8 @@ def main():
     for i, layer in enumerate(ll.layers):
         a = layer.self_attn
         h = layer.input_layernorm(u)
-        ku = a.k_norm_und_for_gen(a.k_proj(h).reshape(1, -1, 8, 128).transpose(1, 2))
+        # Stock MoTAttention: k_norm first, then the generation pathway's own norm.
+        ku = a.k_norm_und_for_gen(a.k_norm(a.k_proj(h).reshape(1, -1, 8, 128)).transpose(1, 2))
         ku = ku * cu[:, None] + rotate_half(ku) * su[:, None]
         vu = a.v_proj(h).reshape(1, -1, 8, 128).transpose(1, 2)
         blocks.append(GenBlock(layer, ku, vu, cg, sg))
@@ -211,7 +223,29 @@ def main():
         x = scheduler.step(basis[i + 1 : i + 2], t, x).prev_sample
         rows.append(x.numpy().copy())
     coeff = np.concatenate(rows)
-    assert np.isfinite(coeff).all()
+    assert np.isfinite(coeff).all() and (coeff[:, 0] == 1).all()
+    # The update on the GPU: x_{k+1} = x_0 + sum_j c_kj v_j over the velocity history,
+    # with the condition frame and the padded action channels masked. ReduceSum, not
+    # MatMul, so TensorRT keeps it FP32 (no TF32).
+    mask = torch.ones(nt * 192 + 16 * 64)
+    mask[: nv * 192] = 0
+    mask[nt * 192 :].view(16, 64)[:, 10:] = 0
+
+    class Combine(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("mask", mask[None])
+
+        def forward(self, history, coeff):
+            return history[:1] + (history[1:] * coeff[1:]).sum(0, keepdim=True) * self.mask
+
+    export(
+        "combine",
+        Combine(),
+        (torch.zeros(len(coeff) + 1, mask.numel()), torch.zeros(len(coeff) + 1, 1)),
+        ["history", "coeff"],
+        ["state"],
+    )
     np.savez(
         out / "fixture.npz",
         canvas=pixels.cpu().numpy(),

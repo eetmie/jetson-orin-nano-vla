@@ -6,13 +6,24 @@ import numpy as np
 from torch import nn
 
 dry = "--dry" in sys.argv
-directory = Path("bf-dry" if dry else "front")
+# --fp32: FP32 graphs for vla_common.fp16_mixed; FP16 engines track an FP32 policy far
+# closer than the stock BF16 autocast does.
+fp32 = "--fp32" in sys.argv
+DT = torch.float32 if fp32 else torch.bfloat16
+directory = Path("bf-dry" if dry else "front32" if fp32 else "front")
 directory.mkdir(exist_ok=True)
 
 
 @torch.inference_mode()
 def main():
     model, b = load_and_prepare(not dry)
+    if fp32:
+        from contextlib import nullcontext
+        from lerobot.policies.lawam.vlas import lawam
+
+        lawam._cuda_autocast = lambda dtype: nullcontext()
+        torch.backends.cuda.matmul.allow_tf32 = False
+        model.float()
     backend = model.model.policy_backend.cuda().eval()
     b = {k: v.cuda() for k, v in b.items()}
     torch.manual_seed(17)
@@ -47,7 +58,7 @@ def main():
     fixed = backend.vlm.get_input_embeddings()(b["input_ids"]).clone()
     fixed[b["act_placeholder_mask"]] = backend.act_query.to(fixed)
     fixed[b["flow_placeholder_mask"]] = backend.flow_action_query.to(fixed)
-    fixed = fixed.bfloat16()
+    fixed = fixed.to(DT)
     ref_context = torch.cat(
         (
             shared.h_t.float(),
@@ -75,7 +86,9 @@ def main():
                 return out.half() if name == "latent" else out.float()
 
         module = Boundary().eval()
-        with torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False):
+        with torch.autocast(
+            "cuda", dtype=torch.bfloat16, cache_enabled=False, enabled=not fp32
+        ):
             values = module(*args)
             if not dry or name in ("vis0", "lang0", "latent", "dino"):
                 torch.onnx.export(
@@ -99,7 +112,7 @@ def main():
         vk["initial"] = args[0]
 
     h = visual.blocks[0].register_forward_pre_hook(capture_vision, with_kwargs=True)
-    visual(torch.zeros_like(pixels).bfloat16(), b["image_grid_thw"])
+    visual(torch.zeros_like(pixels).to(DT), b["image_grid_thw"])
     h.remove()
     from transformers.vision_utils import get_vision_interpolation_indices_and_weights
 
@@ -111,7 +124,7 @@ def main():
         spatial_merge_size=visual.config.spatial_merge_size,
         kwargs={},
     )
-    position_bias = (visual.pos_embed(ix) * wt[:, :, None]).sum(1).bfloat16()
+    position_bias = (visual.pos_embed(ix) * wt[:, :, None]).sum(1).to(DT)
 
     class VisionGroup(nn.Module):
         def __init__(self, i):
@@ -123,7 +136,7 @@ def main():
                 self.patch = visual.patch_embed
 
         def forward(self, x):
-            x = x.bfloat16()
+            x = x.to(DT)
             if self.i == 0:
                 x = self.patch(x) + position_bias
             for block in self.blocks:
@@ -161,7 +174,7 @@ def main():
                 self.norm = ll.norm
 
         def forward(self, x, *deep):
-            x = x.bfloat16()
+            x = x.to(DT)
             if self.start == 0:
                 x = torch.index_copy(fixed, 1, img_indices, x[None])
             for j, l in enumerate(self.layers):
@@ -174,7 +187,7 @@ def main():
                 )
                 if self.start == 0 and j < 3:
                     x = x + torch.index_copy(
-                        torch.zeros_like(x), 1, img_indices, deep[j][None].bfloat16()
+                        torch.zeros_like(x), 1, img_indices, deep[j][None].to(DT)
                     )
             if self.start == 12:
                 x = self.norm(x)
@@ -189,11 +202,12 @@ def main():
     class Dino(nn.Module):
         def __init__(self):
             super().__init__()
-            self.dino = backend.lam.vision_encoder.half()
+            self.dtype = torch.float32 if fp32 else torch.half
+            self.dino = backend.lam.vision_encoder.to(self.dtype)
 
         def forward(self, image):
             with torch.autocast("cuda", enabled=False):
-                return self.dino.encode(image.half(), n=-2)[:, 0]
+                return self.dino.encode(image.to(self.dtype), n=-2)[:, 0]
 
     primary = b["primary_image"].float()
     ht = export("dino", Dino(), (primary,), ["primary"], ["ht"])

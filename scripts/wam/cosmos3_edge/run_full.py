@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import numpy as np
 from rgb import prepare_canvas
 from bench.vendor.groot_trt import Engines
-from bench.vendor.trt_device import Device
+from bench.vendor.trt_device import DevBuf, Device
 from bench.backends.base import Backend, InferResult
 from bench.obs import SyntheticObs
 from bench.runner import run_benchmark, write_result
@@ -22,6 +22,7 @@ class Edge(Backend):
 
     def __init__(self, root):
         self.root = root
+        self.ring_parity = {}
 
     def load(self):
         with np.load(self.root / "fixture.npz") as f:
@@ -31,14 +32,75 @@ class Edge(Backend):
         with np.load(self.root / "observations.npz") as f:
             self.resize = {k: f[k] for k in ("xi", "yi", "xw", "yw", "canvas_hw")}
             self.lo, self.hi = f["lo"], f["hi"]
-        names = ["vae", "first", *GROUPS, "last"]
+        with np.load(self.root / "ring-reference.npz") as f:
+            self.references = {k: f[k].astype(np.float64) for k in f.files}
+        names = ["vae", "first", *GROUPS, "last", "combine"]
         eng = Engines(SimpleNamespace(names=names), self.root)
         d = self.d = Device(eng)
         self.canvas = d.buf_for("vae", "canvas")
         self.condition = d.buf_for("vae", "condition")
-        self.first = {k: d.buf_for("first", k) for k in d.spec("first")}
-        self.ping = [self.first["out"], d.buf_for(GROUPS[0], "out")]
-        self.last = d.outputs("last")
+        first = d.spec("first")
+        self.ping = [d.buf_for("first", "out"), d.buf_for(GROUPS[0], "out")]
+        last = d.spec("last")
+        # The whole 30-step trajectory stays on the GPU: row 0 of `history` is the start
+        # state, row k+1 the velocity of step k, and `combine` makes the next state.
+        self.history = DevBuf(d.spec("combine")["history"][0], np.float32)
+        n = self.history.shape[1] * 4
+        self.split = int(np.prod(first["patches"][0])) * 4
+        self.state = DevBuf((1, self.history.shape[1]), np.float32)
+        d.zero_once(self.history)
+        steps = len(self.times)
+        coeff = DevBuf((steps, steps + 1, 1), np.float32)
+        d.set_once(coeff, self.coeff[:, :, None])
+        times = DevBuf(self.times.shape, np.float32)
+        d.set_once(times, self.times)
+        self.start = DevBuf.view(self.history, 0, (1, self.history.shape[1]))
+
+        def at(buf, offset, tensor, spec):
+            return DevBuf.view(buf, offset, spec[tensor][0])
+
+        self.steps = []
+        for k in range(steps):
+            src = self.history if k == 0 else self.state
+            self.steps.append(
+                dict(
+                    first=dict(
+                        patches=at(src, 0, "patches", first),
+                        actions=at(src, self.split, "actions", first),
+                        time=DevBuf.view(times, k * times.shape[1] * 4, first["time"][0]),
+                        out=self.ping[0],
+                    ),
+                    last=dict(
+                        hidden=self.ping[len(GROUPS) % 2],
+                        video_velocity=at(self.history, (k + 1) * n, "video_velocity", last),
+                        action_velocity=at(
+                            self.history, (k + 1) * n + self.split, "action_velocity", last
+                        ),
+                    ),
+                    combine=dict(
+                        history=self.history,
+                        coeff=DevBuf.view(coeff, k * (steps + 1) * 4, (steps + 1, 1)),
+                        state=self.state,
+                    ),
+                )
+            )
+        self.actions = at(self.state, self.split, "actions", first)
+        self.sample()
+        d.sync()
+        self.graph = d.capture(self.sample)
+
+    def sample(self):
+        for k in self.steps:
+            self.d.enqueue("first", k["first"])
+            for i, name in enumerate(GROUPS):
+                self.d.enqueue(name, dict(hidden=self.ping[i % 2], out=self.ping[1 - i % 2]))
+            self.d.enqueue("last", k["last"])
+            self.d.enqueue("combine", k["combine"])
+        self.d.download(self.actions)
+
+    def close(self):
+        if hasattr(self, "graph"):
+            self.d.destroy_graph(self.graph)
 
     def infer(self, obs):
         start = time.perf_counter()
@@ -61,32 +123,22 @@ class Edge(Backend):
         video[:, 0] = cond
         act = obs.noise.copy()
         act[:, :, 10:] = 0
-        split = video.size
-        state = np.concatenate((video.ravel(), act.ravel()))
-        shape = video.shape
-        history = np.zeros((31, state.size), np.float32)
-        history[0] = state
-        for step, t in enumerate(self.times):
-            self.d.upload(self.first["patches"], state[:split].reshape(shape))
-            self.d.upload(self.first["actions"], state[split:].reshape(act.shape))
-            self.d.upload(self.first["time"], t[None])
-            self.d.enqueue("first", self.first)
-            for i, name in enumerate(GROUPS):
-                self.d.enqueue(
-                    name, dict(hidden=self.ping[i % 2], out=self.ping[1 - i % 2])
+        self.d.upload(self.start, np.concatenate((video.ravel(), act.ravel())))
+        self.d.launch(self.graph)
+        self.d.sync()
+        action = self.actions.host()[0, :, :10].copy()
+        key = str(obs.index)
+        if key in self.references and key not in self.ring_parity:
+            got = action.ravel().astype(np.float64)
+            row = {}
+            for name, ref in (("fp32", key), ("bf16", "bf16/" + key)):
+                want = self.references[ref].ravel()
+                row[name + "_cosine"] = float(
+                    got @ want / (np.linalg.norm(got) * np.linalg.norm(want))
                 )
-            self.d.enqueue("last", dict(hidden=self.ping[len(GROUPS) % 2], **self.last))
-            for value in self.last.values():
-                self.d.download(value)
-            self.d.sync()
-            v = self.last["video_velocity"].host().reshape(shape)
-            a = self.last["action_velocity"].host().reshape(act.shape)
-            v[:, 0] = 0
-            a[:, :, 10:] = 0
-            history[step + 1, :split] = v.ravel()
-            history[step + 1, split:] = a.ravel()
-            state = self.coeff[step, : step + 2] @ history[: step + 2]
-        action = state[split:].reshape(act.shape)[0, :, :10]
+                row[name + "_max_abs"] = float(np.abs(got - want).max())
+            row["fp32_pass"] = row["fp32_cosine"] >= 0.99999
+            self.ring_parity[key] = row
         chunk = (action + 1) * 0.5 * (self.hi - self.lo) + self.lo
         return InferResult(chunk, {"total": (time.perf_counter() - start) * 1000})
 
@@ -99,6 +151,8 @@ class Edge(Backend):
             "prompt_KV": "precomputed for fixed text",
             "canvas": "resize, composite and normalize in timed call",
             "output": "quantile-unnormalized 10D policy actions",
+            "ring_parity": self.ring_parity,
+            "ring_reference": "stock policy FP32 (config default) and BF16, same noise",
         }
 
 

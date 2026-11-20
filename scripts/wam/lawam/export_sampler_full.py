@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch import nn
+from torch.nn import functional as F
 from safetensors import safe_open
 from lerobot.policies.lawam.vlas.flowmatching_expert import (
     ConditionalFlowMatchingConfig,
@@ -11,6 +12,7 @@ from lerobot.policies.lawam.vlas.flowmatching_expert import (
 
 root = Path("full")
 root.mkdir(exist_ok=True)
+torch.backends.cuda.matmul.allow_tf32 = False
 cfg = json.loads(Path("ckpt/config.json").read_text())
 options = ConditionalFlowMatchingConfig()
 for k in vars(options):
@@ -26,6 +28,7 @@ with safe_open("ckpt/model.safetensors", framework="pt", device="cpu") as checkp
         if key.startswith(prefix)
     }
 head.load_state_dict(state, strict=True, assign=True)
+head.float().requires_grad_(False)
 torch.manual_seed(71)
 
 
@@ -37,8 +40,9 @@ ht, future, vlm = rand(1, 256, 768), rand(1, 256, 768), rand(1, 204, 2048)
 noise = rand(1, 50, 32)
 idx = torch.tensor([25])
 hz = torch.tensor([20.0])
-valid = (torch.arange(50) < 8)[None]
-language = (torch.arange(204) < 204)[None]
+# Only the first 8 of the 50 action tokens are valid. They never attend to the padded
+# ones and every other op is per token, so the sampler runs on those 8 alone.
+N = 8
 with torch.inference_mode():
     ref = head.sample_actions_cfg(
         ht,
@@ -50,28 +54,56 @@ with torch.inference_mode():
         idx,
         1.0,
         10,
-        language,
+        (torch.arange(204) < 204)[None],
         noise=noise,
     )
-    context = torch.cat((ht, future, head.enc_vlm(vlm)), dim=1).half()
-    pos = (head.time_encoder(torch.arange(50)[None] / 20.0) * valid[:, :, None]).half()
-    times = head.DiT.timestep_encoder(torch.arange(10) * 100).half()
-    noise = (noise * valid[:, :, None]).half()
+    context = torch.cat((ht, future, head.enc_vlm(vlm)), dim=1)
+    pos = head.time_encoder(torch.arange(N)[None] / 20.0)
+    times = head.DiT.timestep_encoder(torch.arange(10) * 100)
+    noise = noise[:, :N]
     np.savez(
         root / "fixture.npz",
-        context=context.numpy(),
-        pos=pos.numpy(),
-        times=times.numpy(),
-        noise=noise.numpy(),
+        context=context.half().numpy(),
+        pos=pos.half().numpy(),
+        times=times.half().numpy(),
+        noise=noise.half().numpy(),
         reference=ref.numpy(),
     )
+
+blocks = head.DiT.transformer_blocks
+# Cross-attention blocks (even index) alternate text (index % 4 == 0) and image tokens.
+CROSS = [(i, slice(512, 716) if i % 4 == 0 else slice(0, 512)) for i in range(0, 16, 2)]
+
+
+def split_heads(x, attn):
+    return x.view(1, -1, attn.heads, x.shape[-1] // attn.heads).transpose(1, 2)
+
+
+class KV(nn.Module):
+    """Cross-attention keys and values: the context is fixed for all ten steps."""
+
+    def forward(self, context):
+        out = []
+        for i, part in CROSS:
+            a = blocks[i].attn1
+            out += [split_heads(a.to_k(context[:, part]), a), split_heads(a.to_v(context[:, part]), a)]
+        return tuple(out)
+
+
+def cross_block(block, x, k, v, t, pos):
+    # BasicTransformerBlock.forward with AttnProcessor2_0, keys and values precomputed.
+    a = block.attn1
+    h = block.norm1(x, t) + pos
+    o = F.scaled_dot_product_attention(split_heads(a.to_q(h), a), k, v)
+    x = x + a.to_out[0](o.transpose(1, 2).reshape(1, -1, a.inner_dim))
+    return x + block.ff(block.norm3(x))
 
 
 class Group(nn.Module):
     def __init__(self, i):
         super().__init__()
         self.i = i
-        self.blocks = head.DiT.transformer_blocks[4 * i : 4 * i + 4]
+        self.blocks = blocks[4 * i : 4 * i + 4]
         if i == 0:
             self.encoder = head.action_encoder
         if i == 3:
@@ -80,40 +112,48 @@ class Group(nn.Module):
             self.proj = head.DiT.proj_out_2
             self.decoder = head.action_decoder
 
-    def forward(self, x, context, t, pos, actions):
+    def forward(self, x, kt, vt, ki, vi, t, pos, actions):
         if self.i == 0:
-            x = self.encoder(actions, idx) * valid[:, :, None]
+            x = self.encoder(actions, idx)
+        kv = [(kt, vt), (ki, vi)]
         for j, block in enumerate(self.blocks):
-            if j % 2 == 1:
-                x = block(
-                    x, attention_mask=valid, temb=t, hidden_positional_embeddings=pos
-                )
+            if j % 2:
+                x = block(x, temb=t, hidden_positional_embeddings=pos)
             else:
-                # Select the valid context for this mask before cross-attention.
-                c = context[:, 512:716] if j == 0 else context[:, :512]
-                x = block(
-                    x, encoder_hidden_states=c, temb=t, hidden_positional_embeddings=pos
-                )
+                x = cross_block(block, x, *kv[j // 2], t, pos)
         if self.i == 3:
-            shift, scale = self.mod(torch.nn.functional.silu(t)).chunk(2, dim=-1)
+            shift, scale = self.mod(F.silu(t)).chunk(2, dim=-1)
             h = self.proj(self.norm(x) * (1 + scale[:, None]) + shift[:, None])
-            return (actions + 0.1 * self.decoder(h, idx)) * valid[:, :, None]
+            return actions + 0.1 * self.decoder(h, idx)
         return x
 
 
-head.half()
+GROUP_IN = ["x", "kt", "vt", "ki", "vi", "t", "pos", "actions"]
+KV_OUT = [f"{n}{i}" for i in range(4) for n in ("kt", "vt", "ki", "vi")]
 with torch.inference_mode():
-    x = torch.zeros(1, 50, 1024, dtype=torch.float16)
-    for i in range(4):
-        group = Group(i).eval()
-        args = (x, context, times[:1], pos, noise)
+    kv = KV()(context)
+    actions = noise
+    for step in range(10):
+        x = torch.zeros(1, N, 1024)
+        for i in range(4):
+            x = Group(i)(x, *kv[4 * i : 4 * i + 4], times[step : step + 1], pos, actions)
+        actions = x
+    error = (actions - ref[:, :N]).abs().max().item()
+    print("8-token sampler vs stock, max abs", error, flush=True)
+    assert error < 1e-4
+    graphs = [("kv", KV(), (context,), ["context"], KV_OUT)]
+    graphs += [
+        (f"g{i}", Group(i), (torch.zeros(1, N, 1024), *kv[4 * i : 4 * i + 4], times[:1], pos, noise), GROUP_IN, ["out"])
+        for i in range(4)
+    ]
+    # FP32 graphs; vla_common.fp16_mixed --half-io '.*' makes them FP16 (README).
+    for name, module, args, ins, outs in graphs:
         torch.onnx.export(
-            group,
+            module.eval(),
             args,
-            str(root / f"g{i}.onnx"),
-            input_names=["x", "context", "t", "pos", "actions"],
-            output_names=["out"],
+            str(root / f"{name}.onnx"),
+            input_names=ins,
+            output_names=outs,
             dynamo=False,
             opset_version=17,
         )
-        x = group(*args)

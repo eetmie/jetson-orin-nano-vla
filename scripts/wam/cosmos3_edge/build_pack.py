@@ -47,7 +47,9 @@ def main():
     parser.add_argument("root", type=Path)
     parser.add_argument("platform", choices=["spark", "jetson"])
     parser.add_argument("stages", nargs="*")
-    args = parser.parse_args()
+    parser.add_argument("--opt-level", default="1", help="TensorRT builder optimization level")
+    parser.add_argument("--workspace", default="64", help="workspace pool, MiB")
+    args = parser.parse_intermixed_args()
     root = args.root.resolve()
     report = root / (args.platform + "-memory.json")
     memory = json.loads(report.read_text()) if report.exists() else {}
@@ -56,6 +58,7 @@ def main():
         "first",
         *[f"group{i:02d}" for i in range(14)],
         "last",
+        "combine",
     ]
     exe = shutil.which("trtexec") or "/opt/tensorrt/bin/trtexec"
     for stage in stages:
@@ -82,8 +85,8 @@ def main():
                 "--stronglyTyped",
                 "--onnx=" + str(source),
                 "--saveEngine=" + str(tmp),
-                "--builderOptimizationLevel=1",
-                "--memPoolSize=workspace:64",
+                "--builderOptimizationLevel=" + args.opt_level,
+                "--memPoolSize=workspace:" + args.workspace,
                 "--skipInference",
             ]
         start = time.monotonic()

@@ -56,6 +56,44 @@ def rmsnorm_nodes(m: onnx.ModelProto) -> list[str]:
     return [n.name for n in m.graph.node if id(n) in keep]
 
 
+def residual_adds(m: onnx.ModelProto) -> list[str]:
+    """Names of the residual-stream Adds: those feeding a norm (LayerNormalization, or an
+    RMSNorm's Pow/ReduceMean), and the Adds continuing a chain of them. In FP16 a stream
+    carrying outliers (~1e4 in Qwen3) loses whole units per add; kept FP32, it doesn't."""
+    prod = {o: n for n in m.graph.node for o in n.output}
+    cons: dict[str, list] = {}
+    for n in m.graph.node:
+        for i in n.input:
+            cons.setdefault(i, []).append(n)
+
+    # The stream passes through traced dtype Casts (e.g. Qwen's RMSNorm upcast): skip them.
+    def readers(x):
+        for c in cons.get(x, []):
+            yield from readers(c.output[0]) if c.op_type == "Cast" else [c]
+
+    def writer(x):
+        p = prod.get(x)
+        return writer(p.input[0]) if p is not None and p.op_type == "Cast" else p
+
+    norm = {"LayerNormalization", "Pow", "ReduceMean"}
+    consts = {i.name for i in m.graph.initializer}
+    consts |= {o for n in m.graph.node if n.op_type == "Constant" for o in n.output}
+    adds = [n for n in m.graph.node if n.op_type == "Add"]
+    keep = {id(n) for n in adds if any(c.op_type in norm for c in readers(n.output[0]))}
+    grown = True
+    while grown:
+        # A bias Add (one constant input) feeding the stream is not part of it.
+        new = {id(n) for n in adds if id(n) not in keep and (
+            any(id(writer(i)) in keep for i in n.input)
+            or not consts & set(n.input) and any(id(c) in keep for c in readers(n.output[0])))}
+        keep |= new
+        grown = bool(new)
+    for i, n in enumerate(m.graph.node):
+        if id(n) in keep and not n.name:
+            n.name = f"residual_fp32_{i}"
+    return [n.name for n in m.graph.node if id(n) in keep]
+
+
 def strip_fp16_roundtrips(m: onnx.ModelProto) -> int:
     """Remove Cast(FP32->FP16) -> Cast(->FP32) pairs; consumers read the FP32 source."""
     typed = onnx.shape_inference.infer_shapes(m)
@@ -131,7 +169,8 @@ def dedupe_casts(m: onnx.ModelProto) -> int:
     return dropped
 
 
-def convert(src: Path, dst: Path, half_io: str | None = None) -> dict:
+def convert(src: Path, dst: Path, half_io: str | None = None,
+            fp32_residual: bool = False) -> dict:
     from onnxruntime.transformers import float16
     from onnxruntime.transformers.onnx_model import OnnxModel
 
@@ -140,6 +179,7 @@ def convert(src: Path, dst: Path, half_io: str | None = None) -> dict:
     # inference in the round-trip pass rejects the disagreement.
     del m.graph.value_info[:]
     norms = rmsnorm_nodes(m)
+    residual = residual_adds(m) if fp32_residual else []
     keep = True
     if half_io:
         # I/O matching half_io is FP16 at the engine boundary; everything else stays FP32.
@@ -147,7 +187,7 @@ def convert(src: Path, dst: Path, half_io: str | None = None) -> dict:
         names = [v.name for v in list(m.graph.input) + list(m.graph.output)]
         keep = [n for n in names if not pattern.fullmatch(n)]
     out = float16.convert_float_to_float16(
-        m, keep_io_types=keep, node_block_list=norms,
+        m, keep_io_types=keep, node_block_list=norms + residual,
         op_block_list=list(float16.DEFAULT_OP_BLOCK_LIST) + list(FP16_SENSITIVE_OPS))
     stripped = strip_fp16_roundtrips(out)
     # save_model_to_file sorts topologically (keep_io_types appends input Casts last).
@@ -158,7 +198,8 @@ def convert(src: Path, dst: Path, half_io: str | None = None) -> dict:
     om.save_model_to_file(str(tmp), use_external_data_format=False)
     onnx.checker.check_model(str(tmp))
     tmp.replace(dst)
-    return {"rmsnorm_nodes": len(norms), "roundtrips_removed": stripped,
+    return {"rmsnorm_nodes": len(norms), "residual_adds": len(residual),
+            "roundtrips_removed": stripped,
             "duplicates_dropped": deduped}
 
 
@@ -172,6 +213,8 @@ def main() -> None:
     ap.add_argument("--half-io", metavar="REGEX",
                     help="graph inputs/outputs whose whole name matches stay FP16 at the "
                          "boundary (e.g. a KV cache passed between two engines)")
+    ap.add_argument("--fp32-residual", action="store_true",
+                    help="keep the residual stream (Adds feeding a norm) FP32")
     ap.add_argument("--outputs-only", action="store_true",
                     help="graphs are already mixed: only remove FP32->FP16->FP32 round trips "
                          "(including those in front of graph outputs)")
@@ -194,7 +237,7 @@ def main() -> None:
         src = a.bundle / g
         data = src.with_name(src.name + ".data")
         before = src.stat().st_size + (data.stat().st_size if data.exists() else 0)
-        r = convert(src, src, a.half_io)
+        r = convert(src, src, a.half_io, a.fp32_residual)
         data.unlink(missing_ok=True)
         sizes[g] = round(src.stat().st_size / 1e6, 1)
         print(f"  {g:30s} {before / 1e6:5.0f} MB -> {sizes[g]:5.0f} MB  {r}")

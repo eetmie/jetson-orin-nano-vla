@@ -15,8 +15,11 @@ from bench.vendor.trt_device import DevBuf, Device
 
 TASK = "Pick up the cube."
 FRONT = (
-    [f"vis{i}" for i in range(4)] + [f"lang{i}" for i in range(4)] + ["dino", "latent"]
+    [f"vis{i}" for i in range(4)]
+    + [f"lang{i}" for i in range(4)]
+    + ["dino", "latent", "kv"]
 )
+KV = ("kt", "vt", "ki", "vi")
 FLOW = [f"g{i}" for i in range(4)]
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)[:, None, None]
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)[:, None, None]
@@ -65,7 +68,7 @@ class LaWAMProbe(Backend):
         with np.load(self.bundle / "input.npz") as f:
             for key in ("pixels", "primary"):
                 self.bound[key].host()[...] = f[key]
-            self.initial.host()[...] = f["noise"]
+            self.initial.host()[...] = f["noise"][:, : self.initial.shape[1]]
             reference = f["reference"].astype(np.float64)
         with np.load(self.bundle / "ring-reference.npz") as refs:
             self.references = {
@@ -75,8 +78,13 @@ class LaWAMProbe(Backend):
             self.sdpa_references = {
                 int(index): refs[index].astype(np.float64) for index in refs.files
             }
+        with np.load(self.bundle / "ring-fp32-reference.npz") as refs:
+            self.fp32_references = {
+                int(index): refs[index].astype(np.float64) for index in refs.files
+            }
         self.enqueue()
         self.device.sync()
+        # The front stays uncaptured: TensorRT's lang0 engine fails inside stream capture.
         self.graph = self.device.capture(self.enqueue_flow)
         self.enqueue_front()
         self.device.launch(self.graph)
@@ -109,7 +117,7 @@ class LaWAMProbe(Backend):
             "rmse": float(np.sqrt(np.mean((actual - reference) ** 2))),
             "threshold": 0.99999,
             "pass": cosine >= 0.99999,
-            "reference": "LeRobot LaWAM normalized 8x7 action chunk, observation 0",
+            "reference": "FP32 LeRobot LaWAM normalized 8x7 action chunk, observation 0",
         }
         if cosine < 0.99999:
             context = self.bound["context"]
@@ -143,6 +151,7 @@ class LaWAMProbe(Backend):
                         "pos": self.pos,
                         "actions": actions,
                         "out": out,
+                        **{k: self.bound[f"{k}{i}"] for k in KV},
                     },
                 )
             actions = out
@@ -166,6 +175,10 @@ class LaWAMProbe(Backend):
             cosine = float(
                 np.dot(actual, ref) / (np.linalg.norm(actual) * np.linalg.norm(ref))
             )
+            fp32 = self.fp32_references[obs.index].reshape(-1)
+            fp32_cosine = float(
+                np.dot(actual, fp32) / (np.linalg.norm(actual) * np.linalg.norm(fp32))
+            )
             sdpa = self.sdpa_references[obs.index].reshape(-1)
             sdpa_cosine = float(
                 np.dot(actual, sdpa) / (np.linalg.norm(actual) * np.linalg.norm(sdpa))
@@ -176,6 +189,9 @@ class LaWAMProbe(Backend):
                 "sdpa_cosine": sdpa_cosine,
                 "sdpa_max_abs": float(np.max(np.abs(sdpa - actual))),
                 "sdpa_pass": sdpa_cosine >= 0.99999,
+                "fp32_cosine": fp32_cosine,
+                "fp32_max_abs": float(np.max(np.abs(fp32 - actual))),
+                "fp32_pass": fp32_cosine >= 0.99999,
             }
         actions = np.clip(normalized, -1, 1)
         actions[:, :6] = (actions[:, :6] + 1) / 2 * (self.hi - self.lo) + self.lo
