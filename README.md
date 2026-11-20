@@ -6,6 +6,9 @@ copy the bundle to the Jetson and run the model.
 
 This repo is for benchmarking only. It measures how fast the models run on the board, and it does not provide the code to drive a robot with them. Use this as a base for your own projects.
 
+
+## Vision-language-action models
+
 | model | checkpoint | cameras | p50 | rate | RAM in use |
 |---|---|---:|---:|---:|---:|
 | [SmolVLA 450M](results/smolvla-base.json) | [`lerobot/smolvla_base`](https://huggingface.co/lerobot/smolvla_base) | 2 | 107.55 ms | 9.30 Hz | 1.78 GB |
