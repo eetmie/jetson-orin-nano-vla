@@ -1,0 +1,99 @@
+{
+  "checkpoint": "jialei02/lawam-libero-sft-lerobot",
+  "checkpoint_revision": "f3d7b131bf612127a6e384ea84f563bc23564832",
+  "checkpoint_sha256": "ff0eb4a084a1b6c51fb2a0541ee258d12688ec3db83975b6d7edcc6c2f1adc54",
+  "lerobot_revision": "83883ae60a8e1682552b6853e4170c74d83a4525",
+  "prompt": "Pick up the cube.",
+  "rgb_views": 2,
+  "resolution": [
+    256,
+    256
+  ],
+  "language_tokens": 204,
+  "embodiment": 25,
+  "flow_steps": 10,
+  "action_hz": 20,
+  "action_shape": [
+    8,
+    7
+  ],
+  "files": {
+    "dino.onnx": {
+      "bytes": 314852212,
+      "sha256": "2829f891074db11e689b7e4019dc3a50436c881f9aca5239a4f24cebf3c79758"
+    },
+    "lang0.onnx": {
+      "bytes": 407306607,
+      "sha256": "9e6808ceff40b165999d4f37487aa513424f3df020ed6f138508c1ccbea065c7"
+    },
+    "lang1.onnx": {
+      "bytes": 403952488,
+      "sha256": "cc32f78b5159a23662833fe3d35b076d1e6d9165c8559a462ba3266d4ea2b226"
+    },
+    "lang2.onnx": {
+      "bytes": 403952488,
+      "sha256": "3f763d2912a8e75d20808826ce74ebea669c61cb58d7a4c462a50d3cfaea0246"
+    },
+    "lang3.onnx": {
+      "bytes": 403957824,
+      "sha256": "7b8adcd0ef42898d6a6700d78bb8294477e8d654ba24bc6dcd8f8a5557289e13"
+    },
+    "latent.onnx": {
+      "bytes": 464723310,
+      "sha256": "c92c68c23f80cade1f228e89f722ec629a0703a27fa9b073b59cf3821fbccb7d"
+    },
+    "vis0.onnx": {
+      "bytes": 209028245,
+      "sha256": "2ccd90fe3cf47e311f69c9f32ae9a00711df155166cb5412eae1351d36c74c74"
+    },
+    "vis1.onnx": {
+      "bytes": 204830747,
+      "sha256": "0cf8af6b3149081558879b4fa062bb2c8b6f146a67e618b43ab8bdf4440a730e"
+    },
+    "vis2.onnx": {
+      "bytes": 204830747,
+      "sha256": "04fe00b40acd6e84bdb8e3c54908b5c584ae88f2fbaba9ddb185d113ee4352ac"
+    },
+    "vis3.onnx": {
+      "bytes": 204805820,
+      "sha256": "1d6541705db4743de9622547dcc8280db955f73e97fa545d1139ed8be2ce6b42"
+    },
+    "g0.onnx": {
+      "bytes": 117691666,
+      "sha256": "4021b348d2017cb50dcf8a05f1e94b06654d6638f366f0d9525fdad9c909a4ef"
+    },
+    "g1.onnx": {
+      "bytes": 115523918,
+      "sha256": "11ea1047303e90bb6bcdfce2d384473fcd16af5012e072877152751356b1c7a7"
+    },
+    "g2.onnx": {
+      "bytes": 115523918,
+      "sha256": "90cfd18a818587ff2bd7162c7c205198fe0528ae16e912192c5d42ce62cb28ca"
+    },
+    "g3.onnx": {
+      "bytes": 123994051,
+      "sha256": "8cdf8f737c4ec0641d51a5afd4ff5410583080e066b339da82481219e7f77096"
+    },
+    "input.npz": {
+      "bytes": 3936588,
+      "sha256": "a30be2e00f8c7395d50a97e1c55e8575e4cf459137887f8e53a8324dcbdaa7af"
+    },
+    "fixture.npz": {
+      "bytes": 1228120,
+      "sha256": "0f3fa0b21dcd07ee803e34abaac4303913d639bf93b1deb7a15e8924affcefe3"
+    },
+    "post.npz": {
+      "bytes": 550,
+      "sha256": "f4d3d85685e5c987733550ffa9d39f6d76cf139a23cc10dd4b9ea32cb78b4540"
+    },
+    "ring-reference.npz": {
+      "bytes": 1856,
+      "sha256": "cdb93899e501b19adb0dbbb31ea37faf64d4858a40a3b187e7a5445ec3c416c8"
+    },
+    "ring-sdpa-reference.npz": {
+      "bytes": 1856,
+      "sha256": "dd09f0ba89cd44ad8dcb945f65f27200acba959d5505fb427e2545a643363c2e"
+    }
+  },
+  "dino_export": "native BF16 autocast, torch.export ONNX"
+}

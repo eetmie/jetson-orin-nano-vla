@@ -1,0 +1,38 @@
+{
+  "checkpoint": "lerobot/Cosmos3-Edge-Policy-LIBERO",
+  "checkpoint_revision": "9d4de4350e416c12babc9a42db01ab0c5df9f82f",
+  "lerobot_revision": "83883ae60a8e1682552b6853e4170c74d83a4525",
+  "prompt": "Pick up the cube.",
+  "camera_count": 2,
+  "camera_shape": [
+    256,
+    256,
+    3
+  ],
+  "action_shape": [
+    16,
+    10
+  ],
+  "denoising_steps": 30,
+  "portable_file_sha256": {
+    "vae.onnx": "57708e01fddb6d214c1df853f5c5fba48820225932b60dd3268d9b91e7beac3a",
+    "first.onnx": "45b5433c5cfd250752c399f2808fc324b04236c9c2a3b4159dcfdf79d6477c35",
+    "group00.onnx": "75e1c03dbea83c6aa4abe7c005afdc374d7e650045e58f8236429889bfaadd62",
+    "group01.onnx": "201136f0a8c5d047ef1dda09c7e792518de3b01e08821df8cfe1740cd74125bf",
+    "group02.onnx": "f4e4f46705b88c2c6c812aef51de43dff6c1e2aa4f76a068a048808f794e21e5",
+    "group03.onnx": "5bda7e936c53c3ffe368be3ab18d8311a2d5120ba7e59bff87cad3d079c51774",
+    "group04.onnx": "9019085875d8cf38f9575734bd439692769988df5805a2547d7314439c30c37f",
+    "group05.onnx": "53ea2e677b40ec8414193655308529309dbc553d63918af4254c1f9599e08a8f",
+    "group06.onnx": "8b78481b8c43e1c02d5a12970e4e1903202c60c48ca34806028c7d62fa6449ff",
+    "group07.onnx": "7c23a152a60405198a249d54bbb24edc1868096cc77303e27ec53818a155f163",
+    "group08.onnx": "e885c9877057464e3ec9bb8caa27aa89377c90f0f3cdf4a0669634c962dc5d84",
+    "group09.onnx": "9c0fdbf5ed1dd7cc9c9fde929bcb8343d86018096eaae1775eace0d6cb49349a",
+    "group10.onnx": "752cebd249e5194a0aa3242880f367f69e62a89eba11597fda65010e430b6072",
+    "group11.onnx": "9118e409ee9db5beefb55e4fd75f66b7bec0017b0785a3f0223a2989d0949be8",
+    "group12.onnx": "8309197c0a43ca166026b43e47f88160805ab804045a87bb026e8bb41d15400c",
+    "group13.onnx": "89cd4188d76ebb195dba6e0ccdd74efed73b44c1b1256389e0f7016004bb74f3",
+    "last.onnx": "917d15fddda257fc2680512380aaae75a1d41d642ea39b7eace0526d4e1eb49c",
+    "fixture.npz": "5ae98536005d2da81183d7c1766307e6853342f4eb620cdddee1d84c4b3bc67a",
+    "observations.npz": "3f9c942f70e7214c0cd9f6e72284b714f4b7220eeceb467c5811c620ea2635cd"
+  }
+}

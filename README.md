@@ -25,6 +25,15 @@ Exported models are generally mostly FP16 because that's what Orin Nano supports
 **Custom checkpoint support is experimental.** ~20 Fine-tunes from the Hugging Face Hub
 passed stock-policy parity and 30-second runs on the Orin Nano. Triton patches are sadly only available for the base ones at the moment, though single-view SmolVLA still ran at almost 12hz. Pretty cool, and there's still room for improvement!
 
+## World-action models
+
+Five-minute Orin Nano runs with two synthetic cameras and a fixed prompt. LaWAM fell below the VLA parity threshold. Cosmos3-Edge parity is untested. [Benchmark scripts](scripts/wam/)
+
+| model | action chunk | denoising steps | p50 per chunk | chunks/s | mean board RAM |
+|---|---:|---:|---:|---:|---:|
+| [LaWAM LIBERO](results/lawam-libero-poc.json) | 8 × 7 | 10 | 216.45 ms | 4.60 | 4.27 GiB |
+| [Cosmos3-Edge LIBERO](results/cosmos3-edge-libero-poc.json) | 16 × 10 | 30 | 4097.78 ms | 0.24 | 3.77 GiB |
+
 ## Use
 
 Both machines need [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`

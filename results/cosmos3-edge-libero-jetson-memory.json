@@ -1,0 +1,108 @@
+{
+  "first": {
+    "peak_bytes": 2586054656,
+    "elapsed_s": 5.429103657021187,
+    "sha256": "45b5433c5cfd250752c399f2808fc324b04236c9c2a3b4159dcfdf79d6477c35",
+    "engine_bytes": 1120852
+  },
+  "group00": {
+    "peak_bytes": 3240157184,
+    "elapsed_s": 9.748729219078086,
+    "sha256": "75e1c03dbea83c6aa4abe7c005afdc374d7e650045e58f8236429889bfaadd62",
+    "engine_bytes": 202947484
+  },
+  "group01": {
+    "peak_bytes": 3309678592,
+    "elapsed_s": 9.647399867069907,
+    "sha256": "201136f0a8c5d047ef1dda09c7e792518de3b01e08821df8cfe1740cd74125bf",
+    "engine_bytes": 202947484
+  },
+  "group02": {
+    "peak_bytes": 3167219712,
+    "elapsed_s": 9.748313443968073,
+    "sha256": "f4e4f46705b88c2c6c812aef51de43dff6c1e2aa4f76a068a048808f794e21e5",
+    "engine_bytes": 202947484
+  },
+  "group03": {
+    "peak_bytes": 3146969088,
+    "elapsed_s": 9.643414663034491,
+    "sha256": "5bda7e936c53c3ffe368be3ab18d8311a2d5120ba7e59bff87cad3d079c51774",
+    "engine_bytes": 202947484
+  },
+  "group04": {
+    "peak_bytes": 3141570560,
+    "elapsed_s": 9.644698174088262,
+    "sha256": "9019085875d8cf38f9575734bd439692769988df5805a2547d7314439c30c37f",
+    "engine_bytes": 202947484
+  },
+  "group05": {
+    "peak_bytes": 3273162752,
+    "elapsed_s": 9.647676386055537,
+    "sha256": "53ea2e677b40ec8414193655308529309dbc553d63918af4254c1f9599e08a8f",
+    "engine_bytes": 202947484
+  },
+  "group06": {
+    "peak_bytes": 3253411840,
+    "elapsed_s": 9.849754953989759,
+    "sha256": "8b78481b8c43e1c02d5a12970e4e1903202c60c48ca34806028c7d62fa6449ff",
+    "engine_bytes": 202947484
+  },
+  "group07": {
+    "peak_bytes": 3235086336,
+    "elapsed_s": 9.647384311072528,
+    "sha256": "7c23a152a60405198a249d54bbb24edc1868096cc77303e27ec53818a155f163",
+    "engine_bytes": 202947484
+  },
+  "group08": {
+    "peak_bytes": 3126472704,
+    "elapsed_s": 9.848213874036446,
+    "sha256": "e885c9877057464e3ec9bb8caa27aa89377c90f0f3cdf4a0669634c962dc5d84",
+    "engine_bytes": 202947484
+  },
+  "group09": {
+    "peak_bytes": 3279736832,
+    "elapsed_s": 9.748225621995516,
+    "sha256": "9c0fdbf5ed1dd7cc9c9fde929bcb8343d86018096eaae1775eace0d6cb49349a",
+    "engine_bytes": 202947484
+  },
+  "group10": {
+    "peak_bytes": 3258966016,
+    "elapsed_s": 9.75065666588489,
+    "sha256": "752cebd249e5194a0aa3242880f367f69e62a89eba11597fda65010e430b6072",
+    "engine_bytes": 202947484
+  },
+  "group11": {
+    "peak_bytes": 3327791104,
+    "elapsed_s": 9.74587330094073,
+    "sha256": "9118e409ee9db5beefb55e4fd75f66b7bec0017b0785a3f0223a2989d0949be8",
+    "engine_bytes": 202947484
+  },
+  "group12": {
+    "peak_bytes": 3152629760,
+    "elapsed_s": 9.848926233011298,
+    "sha256": "8309197c0a43ca166026b43e47f88160805ab804045a87bb026e8bb41d15400c",
+    "engine_bytes": 202970364
+  },
+  "group13": {
+    "peak_bytes": 3253428224,
+    "elapsed_s": 9.751337366993539,
+    "sha256": "89cd4188d76ebb195dba6e0ccdd74efed73b44c1b1256389e0f7016004bb74f3",
+    "engine_bytes": 202947484
+  },
+  "vae": {
+    "peak_bytes": 3510624256,
+    "elapsed_s": 19.756436993950047,
+    "sha256": "57708e01fddb6d214c1df853f5c5fba48820225932b60dd3268d9b91e7beac3a",
+    "engine_bytes": 297065244
+  },
+  "last": {
+    "peak_bytes": 2660540416,
+    "elapsed_s": 5.622962843975984,
+    "sha256": "917d15fddda257fc2680512380aaae75a1d41d642ea39b7eace0526d4e1eb49c",
+    "engine_bytes": 1115036
+  },
+  "run": {
+    "peak_bytes": 4413435904,
+    "elapsed_s": 316.0412788268877
+  }
+}
